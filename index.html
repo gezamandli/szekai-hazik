@@ -2,304 +2,201 @@
 <html lang="hu">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Házi Feladat Nyilvántartó</title>
 <style>
-  :root {
-    --bg: #f0f4f8;
-    --card: #ffffff;
-    --accent: #3b6fd4;
-    --accent2: #e8501a;
-    --text: #1a1f2e;
-    --muted: #6b7280;
-    --border: #d1d9e6;
-    --green: #16a34a;
-    --yellow: #ca8a04;
-    --red: #dc2626;
-    --tag-bg: #e8eef8;
-  }
+:root {
+  --bg: #f5f6fa;
+  --card: #ffffff;
+  --accent: #2563eb;
+  --accent-light: #eff6ff;
+  --accent2: #ea580c;
+  --text: #111827;
+  --muted: #6b7280;
+  --border: #e5e7eb;
+  --green: #16a34a;
+  --yellow: #d97706;
+  --red: #dc2626;
+  --radius: 14px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body { font-family: -apple-system, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 16px; }
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+/* ── Header ── */
+header {
+  background: var(--accent);
+  color: white;
+  padding: 14px 16px 10px;
+  position: sticky; top: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  box-shadow: 0 2px 12px rgba(37,99,235,.35);
+}
+header h1 { font-size: 17px; font-weight: 800; letter-spacing: -.3px; }
+header .sub { font-size: 11px; opacity: .75; margin-top: 2px; }
+.icon-btn { background: rgba(255,255,255,.2); border: none; color: white; border-radius: 9px; padding: 7px 11px; font-size: 16px; cursor: pointer; }
 
-  body {
-    font-family: 'Segoe UI', system-ui, sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    font-size: 16px;
-  }
+/* ── Tabs ── */
+.tab-bar { display: flex; background: white; border-bottom: 2px solid var(--border); position: sticky; top: 65px; z-index: 99; }
+.tab { flex: 1; padding: 11px 4px; text-align: center; font-size: 12px; font-weight: 700; color: var(--muted); cursor: pointer; border-bottom: 3px solid transparent; transition: all .15s; }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
 
-  header {
-    background: var(--accent);
-    color: white;
-    padding: 16px 20px 12px;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    box-shadow: 0 2px 8px rgba(59,111,212,0.3);
-  }
+/* ── Views ── */
+.view { display: none; padding: 14px; padding-bottom: 90px; }
+.view.active { display: block; }
 
-  header h1 { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; }
-  header .subtitle { font-size: 12px; opacity: 0.8; margin-top: 2px; }
+/* ── Cards ── */
+.hw-card { background: var(--card); border-radius: var(--radius); padding: 14px; margin-bottom: 10px; border: 1px solid var(--border); box-shadow: 0 1px 4px rgba(0,0,0,.05); cursor: pointer; }
+.hw-card:active { box-shadow: 0 0 0 2px var(--accent); }
+.hw-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.hw-subject { font-weight: 800; font-size: 15px; }
+.hw-badge { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 20px; white-space: nowrap; }
+.due-ok { background: #dcfce7; color: var(--green); }
+.due-soon { background: #fef3c7; color: var(--yellow); }
+.due-past { background: #fee2e2; color: var(--red); }
+.hw-desc { font-size: 14px; color: #374151; margin-top: 6px; line-height: 1.45; }
+.hw-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; align-items: center; }
+.hw-tag { font-size: 11px; background: var(--accent-light); color: var(--accent); padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+.hw-who { font-size: 11px; color: var(--muted); margin-left: auto; }
+.thumb-row { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+.thumb { width: 60px; height: 60px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); }
+.thumb-count { width: 60px; height: 60px; border-radius: 8px; background: var(--accent-light); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: var(--accent); border: 1px solid var(--border); }
 
-  .tab-bar {
-    display: flex;
-    background: white;
-    border-bottom: 2px solid var(--border);
-    position: sticky;
-    top: 68px;
-    z-index: 99;
-  }
+/* ── Filter ── */
+.filter-bar { display: flex; gap: 7px; margin-bottom: 12px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+.filter-bar::-webkit-scrollbar { display: none; }
+.chip { white-space: nowrap; padding: 6px 13px; border-radius: 20px; font-size: 12px; font-weight: 700; border: 2px solid var(--border); background: white; color: var(--muted); cursor: pointer; }
+.chip.active { background: var(--accent); border-color: var(--accent); color: white; }
 
-  .tab {
-    flex: 1;
-    padding: 12px 8px;
-    text-align: center;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--muted);
-    cursor: pointer;
-    border-bottom: 3px solid transparent;
-    transition: all 0.15s;
-  }
-  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+/* ── FAB ── */
+.fab { position: fixed; bottom: 24px; right: 18px; width: 58px; height: 58px; border-radius: 50%; background: var(--accent2); color: white; font-size: 30px; border: none; cursor: pointer; box-shadow: 0 4px 18px rgba(234,88,12,.45); display: flex; align-items: center; justify-content: center; z-index: 200; }
+.fab:active { transform: scale(.93); }
 
-  .view { display: none; padding: 16px; }
-  .view.active { display: block; }
+/* ── Modal ── */
+.overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 300; align-items: flex-end; justify-content: center; }
+.overlay.open { display: flex; }
+.modal { background: white; border-radius: 20px 20px 0 0; padding: 18px 18px 44px; width: 100%; max-width: 560px; max-height: 92vh; overflow-y: auto; animation: up .22s ease; }
+@keyframes up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.handle { width: 38px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 14px; }
+.modal-title { font-size: 19px; font-weight: 800; margin-bottom: 14px; }
 
-  /* Cards */
-  .hw-card {
-    background: var(--card);
-    border-radius: 12px;
-    padding: 14px 16px;
-    margin-bottom: 10px;
-    border: 1px solid var(--border);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-    cursor: pointer;
-    transition: box-shadow 0.15s;
-  }
-  .hw-card:active { box-shadow: 0 0 0 2px var(--accent); }
+/* ── Form ── */
+.field { margin-bottom: 13px; }
+.field label { display: block; font-size: 12px; font-weight: 700; color: var(--muted); margin-bottom: 5px; text-transform: uppercase; letter-spacing: .5px; }
+.field input, .field textarea, .field select {
+  width: 100%; padding: 12px 13px; border: 2px solid var(--border); border-radius: 10px;
+  font-size: 15px; font-family: inherit; color: var(--text); background: white;
+  transition: border-color .15s; -webkit-appearance: none; appearance: none;
+}
+.field input:focus, .field textarea:focus, .field select:focus { outline: none; border-color: var(--accent); }
+.field textarea { resize: vertical; min-height: 75px; }
 
-  .hw-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
-  .hw-subject { font-weight: 700; font-size: 15px; }
-  .hw-due {
-    font-size: 12px;
-    font-weight: 600;
-    padding: 3px 8px;
-    border-radius: 20px;
-    white-space: nowrap;
-  }
-  .due-soon { background: #fef3c7; color: var(--yellow); }
-  .due-ok { background: #dcfce7; color: var(--green); }
-  .due-past { background: #fee2e2; color: var(--red); }
+/* ── Image picker ── */
+.img-picker-area {
+  border: 2px dashed var(--border); border-radius: 12px; padding: 18px;
+  text-align: center; color: var(--muted); cursor: pointer; transition: border-color .15s; background: var(--bg);
+}
+.img-picker-area:hover { border-color: var(--accent); }
+.img-picker-area .icon { font-size: 32px; margin-bottom: 6px; }
+.img-picker-area p { font-size: 14px; font-weight: 600; }
+.img-picker-area small { font-size: 12px; }
+.preview-grid { display: grid; grid-template-columns: repeat(auto-fill, 80px); gap: 8px; margin-top: 10px; }
+.preview-wrap { position: relative; }
+.preview-wrap img { width: 80px; height: 80px; object-fit: cover; border-radius: 9px; border: 1px solid var(--border); display: block; }
+.preview-wrap .rm { position: absolute; top: -6px; right: -6px; background: var(--red); color: white; border: none; border-radius: 50%; width: 22px; height: 22px; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 
-  .hw-desc { font-size: 14px; color: var(--muted); margin-top: 6px; line-height: 1.4; }
+/* ── Buttons ── */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 12px 18px; border-radius: 11px; font-size: 14px; font-weight: 700; border: none; cursor: pointer; transition: opacity .15s, transform .1s; }
+.btn:active { transform: scale(.97); }
+.btn-primary { background: var(--accent); color: white; }
+.btn-secondary { background: white; color: var(--accent); border: 2px solid var(--accent); }
+.btn-danger { background: var(--red); color: white; }
+.btn-green { background: var(--green); color: white; }
+.btn-full { width: 100%; }
+.btn-row { display: flex; gap: 9px; margin-top: 10px; }
 
-  .hw-meta { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; align-items: center; }
-  .hw-tag {
-    font-size: 11px;
-    background: var(--tag-bg);
-    color: var(--accent);
-    padding: 2px 8px;
-    border-radius: 10px;
-    font-weight: 500;
-  }
-  .hw-uploader { font-size: 12px; color: var(--muted); margin-left: auto; }
+/* ── Messenger box ── */
+.msg-box { background: #f0f2f5; border-radius: 11px; padding: 14px; font-size: 14px; line-height: 1.65; white-space: pre-wrap; word-break: break-word; color: #1c1e21; margin-bottom: 12px; border: 1px solid #dde0e4; }
+.fb-btn { width: 100%; padding: 13px; background: #1877f2; color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 800; cursor: pointer; margin-bottom: 9px; display: flex; align-items: center; justify-content: center; gap: 8px; }
 
-  /* Buttons */
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 10px 18px;
-    border-radius: 10px;
-    font-size: 14px;
-    font-weight: 600;
-    border: none;
-    cursor: pointer;
-    transition: opacity 0.15s, transform 0.1s;
-  }
-  .btn:active { transform: scale(0.97); }
-  .btn-primary { background: var(--accent); color: white; }
-  .btn-secondary { background: white; color: var(--accent); border: 2px solid var(--accent); }
-  .btn-danger { background: var(--red); color: white; }
-  .btn-green { background: var(--green); color: white; }
-  .btn-full { width: 100%; justify-content: center; }
+/* ── Setup screen ── */
+.setup-screen { display: none; position: fixed; inset: 0; background: var(--accent); z-index: 500; flex-direction: column; align-items: center; justify-content: center; padding: 28px; }
+.setup-screen.show { display: flex; }
+.setup-box { background: white; border-radius: 20px; padding: 26px 22px; width: 100%; max-width: 420px; }
+.setup-logo { font-size: 48px; text-align: center; margin-bottom: 10px; }
+.setup-title { font-size: 22px; font-weight: 900; text-align: center; margin-bottom: 4px; }
+.setup-sub { font-size: 14px; color: var(--muted); text-align: center; margin-bottom: 20px; line-height: 1.5; }
+.setup-steps { font-size: 13px; color: var(--muted); margin-bottom: 16px; background: var(--bg); border-radius: 10px; padding: 12px 14px; line-height: 1.8; }
+.setup-steps a { color: var(--accent); }
 
-  /* FAB */
-  .fab {
-    position: fixed;
-    bottom: 24px;
-    right: 20px;
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    background: var(--accent2);
-    color: white;
-    font-size: 28px;
-    border: none;
-    cursor: pointer;
-    box-shadow: 0 4px 16px rgba(229,80,26,0.4);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 200;
-    transition: transform 0.15s;
-  }
-  .fab:active { transform: scale(0.93); }
+/* ── Toast ── */
+.toast { position: fixed; bottom: 88px; left: 50%; transform: translateX(-50%) translateY(16px); background: #111827; color: white; padding: 10px 20px; border-radius: 24px; font-size: 14px; font-weight: 600; opacity: 0; transition: all .28s; z-index: 600; white-space: nowrap; pointer-events: none; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-  /* Modal */
-  .modal-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.5);
-    z-index: 300;
-    align-items: flex-end;
-    justify-content: center;
-  }
-  .modal-overlay.open { display: flex; }
+/* ── Upload progress ── */
+.progress-bar { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; margin-top: 8px; }
+.progress-fill { height: 100%; background: var(--accent); width: 0; transition: width .3s; }
 
-  .modal {
-    background: white;
-    border-radius: 20px 20px 0 0;
-    padding: 20px 20px 40px;
-    width: 100%;
-    max-width: 540px;
-    max-height: 90vh;
-    overflow-y: auto;
-    animation: slideUp 0.25s ease;
-  }
-  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.section-label { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .7px; color: var(--muted); margin-bottom: 9px; margin-top: 2px; }
+.empty { text-align: center; padding: 44px 20px; color: var(--muted); }
+.empty .ico { font-size: 44px; margin-bottom: 10px; }
 
-  .modal-handle { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 16px; }
-  .modal-title { font-size: 18px; font-weight: 700; margin-bottom: 16px; }
+/* Detail image gallery */
+.gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; margin-top: 12px; }
+.gallery img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 10px; cursor: pointer; }
 
-  /* Form */
-  .field { margin-bottom: 14px; }
-  .field label { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
-  .field input, .field textarea, .field select {
-    width: 100%;
-    padding: 12px 14px;
-    border: 2px solid var(--border);
-    border-radius: 10px;
-    font-size: 15px;
-    font-family: inherit;
-    color: var(--text);
-    background: white;
-    transition: border-color 0.15s;
-    -webkit-appearance: none;
-  }
-  .field input:focus, .field textarea:focus, .field select:focus {
-    outline: none;
-    border-color: var(--accent);
-  }
-  .field textarea { resize: vertical; min-height: 80px; }
-
-  /* Messenger box */
-  .messenger-box {
-    background: #f0f2f5;
-    border-radius: 12px;
-    padding: 14px;
-    font-size: 14px;
-    line-height: 1.6;
-    white-space: pre-wrap;
-    word-break: break-word;
-    color: #1c1e21;
-    margin-bottom: 12px;
-    border: 1px solid #dde0e4;
-  }
-
-  .copy-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    width: 100%;
-    padding: 13px;
-    background: #1877f2;
-    color: white;
-    border: none;
-    border-radius: 10px;
-    font-size: 15px;
-    font-weight: 700;
-    cursor: pointer;
-    margin-bottom: 10px;
-  }
-
-  .filter-bar {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 14px;
-    overflow-x: auto;
-    padding-bottom: 4px;
-    scrollbar-width: none;
-  }
-  .filter-bar::-webkit-scrollbar { display: none; }
-
-  .filter-chip {
-    white-space: nowrap;
-    padding: 6px 14px;
-    border-radius: 20px;
-    font-size: 13px;
-    font-weight: 600;
-    border: 2px solid var(--border);
-    background: white;
-    color: var(--muted);
-    cursor: pointer;
-  }
-  .filter-chip.active { background: var(--accent); border-color: var(--accent); color: white; }
-
-  .empty-state {
-    text-align: center;
-    padding: 40px 20px;
-    color: var(--muted);
-  }
-  .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
-  .empty-state p { font-size: 15px; }
-
-  .detail-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
-
-  .toast {
-    position: fixed;
-    bottom: 90px;
-    left: 50%;
-    transform: translateX(-50%) translateY(20px);
-    background: #1a1f2e;
-    color: white;
-    padding: 10px 20px;
-    border-radius: 24px;
-    font-size: 14px;
-    font-weight: 600;
-    opacity: 0;
-    transition: all 0.3s;
-    z-index: 500;
-    white-space: nowrap;
-  }
-  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-
-  .section-title {
-    font-size: 12px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    color: var(--muted);
-    margin-bottom: 10px;
-    margin-top: 4px;
-  }
+.spinner { display: inline-block; width: 18px; height: 18px; border: 3px solid rgba(255,255,255,.4); border-top-color: white; border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
 
+<!-- ══ SETUP SCREEN ══════════════════════════════════════════════════════ -->
+<div class="setup-screen" id="setupScreen">
+  <div class="setup-box">
+    <div class="setup-logo">📚</div>
+    <div class="setup-title">Házi Feladat App</div>
+    <div class="setup-sub">Egy beállítás kell, és mindig automatikus lesz.</div>
+    <div class="setup-steps">
+      <b>GitHub Token létrehozása:</b><br>
+      1. Menj: <a href="https://github.com/settings/tokens/new" target="_blank">github.com/settings/tokens/new</a><br>
+      2. Note: <b>hazik-app</b><br>
+      3. Expiration: <b>No expiration</b><br>
+      4. Pipáld be: <b>repo</b> (teljes)<br>
+      5. Kattints: <b>Generate token</b><br>
+      6. Másold be ide ↓
+    </div>
+    <div class="field">
+      <label>GitHub Personal Access Token</label>
+      <input type="password" id="setupToken" placeholder="ghp_xxxxxxxxxxxx">
+    </div>
+    <div class="field">
+      <label>GitHub felhasználónév</label>
+      <input type="text" id="setupUser" placeholder="gezamandli">
+    </div>
+    <div class="field">
+      <label>Repository neve</label>
+      <input type="text" id="setupRepo" placeholder="szekai-hazik">
+    </div>
+    <div class="field">
+      <label>A te neved (feltöltőként)</label>
+      <input type="text" id="setupName" placeholder="Pl. Kiss Éva">
+    </div>
+    <div class="field">
+      <label>Osztály neve</label>
+      <input type="text" id="setupClass" placeholder="Pl. 4.b osztály">
+    </div>
+    <button class="btn btn-primary btn-full" id="setupSaveBtn" onclick="saveSetup()">Belépés és mentés</button>
+    <p id="setupError" style="color:var(--red);font-size:13px;margin-top:10px;text-align:center;display:none;"></p>
+  </div>
+</div>
+
+<!-- ══ MAIN APP ══════════════════════════════════════════════════════════ -->
 <header>
   <div>
     <h1>📚 Házi Feladatok</h1>
-    <div class="subtitle" id="classLabel">4.b osztály</div>
+    <div class="sub" id="classLabel"></div>
   </div>
-  <button class="btn btn-secondary" style="padding:8px 12px;font-size:13px;" onclick="openSettings()">⚙️</button>
+  <button class="icon-btn" onclick="openModal('settingsModal')">⚙️</button>
 </header>
 
 <div class="tab-bar">
@@ -314,7 +211,7 @@
 </div>
 
 <div id="view-notify" class="view">
-  <p style="color:var(--muted);font-size:14px;margin-bottom:16px;">Válaszd ki melyik házihoz küldj üzenetet a csoportba – ezután csak másold ki és illeszd be Messengerbe.</p>
+  <p style="font-size:14px;color:var(--muted);margin-bottom:14px;">Válassz egy feladatot – automatikusan elkészül a Messenger üzenet.</p>
   <div id="notifyList"></div>
 </div>
 
@@ -324,363 +221,545 @@
 
 <button class="fab" onclick="openAddModal()">＋</button>
 
-<!-- Add Modal -->
-<div class="modal-overlay" id="addModal" onclick="closeModal('addModal')">
-  <div class="modal" onclick="event.stopPropagation()">
-    <div class="modal-handle"></div>
-    <div class="modal-title">Új házi feladat</div>
-    <div class="field">
-      <label>Tantárgy</label>
-      <select id="newSubject">
-        <option>Magyar</option>
-        <option>Matek</option>
-        <option>Környezet</option>
-        <option>Rajz</option>
-        <option>Testnevelés</option>
-        <option>Ének</option>
-        <option>Angol</option>
-        <option>Olvasás</option>
-        <option>Írás</option>
-        <option>Egyéb</option>
-      </select>
+<!-- ══ ADD MODAL ══════════════════════════════════════════════════════════ -->
+<div class="overlay" id="addModal" onclick="closeModal('addModal')">
+<div class="modal" onclick="event.stopPropagation()">
+  <div class="handle"></div>
+  <div class="modal-title">Új házi feladat</div>
+
+  <div class="field">
+    <label>Tantárgy</label>
+    <select id="newSubject">
+      <option>Magyar</option>
+      <option>Matek</option>
+      <option>Olvasás</option>
+      <option>Írás</option>
+      <option>Környezet</option>
+      <option>Angol</option>
+      <option>Német</option>
+      <option>Hittan – katolikus</option>
+      <option>Hittan – református</option>
+      <option>Hittan – evangélikus</option>
+      <option>Digitális kultúra</option>
+      <option>Rajz</option>
+      <option>Ének</option>
+      <option>Testnevelés</option>
+      <option>Egyéb</option>
+    </select>
+  </div>
+
+  <div class="field">
+    <label>Leírás / Feladat</label>
+    <textarea id="newDesc" placeholder="Pl. Munkafüzet 34. oldal, 2–5. feladat"></textarea>
+  </div>
+
+  <div class="field">
+    <label>Határidő (mikor kell elkészíteni?)</label>
+    <input type="date" id="newDue">
+  </div>
+
+  <div class="field">
+    <label>Megjegyzés (opcionális)</label>
+    <input type="text" id="newNote" placeholder="Pl. kell az olvasókönyv is">
+  </div>
+
+  <div class="field">
+    <label>Képek (házi fotó, tábla, füzet…)</label>
+    <div class="img-picker-area" onclick="document.getElementById('imgInput').click()">
+      <div class="icon">📷</div>
+      <p>Fotó készítése vagy kiválasztása</p>
+      <small>Kamera · Galéria · Fájl</small>
     </div>
-    <div class="field">
-      <label>Leírás</label>
-      <textarea id="newDesc" placeholder="Pl. Munkafüzet 34. oldal, 2-5. feladat"></textarea>
-    </div>
-    <div class="field">
-      <label>Határidő (mettől kell megcsinálni?)</label>
-      <input type="date" id="newDue">
-    </div>
-    <div class="field">
-      <label>Ki töltötte fel?</label>
-      <input type="text" id="newUploader" placeholder="Pl. Kiss Éva">
-    </div>
-    <div class="field">
-      <label>Extra megjegyzés (opcionális)</label>
-      <input type="text" id="newNote" placeholder="Pl. szükséges az olvasókönyv">
-    </div>
-    <div style="display:flex;gap:10px;margin-top:8px;">
-      <button class="btn btn-secondary" style="flex:1" onclick="closeModal('addModal')">Mégse</button>
-      <button class="btn btn-primary" style="flex:2" onclick="saveHW()">Mentés ✓</button>
-    </div>
+    <input type="file" id="imgInput" accept="image/*" multiple capture="environment" style="display:none" onchange="handleImages(event)">
+    <div class="preview-grid" id="previewGrid"></div>
+    <div class="progress-bar" id="progressBar" style="display:none"><div class="progress-fill" id="progressFill"></div></div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-secondary" style="flex:1" onclick="closeModal('addModal')">Mégse</button>
+    <button class="btn btn-primary" style="flex:2" id="saveBtn" onclick="saveHW()">Mentés ✓</button>
   </div>
 </div>
-
-<!-- Detail Modal -->
-<div class="modal-overlay" id="detailModal" onclick="closeModal('detailModal')">
-  <div class="modal" onclick="event.stopPropagation()">
-    <div class="modal-handle"></div>
-    <div id="detailContent"></div>
-  </div>
 </div>
 
-<!-- Notify Modal -->
-<div class="modal-overlay" id="notifyModal" onclick="closeModal('notifyModal')">
-  <div class="modal" onclick="event.stopPropagation()">
-    <div class="modal-handle"></div>
-    <div class="modal-title">💬 Messenger üzenet</div>
-    <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Másold ki az alábbi szöveget és illeszd be a csoportba:</p>
-    <div class="messenger-box" id="notifyText"></div>
-    <button class="copy-btn" onclick="copyNotify()">
-      <span>📋</span> Másolás vágólapra
-    </button>
-    <button class="btn btn-secondary btn-full" onclick="closeModal('notifyModal')">Bezárás</button>
-  </div>
+<!-- ══ DETAIL MODAL ═══════════════════════════════════════════════════════ -->
+<div class="overlay" id="detailModal" onclick="closeModal('detailModal')">
+<div class="modal" onclick="event.stopPropagation()">
+  <div class="handle"></div>
+  <div id="detailContent"></div>
+</div>
 </div>
 
-<!-- Settings Modal -->
-<div class="modal-overlay" id="settingsModal" onclick="closeModal('settingsModal')">
-  <div class="modal" onclick="event.stopPropagation()">
-    <div class="modal-handle"></div>
-    <div class="modal-title">⚙️ Beállítások</div>
-    <div class="field">
-      <label>Osztály neve</label>
-      <input type="text" id="settingsClass" placeholder="Pl. 4.b osztály">
-    </div>
-    <div class="field">
-      <label>A te neved (feltöltőként)</label>
-      <input type="text" id="settingsName" placeholder="Pl. Szabó Petra">
-    </div>
-    <div style="display:flex;gap:10px;margin-top:8px;">
-      <button class="btn btn-secondary" style="flex:1" onclick="closeModal('settingsModal')">Mégse</button>
-      <button class="btn btn-primary" style="flex:2" onclick="saveSettings()">Mentés ✓</button>
-    </div>
+<!-- ══ NOTIFY MODAL ═══════════════════════════════════════════════════════ -->
+<div class="overlay" id="notifyModal" onclick="closeModal('notifyModal')">
+<div class="modal" onclick="event.stopPropagation()">
+  <div class="handle"></div>
+  <div class="modal-title">💬 Messenger üzenet</div>
+  <p style="font-size:13px;color:var(--muted);margin-bottom:11px;">Másold ki és illeszd be a csoportba:</p>
+  <div class="msg-box" id="notifyText"></div>
+  <button class="fb-btn" onclick="copyNotify()">📋 Másolás vágólapra</button>
+  <button class="btn btn-secondary btn-full" onclick="closeModal('notifyModal')">Bezárás</button>
+</div>
+</div>
+
+<!-- ══ SETTINGS MODAL ════════════════════════════════════════════════════ -->
+<div class="overlay" id="settingsModal" onclick="closeModal('settingsModal')">
+<div class="modal" onclick="event.stopPropagation()">
+  <div class="handle"></div>
+  <div class="modal-title">⚙️ Beállítások</div>
+  <div class="field"><label>Osztály neve</label><input type="text" id="sClass" placeholder="4.b osztály"></div>
+  <div class="field"><label>A te neved</label><input type="text" id="sName" placeholder="Kiss Éva"></div>
+  <div class="field"><label>GitHub Token</label><input type="password" id="sToken" placeholder="ghp_..."></div>
+  <div class="field"><label>GitHub felhasználónév</label><input type="text" id="sUser"></div>
+  <div class="field"><label>Repository neve</label><input type="text" id="sRepo"></div>
+  <div class="btn-row">
+    <button class="btn btn-secondary" style="flex:1" onclick="closeModal('settingsModal')">Mégse</button>
+    <button class="btn btn-primary" style="flex:2" onclick="saveSettings()">Mentés ✓</button>
   </div>
+  <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">
+    <button class="btn btn-danger btn-full" onclick="logout()">Kijelentkezés / Token törlése</button>
+  </div>
+</div>
+</div>
+
+<!-- ══ IMAGE VIEWER ═══════════════════════════════════════════════════════ -->
+<div class="overlay" id="imgViewer" onclick="closeModal('imgViewer')">
+<div style="width:100%;max-width:560px;padding:16px;" onclick="event.stopPropagation()">
+  <img id="viewerImg" src="" style="width:100%;border-radius:14px;max-height:80vh;object-fit:contain;">
+</div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
-// ─── State ──────────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════════════
+let cfg = JSON.parse(localStorage.getItem('hazik_cfg') || 'null');
 let homeworks = JSON.parse(localStorage.getItem('hazik_hw') || '[]');
-let settings = JSON.parse(localStorage.getItem('hazik_settings') || '{"class":"4.b osztály","name":""}');
+let pendingImgs = []; // {file, dataUrl}
 let activeFilter = 'all';
 
-// ─── Init ────────────────────────────────────────────────────────────────────
+const SUBJECTS = ['Magyar','Matek','Olvasás','Írás','Környezet','Angol','Német',
+  'Hittan – katolikus','Hittan – református','Hittan – evangélikus',
+  'Digitális kultúra','Rajz','Ének','Testnevelés','Egyéb'];
+
+// ══════════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════════
 function init() {
-  document.getElementById('classLabel').textContent = settings.class;
-  // Set tomorrow as default due date
-  const t = new Date(); t.setDate(t.getDate()+1);
-  document.getElementById('newDue').value = t.toISOString().split('T')[0];
-  document.getElementById('newUploader').value = settings.name;
+  if (!cfg) { document.getElementById('setupScreen').classList.add('show'); return; }
+  document.getElementById('classLabel').textContent = cfg.class;
+  loadFromGitHub();
+}
+
+// ══════════════════════════════════════════════════════════════════
+// SETUP
+// ══════════════════════════════════════════════════════════════════
+async function saveSetup() {
+  const token = document.getElementById('setupToken').value.trim();
+  const user  = document.getElementById('setupUser').value.trim();
+  const repo  = document.getElementById('setupRepo').value.trim();
+  const name  = document.getElementById('setupName').value.trim();
+  const cls   = document.getElementById('setupClass').value.trim();
+  if (!token||!user||!repo||!name||!cls) { showSetupError('Kérlek töltsd ki az összes mezőt!'); return; }
+
+  const btn = document.getElementById('setupSaveBtn');
+  btn.innerHTML = '<span class="spinner"></span> Ellenőrzés...';
+  btn.disabled = true;
+
+  // Verify token
+  const r = await fetch(`https://api.github.com/repos/${user}/${repo}`, {
+    headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github.v3+json' }
+  });
+  if (!r.ok) { showSetupError('Érvénytelen token vagy repo nem létezik. Ellenőrizd az adatokat!'); btn.innerHTML='Belépés és mentés'; btn.disabled=false; return; }
+
+  cfg = { token, user, repo, name, class: cls };
+  localStorage.setItem('hazik_cfg', JSON.stringify(cfg));
+  document.getElementById('setupScreen').classList.remove('show');
+  document.getElementById('classLabel').textContent = cls;
+  loadFromGitHub();
+}
+
+function showSetupError(msg) {
+  const e = document.getElementById('setupError');
+  e.textContent = msg; e.style.display = 'block';
+  const btn = document.getElementById('setupSaveBtn');
+  btn.innerHTML = 'Belépés és mentés'; btn.disabled = false;
+}
+
+function logout() {
+  if (!confirm('Biztosan kijelentkezel? A token törlődik.')) return;
+  localStorage.removeItem('hazik_cfg');
+  location.reload();
+}
+
+// ══════════════════════════════════════════════════════════════════
+// GITHUB API
+// ══════════════════════════════════════════════════════════════════
+function ghHeaders() {
+  return { Authorization: `token ${cfg.token}`, Accept: 'application/vnd.github.v3+json', 'Content-Type': 'application/json' };
+}
+function apiBase() { return `https://api.github.com/repos/${cfg.user}/${cfg.repo}`; }
+
+// Load index.json from repo (our database)
+async function loadFromGitHub() {
+  showToast('⏳ Betöltés...', 99999);
+  try {
+    const r = await fetch(`${apiBase()}/contents/hazik-data/index.json?t=${Date.now()}`, { headers: ghHeaders() });
+    if (r.status === 404) { homeworks = []; }
+    else {
+      const j = await r.json();
+      homeworks = JSON.parse(atob(j.content.replace(/\n/g,'')));
+    }
+    localStorage.setItem('hazik_hw', JSON.stringify(homeworks));
+  } catch(e) {
+    homeworks = JSON.parse(localStorage.getItem('hazik_hw') || '[]');
+    showToast('⚠️ Offline – helyi adatok betöltve');
+  }
+  hideToast();
   renderAll();
 }
 
-// ─── Tabs ────────────────────────────────────────────────────────────────────
-function switchTab(name) {
-  document.querySelectorAll('.tab').forEach((t,i) => t.classList.remove('active'));
-  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-  const tabs = ['list','notify','history'];
-  document.querySelectorAll('.tab')[tabs.indexOf(name)].classList.add('active');
-  document.getElementById('view-'+name).classList.add('active');
+async function saveIndexToGitHub() {
+  const content = btoa(unescape(encodeURIComponent(JSON.stringify(homeworks, null, 2))));
+  // Get current SHA if exists
+  let sha = null;
+  try {
+    const r = await fetch(`${apiBase()}/contents/hazik-data/index.json`, { headers: ghHeaders() });
+    if (r.ok) { const j = await r.json(); sha = j.sha; }
+  } catch {}
+
+  const body = { message: `Házi frissítve – ${new Date().toLocaleString('hu-HU')}`, content };
+  if (sha) body.sha = sha;
+  await fetch(`${apiBase()}/contents/hazik-data/index.json`, { method: 'PUT', headers: ghHeaders(), body: JSON.stringify(body) });
+}
+
+// Upload image to GitHub, returns raw URL
+async function uploadImageToGitHub(file, subject, dateStr) {
+  const safeSub = subject.replace(/[^a-zA-Z0-9áéíóöőúüűÁÉÍÓÖŐÚÜŰ]/g,'_');
+  const folder = `hazik-data/kepek/${safeSub}_${dateStr}`;
+  const ts = Date.now();
+  const ext = file.name.split('.').pop() || 'jpg';
+  const path = `${folder}/${ts}.${ext}`;
+
+  // Check if file already exists (get SHA)
+  let sha = null;
+  try {
+    const chk = await fetch(`${apiBase()}/contents/${path}`, { headers: ghHeaders() });
+    if (chk.ok) { const j = await chk.ok; sha = j.sha; }
+  } catch {}
+
+  const b64 = await fileToBase64(file);
+  const body = { message: `Kép feltöltve: ${subject} ${dateStr}`, content: b64 };
+  if (sha) body.sha = sha;
+
+  const r = await fetch(`${apiBase()}/contents/${path}`, { method: 'PUT', headers: ghHeaders(), body: JSON.stringify(body) });
+  if (!r.ok) throw new Error('Feltöltés sikertelen');
+  const j = await r.json();
+  return j.content.download_url;
+}
+
+function fileToBase64(file) {
+  return new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onload = () => res(fr.result.split(',')[1]);
+    fr.onerror = rej;
+    fr.readAsDataURL(file);
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════
+// IMAGE HANDLING
+// ══════════════════════════════════════════════════════════════════
+function handleImages(e) {
+  const files = Array.from(e.target.files);
+  files.forEach(f => {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      pendingImgs.push({ file: f, dataUrl: ev.target.result });
+      renderPreviews();
+    };
+    reader.readAsDataURL(f);
+  });
+  e.target.value = '';
+}
+
+function renderPreviews() {
+  const grid = document.getElementById('previewGrid');
+  grid.innerHTML = pendingImgs.map((img, i) => `
+    <div class="preview-wrap">
+      <img src="${img.dataUrl}">
+      <button class="rm" onclick="removeImg(${i})">×</button>
+    </div>`).join('');
+}
+
+function removeImg(i) { pendingImgs.splice(i,1); renderPreviews(); }
+
+// ══════════════════════════════════════════════════════════════════
+// SAVE HOMEWORK
+// ══════════════════════════════════════════════════════════════════
+async function saveHW() {
+  const subject  = document.getElementById('newSubject').value;
+  const desc     = document.getElementById('newDesc').value.trim();
+  const due      = document.getElementById('newDue').value;
+  const note     = document.getElementById('newNote').value.trim();
+  if (!desc) { showToast('⚠️ Írd le a feladatot!'); return; }
+  if (!due)  { showToast('⚠️ Add meg a határidőt!'); return; }
+
+  const btn = document.getElementById('saveBtn');
+  btn.innerHTML = '<span class="spinner"></span> Mentés...';
+  btn.disabled = true;
+
+  const pb = document.getElementById('progressBar');
+  const pf = document.getElementById('progressFill');
+  pb.style.display = 'block'; pf.style.width = '0%';
+
+  const imageUrls = [];
+  for (let i=0; i<pendingImgs.length; i++) {
+    try {
+      pf.style.width = `${Math.round((i/pendingImgs.length)*80)}%`;
+      const url = await uploadImageToGitHub(pendingImgs[i].file, subject, due);
+      imageUrls.push(url);
+    } catch(e) { showToast('⚠️ Egy kép nem töltődött fel'); }
+  }
+  pf.style.width = '90%';
+
+  const hw = {
+    id: Date.now().toString(),
+    subject, desc, due, note,
+    uploader: cfg.name,
+    uploaded: new Date().toISOString(),
+    images: imageUrls
+  };
+  homeworks.push(hw);
+  localStorage.setItem('hazik_hw', JSON.stringify(homeworks));
+
+  try {
+    await saveIndexToGitHub();
+    pf.style.width = '100%';
+    showToast('✅ Sikeresen feltöltve GitHub-ra!');
+  } catch(e) {
+    showToast('⚠️ Mentés sikertelen, próbáld újra!');
+  }
+
+  pendingImgs = [];
+  renderPreviews();
+  pb.style.display = 'none';
+  btn.innerHTML = 'Mentés ✓'; btn.disabled = false;
+  closeModal('addModal');
   renderAll();
 }
 
-// ─── Render ──────────────────────────────────────────────────────────────────
-function renderAll() {
-  renderFilters();
-  renderList();
-  renderNotifyList();
-  renderHistory();
-}
-
-function getSubjects() {
-  return [...new Set(homeworks.map(h => h.subject))];
-}
+// ══════════════════════════════════════════════════════════════════
+// RENDER
+// ══════════════════════════════════════════════════════════════════
+function renderAll() { renderFilters(); renderList(); renderNotifyList(); renderHistory(); }
 
 function renderFilters() {
   const bar = document.getElementById('filterBar');
-  const subjects = getSubjects();
-  bar.innerHTML = `<div class="filter-chip ${activeFilter==='all'?'active':''}" onclick="setFilter('all')">Összes</div>`;
-  subjects.forEach(s => {
-    bar.innerHTML += `<div class="filter-chip ${activeFilter===s?'active':''}" onclick="setFilter('${s}')">${s}</div>`;
-  });
+  const subs = [...new Set(homeworks.map(h=>h.subject))];
+  bar.innerHTML = `<div class="chip ${activeFilter==='all'?'active':''}" onclick="setFilter('all')">Összes</div>`;
+  subs.forEach(s => bar.innerHTML += `<div class="chip ${activeFilter===s?'active':''}" onclick="setFilter('${s.replace(/'/g,"\\'")}'">${s}</div>`);
+}
+function setFilter(f) { activeFilter=f; renderAll(); }
+
+function today0() { const d=new Date(); d.setHours(0,0,0,0); return d; }
+
+function dueInfo(ds) {
+  const d=new Date(ds); d.setHours(0,0,0,0);
+  const diff = Math.round((d-today0())/(864e5));
+  if (diff<0) return {text:'Lejárt', cls:'due-past'};
+  if (diff===0) return {text:'Ma!', cls:'due-soon'};
+  if (diff===1) return {text:'Holnap', cls:'due-soon'};
+  if (diff<=3)  return {text:diff+' nap', cls:'due-soon'};
+  return {text:fmtDate(ds), cls:'due-ok'};
 }
 
-function setFilter(f) { activeFilter = f; renderAll(); }
-
-function dueLabel(dateStr) {
-  const today = new Date(); today.setHours(0,0,0,0);
-  const due = new Date(dateStr); due.setHours(0,0,0,0);
-  const diff = Math.round((due - today)/(1000*60*60*24));
-  if (diff < 0) return {text: 'Lejárt', cls: 'due-past'};
-  if (diff === 0) return {text: 'Ma!', cls: 'due-soon'};
-  if (diff === 1) return {text: 'Holnap', cls: 'due-soon'};
-  if (diff <= 3) return {text: diff+' nap', cls: 'due-soon'};
-  return {text: formatDate(dateStr), cls: 'due-ok'};
+function fmtDate(s) {
+  return new Date(s).toLocaleDateString('hu-HU',{month:'short',day:'numeric',weekday:'short'});
 }
-
-function formatDate(str) {
-  const d = new Date(str);
-  return d.toLocaleDateString('hu-HU', {month:'short', day:'numeric', weekday:'short'});
-}
-
-function renderList() {
-  const el = document.getElementById('hwList');
-  const today = new Date(); today.setHours(0,0,0,0);
-  let items = homeworks.filter(h => {
-    const due = new Date(h.due); due.setHours(0,0,0,0);
-    return due >= today;
-  });
-  if (activeFilter !== 'all') items = items.filter(h => h.subject === activeFilter);
-  items.sort((a,b) => new Date(a.due)-new Date(b.due));
-
-  if (!items.length) {
-    el.innerHTML = `<div class="empty-state"><div class="icon">🎉</div><p>Nincs aktív házi feladat!</p></div>`;
-    return;
-  }
-  el.innerHTML = items.map(h => cardHTML(h)).join('');
+function fmtDateTime(s) {
+  return new Date(s).toLocaleString('hu-HU',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
 }
 
 function cardHTML(h) {
-  const {text, cls} = dueLabel(h.due);
+  const {text,cls} = dueInfo(h.due);
+  const imgs = (h.images||[]).slice(0,3);
+  const extra = (h.images||[]).length - 3;
   return `<div class="hw-card" onclick="openDetail('${h.id}')">
-    <div class="hw-card-header">
+    <div class="hw-head">
       <div class="hw-subject">${h.subject}</div>
-      <div class="hw-due ${cls}">${text}</div>
+      <div class="hw-badge ${cls}">${text}</div>
     </div>
     <div class="hw-desc">${h.desc}</div>
+    ${imgs.length ? `<div class="thumb-row">${imgs.map(u=>`<img class="thumb" src="${u}">`).join('')}${extra>0?`<div class="thumb-count">+${extra}</div>`:''}</div>` : ''}
     <div class="hw-meta">
-      ${h.note ? `<span class="hw-tag">📌 ${h.note}</span>` : ''}
-      <span class="hw-uploader">⬆️ ${h.uploader}</span>
+      ${h.note?`<span class="hw-tag">📌 ${h.note}</span>`:''}
+      <span class="hw-who">⬆️ ${h.uploader} · ${fmtDateTime(h.uploaded)}</span>
     </div>
   </div>`;
 }
 
+function renderList() {
+  const el = document.getElementById('hwList');
+  let items = homeworks.filter(h => { const d=new Date(h.due); d.setHours(0,0,0,0); return d>=today0(); });
+  if (activeFilter!=='all') items=items.filter(h=>h.subject===activeFilter);
+  items.sort((a,b)=>new Date(a.due)-new Date(b.due));
+  el.innerHTML = items.length ? items.map(cardHTML).join('') : `<div class="empty"><div class="ico">🎉</div><p>Nincs aktív házi feladat!</p></div>`;
+}
+
 function renderNotifyList() {
   const el = document.getElementById('notifyList');
-  const today = new Date(); today.setHours(0,0,0,0);
-  let items = homeworks.filter(h => {
-    const due = new Date(h.due); due.setHours(0,0,0,0);
-    return due >= today;
-  }).sort((a,b) => new Date(a.due)-new Date(b.due));
-
-  if (!items.length) {
-    el.innerHTML = `<div class="empty-state"><div class="icon">💬</div><p>Nincs aktív feladat, amihez értesítőt küldhetnél.</p></div>`;
-    return;
-  }
-
-  el.innerHTML = '<div class="section-title">Aktív feladatok – kattints az értesítőhöz</div>' +
-    items.map(h => {
-      const {text, cls} = dueLabel(h.due);
-      return `<div class="hw-card" onclick="openNotify('${h.id}')">
-        <div class="hw-card-header">
-          <div class="hw-subject">${h.subject}</div>
-          <div class="hw-due ${cls}">${text}</div>
-        </div>
-        <div class="hw-desc">${h.desc}</div>
-        <div style="margin-top:8px;">
-          <span style="font-size:13px;color:var(--accent);font-weight:600;">💬 Értesítő generálása →</span>
-        </div>
-      </div>`;
-    }).join('');
+  let items = homeworks.filter(h => { const d=new Date(h.due); d.setHours(0,0,0,0); return d>=today0(); }).sort((a,b)=>new Date(a.due)-new Date(b.due));
+  if (!items.length) { el.innerHTML=`<div class="empty"><div class="ico">💬</div><p>Nincs aktív feladat.</p></div>`; return; }
+  el.innerHTML = items.map(h=>{
+    const {text,cls}=dueInfo(h.due);
+    return `<div class="hw-card" onclick="openNotify('${h.id}')">
+      <div class="hw-head"><div class="hw-subject">${h.subject}</div><div class="hw-badge ${cls}">${text}</div></div>
+      <div class="hw-desc">${h.desc}</div>
+      <div style="margin-top:8px;font-size:13px;color:var(--accent);font-weight:700;">💬 Értesítő generálása →</div>
+    </div>`;
+  }).join('');
 }
 
 function renderHistory() {
   const el = document.getElementById('historyList');
-  const today = new Date(); today.setHours(0,0,0,0);
-  let items = homeworks.filter(h => {
-    const due = new Date(h.due); due.setHours(0,0,0,0);
-    return due < today;
-  }).sort((a,b) => new Date(b.due)-new Date(a.due));
-
-  if (!items.length) {
-    el.innerHTML = `<div class="empty-state"><div class="icon">📂</div><p>Még nincs archivált feladat.</p></div>`;
-    return;
-  }
-  el.innerHTML = '<div class="section-title">Lejárt / régi feladatok</div>' +
-    items.map(h => cardHTML(h)).join('');
+  let items = homeworks.filter(h => { const d=new Date(h.due); d.setHours(0,0,0,0); return d<today0(); }).sort((a,b)=>new Date(b.due)-new Date(a.due));
+  if (!items.length) { el.innerHTML=`<div class="empty"><div class="ico">📂</div><p>Még nincs archivált feladat.</p></div>`; return; }
+  el.innerHTML='<div class="section-label">Lejárt feladatok</div>'+items.map(cardHTML).join('');
 }
 
-// ─── Detail ──────────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════
+// DETAIL
+// ══════════════════════════════════════════════════════════════════
 function openDetail(id) {
-  const h = homeworks.find(x => x.id === id);
-  if (!h) return;
-  const {text, cls} = dueLabel(h.due);
+  const h = homeworks.find(x=>x.id===id); if (!h) return;
+  const {text,cls} = dueInfo(h.due);
+  const imgs = h.images||[];
   document.getElementById('detailContent').innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
-      <div style="font-size:22px;font-weight:800;">${h.subject}</div>
-      <div class="hw-due ${cls}" style="font-size:14px;">${text}</div>
+      <div style="font-size:21px;font-weight:900;">${h.subject}</div>
+      <div class="hw-badge ${cls}" style="font-size:13px;">${text}</div>
     </div>
-    <div style="font-size:16px;line-height:1.6;margin-bottom:10px;">${h.desc}</div>
-    ${h.note ? `<div style="font-size:14px;color:var(--muted);">📌 ${h.note}</div>` : ''}
-    <div style="font-size:13px;color:var(--muted);margin-top:8px;">Feltöltötte: ${h.uploader} · ${formatDate(h.added)}</div>
-    <div class="detail-actions">
+    <div style="font-size:16px;line-height:1.6;margin-bottom:8px;">${h.desc}</div>
+    ${h.note?`<div style="font-size:14px;color:var(--muted);margin-bottom:6px;">📌 ${h.note}</div>`:''}
+    <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">Feltöltötte: <b>${h.uploader}</b> · ${fmtDateTime(h.uploaded)}</div>
+    ${imgs.length?`<div class="gallery">${imgs.map(u=>`<img src="${u}" onclick="viewImg('${u}')">`).join('')}</div>`:''}
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:16px;">
       <button class="btn btn-primary btn-full" onclick="openNotify('${id}');closeModal('detailModal')">💬 Értesítő generálása</button>
-      <button class="btn btn-secondary btn-full" onclick="openNotifyRequest('${id}')">🙋 Feltöltést kér üzenet</button>
+      <button class="btn btn-secondary btn-full" onclick="openRequestNotify('${id}')">🙋 Feltöltést kér üzenet</button>
       <button class="btn btn-danger btn-full" onclick="deleteHW('${id}')">🗑️ Törlés</button>
     </div>`;
   openModal('detailModal');
 }
 
-// ─── Notify ──────────────────────────────────────────────────────────────────
+function viewImg(url) {
+  document.getElementById('viewerImg').src = url;
+  openModal('imgViewer');
+}
+
+// ══════════════════════════════════════════════════════════════════
+// NOTIFY
+// ══════════════════════════════════════════════════════════════════
 function openNotify(id) {
-  const h = homeworks.find(x => x.id === id);
-  if (!h) return;
-  const dateStr = formatDate(h.due);
-  let msg = `📚 *Házi feladat – ${settings.class}*\n\n`;
+  const h = homeworks.find(x=>x.id===id); if (!h) return;
+  let msg = `📚 Házi feladat – ${cfg.class}\n\n`;
   msg += `📖 Tantárgy: ${h.subject}\n`;
   msg += `✏️ Feladat: ${h.desc}\n`;
-  msg += `📅 Határidő: ${dateStr}\n`;
+  msg += `📅 Határidő: ${fmtDate(h.due)}\n`;
   if (h.note) msg += `📌 Megjegyzés: ${h.note}\n`;
+  if ((h.images||[]).length) msg += `🖼️ Képek: ${h.images.length} db (az appban megtekinthető)\n`;
   msg += `\n✅ Feltöltötte: ${h.uploader}`;
   document.getElementById('notifyText').textContent = msg;
   openModal('notifyModal');
 }
 
-function openNotifyRequest(id) {
-  const h = homeworks.find(x => x.id === id);
-  if (!h) return;
-  let msg = `🙏 Sziasztok!\n\nMég nem tudjuk a *${h.subject}* házi feladatot (${formatDate(h.due)}).\n\nValaki tudja és feltöltené? Köszönöm! 🙂`;
+function openRequestNotify(id) {
+  const h = homeworks.find(x=>x.id===id); if (!h) return;
+  let msg = `🙏 Sziasztok!\n\nMég nem tudjuk a ${h.subject} házi feladatot (${fmtDate(h.due)}).\n\nValaki fel tudná tölteni? Köszönöm! 🙂`;
   document.getElementById('notifyText').textContent = msg;
-  closeModal('detailModal');
-  openModal('notifyModal');
+  closeModal('detailModal'); openModal('notifyModal');
 }
 
 function copyNotify() {
-  const text = document.getElementById('notifyText').textContent;
-  navigator.clipboard.writeText(text).then(() => {
-    showToast('✅ Másolva! Illeszd be Messengerbe.');
-  }).catch(() => {
-    // fallback
-    const ta = document.createElement('textarea');
-    ta.value = text;
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand('copy');
-    document.body.removeChild(ta);
+  const t = document.getElementById('notifyText').textContent;
+  navigator.clipboard.writeText(t).then(()=>showToast('✅ Másolva! Illeszd be Messengerbe.')).catch(()=>{
+    const ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
     showToast('✅ Másolva!');
   });
 }
 
-// ─── Add / Save ──────────────────────────────────────────────────────────────
-function openAddModal() {
-  const t = new Date(); t.setDate(t.getDate()+1);
-  document.getElementById('newDue').value = t.toISOString().split('T')[0];
-  document.getElementById('newDesc').value = '';
-  document.getElementById('newNote').value = '';
-  document.getElementById('newUploader').value = settings.name;
-  openModal('addModal');
-}
-
-function saveHW() {
-  const subject = document.getElementById('newSubject').value;
-  const desc = document.getElementById('newDesc').value.trim();
-  const due = document.getElementById('newDue').value;
-  const uploader = document.getElementById('newUploader').value.trim() || 'Névtelen';
-  const note = document.getElementById('newNote').value.trim();
-
-  if (!desc) { showToast('⚠️ Írd le a feladatot!'); return; }
-  if (!due) { showToast('⚠️ Add meg a határidőt!'); return; }
-
-  const hw = {
-    id: Date.now().toString(),
-    subject, desc, due, uploader, note,
-    added: new Date().toISOString().split('T')[0]
-  };
-  homeworks.push(hw);
-  save();
-  closeModal('addModal');
-  showToast('✅ Házi feladat elmentve!');
-  renderAll();
-}
-
-function deleteHW(id) {
+// ══════════════════════════════════════════════════════════════════
+// DELETE
+// ══════════════════════════════════════════════════════════════════
+async function deleteHW(id) {
   if (!confirm('Biztosan törlöd?')) return;
-  homeworks = homeworks.filter(h => h.id !== id);
-  save();
-  closeModal('detailModal');
-  showToast('🗑️ Törölve.');
-  renderAll();
+  homeworks = homeworks.filter(h=>h.id!==id);
+  localStorage.setItem('hazik_hw', JSON.stringify(homeworks));
+  try { await saveIndexToGitHub(); showToast('🗑️ Törölve.'); } catch { showToast('⚠️ Helyi törlés ok, GitHub szinkron sikertelen.'); }
+  closeModal('detailModal'); renderAll();
 }
 
-// ─── Settings ────────────────────────────────────────────────────────────────
-function openSettings() {
-  document.getElementById('settingsClass').value = settings.class;
-  document.getElementById('settingsName').value = settings.name;
+// ══════════════════════════════════════════════════════════════════
+// SETTINGS
+// ══════════════════════════════════════════════════════════════════
+function openSettingsModal() {
+  document.getElementById('sClass').value = cfg.class;
+  document.getElementById('sName').value  = cfg.name;
+  document.getElementById('sToken').value = cfg.token;
+  document.getElementById('sUser').value  = cfg.user;
+  document.getElementById('sRepo').value  = cfg.repo;
   openModal('settingsModal');
 }
 function saveSettings() {
-  settings.class = document.getElementById('settingsClass').value || '4.b osztály';
-  settings.name = document.getElementById('settingsName').value;
-  localStorage.setItem('hazik_settings', JSON.stringify(settings));
-  document.getElementById('classLabel').textContent = settings.class;
+  cfg.class = document.getElementById('sClass').value || cfg.class;
+  cfg.name  = document.getElementById('sName').value  || cfg.name;
+  cfg.token = document.getElementById('sToken').value || cfg.token;
+  cfg.user  = document.getElementById('sUser').value  || cfg.user;
+  cfg.repo  = document.getElementById('sRepo').value  || cfg.repo;
+  localStorage.setItem('hazik_cfg', JSON.stringify(cfg));
+  document.getElementById('classLabel').textContent = cfg.class;
   closeModal('settingsModal');
   showToast('✅ Beállítások mentve!');
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-function save() { localStorage.setItem('hazik_hw', JSON.stringify(homeworks)); }
+// ══════════════════════════════════════════════════════════════════
+// UI HELPERS
+// ══════════════════════════════════════════════════════════════════
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  const tabs=['list','notify','history'];
+  document.querySelectorAll('.tab')[tabs.indexOf(name)].classList.add('active');
+  document.getElementById('view-'+name).classList.add('active');
+}
+
+function openAddModal() {
+  pendingImgs=[];
+  document.getElementById('newDesc').value='';
+  document.getElementById('newNote').value='';
+  document.getElementById('previewGrid').innerHTML='';
+  document.getElementById('progressBar').style.display='none';
+  const t=new Date(); t.setDate(t.getDate()+1);
+  document.getElementById('newDue').value=t.toISOString().split('T')[0];
+  openModal('addModal');
+}
+
 function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2500);
+let toastTimer;
+function showToast(msg, dur=2600) {
+  clearTimeout(toastTimer);
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  if (dur<99999) toastTimer=setTimeout(()=>t.classList.remove('show'), dur);
 }
+function hideToast() { document.getElementById('toast').classList.remove('show'); }
+
+// Override settings button to pre-fill
+document.querySelector('[onclick="openModal(\'settingsModal\')"]').onclick = openSettingsModal;
 
 init();
 </script>
