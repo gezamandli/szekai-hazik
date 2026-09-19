@@ -177,13 +177,20 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 <div id="view-help" class="view"><div id="helpContent"></div></div>
 <div class="select-bar" id="selectBar">
-  <div class="cnt" id="selectCount">0 kijelölve</div>
-  <div style="display:flex;gap:8px">
-    <button class="sb-btn" onclick="selectAll()">Mind</button>
-    <button class="sb-btn" onclick="sendSelected()">💬 Küldés</button>
-    <button class="sb-btn" onclick="copySelected()">📋 Másolás</button>
-    <button class="sb-btn" onclick="printSelected()">🖨️ Nyomtatás</button>
-    <button class="sb-btn" onclick="cancelSelect()">✕</button>
+  <div style="display:flex;flex-direction:column;gap:10px;width:100%">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div class="cnt" id="selectCount">0 kijelölve</div>
+      <div style="display:flex;gap:8px">
+        <button class="sb-btn" onclick="selectAll()">☑️ Mind</button>
+        <button class="sb-btn" onclick="cancelSelect()">✕ Mégsem</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap" id="selectActions">
+      <button class="sb-btn" style="flex:1" onclick="sendSelected()">💬 Küldés</button>
+      <button class="sb-btn" style="flex:1" onclick="copySelected()">📋 Másolás</button>
+      <button class="sb-btn" style="flex:1" onclick="exportSelectedExcel()">📥 Excel</button>
+      <button class="sb-btn" style="flex:1" onclick="printSelected()">🖨️ Nyomtatás</button>
+    </div>
   </div>
 </div>
 
@@ -290,7 +297,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div id="appVersion" style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none">App v5.0</div>
+<div id="appVersion" style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none">App v5.1</div>
 
 <script>
 const CFG = {
@@ -491,12 +498,15 @@ function parseGViz(json){
 }
 
 // ── Cloudinary ───────────────────────────────────────
-async function uploadToCloudinary(file,subject,dateStr){
+async function uploadToCloudinary(file,subject,dateStr,idx){
   const folder=`${CFG.CLOUD_FOLDER}/${slugify(subject)}${dateStr?'_'+dateStr:''}`;
+  const ext = file.name.split('.').pop().toLowerCase() || 'jpg';
+  const fname = `${slugify(subject)}${dateStr?'_'+dateStr:''}_${idx||1}.${ext}`;
   const fd=new FormData();
   fd.append('file',file);
   fd.append('upload_preset',CFG.UPLOAD_PRESET);
   fd.append('folder',folder);
+  fd.append('public_id', fname);
   const r=await fetch(`https://api.cloudinary.com/v1_1/${CFG.CLOUD_NAME}/image/upload`,{method:'POST',body:fd});
   if(!r.ok){const e=await r.json();throw new Error(e.error?.message||r.status);}
   const j=await r.json();
@@ -551,7 +561,7 @@ async function saveHW(){
     try{
       document.getElementById('uploadStatus').textContent=`Kép feltöltése ${i+1}/${pendingImgs.length}…`;
       pf.style.width=`${Math.round((i/pendingImgs.length)*80)}%`;
-      const res=await uploadToCloudinary(pendingImgs[i].file,subject,due);
+      const res=await uploadToCloudinary(pendingImgs[i].file,subject,due,i+1);
       newUrls.push(res.url);
       cloudFolder=`https://console.cloudinary.com/console/media_library/search?q=folder:${encodeURIComponent(res.folder)}`;
     }catch(e){showToast('⚠️ Kép hiba: '+e.message);}
@@ -697,7 +707,8 @@ function filterSearch(items, searchId){
 const TYPE_LABELS={'temaзaro':'⚠️ Témazáró','dolgozat':'📝 Dolgozat','projekt':'🎯 Projekt','anyag':'📖 Anyag','orai':'📝 Órai anyag'};
 
 function cardHTML(h,selMode=false){
-  const chk=selMode?`<span style="width:22px;height:22px;border-radius:50%;border:2px solid var(--blue);background:${selectedIds.has(h.id)?"var(--blue)":"#fff"};display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;margin-right:6px">${selectedIds.has(h.id)?"✓":""}</span>`:"";
+  const checked = selectedIds.has(h.id);
+  const chk = selMode ? `<span style="width:22px;height:22px;border-radius:6px;border:2px solid ${checked?'var(--blue)':'var(--line)'};background:${checked?'var(--blue)':'#fff'};display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;margin-right:8px;transition:all .15s">${checked?'<svg width=\"13\" height=\"13\" viewBox=\"0 0 13 13\"><polyline points=\"2,7 5,10 11,3\" fill=\"none\" stroke=\"white\" stroke-width=\"2\" stroke-linecap=\"round\"/></svg>':''}</span>` : '';
 
   const{text,cls}=dueInfo(h.due);
   const imgs=Array.isArray(h.images)?h.images.slice(0,3):[];
@@ -1204,8 +1215,9 @@ function toggleSelectMode(){
   const btn=document.getElementById('selectModeBtn');
   btn.classList.toggle('on',selectMode);
   btn.textContent=selectMode?'✕ Mégsem':'☑️ Kijelölés';
-  document.getElementById('selectBar').classList.remove('on');
-  if(selectMode) showToast('👆 Kattints a kártyákra a kijelöléshez',3000);
+  // Show bar immediately in select mode (with 0 selected)
+  document.getElementById('selectBar').classList.toggle('on', selectMode);
+  document.getElementById('selectCount').textContent='0 kijelölve';
   renderList();
 }
 function cancelSelect(){
@@ -1218,12 +1230,10 @@ function cancelSelect(){
 function toggleSelect(id,e){
   e.stopPropagation();
   if(selectedIds.has(id))selectedIds.delete(id);else selectedIds.add(id);
-  document.querySelectorAll('.card[data-id]').forEach(c=>{
-    if(c.dataset.id===id)c.classList.toggle('selected',selectedIds.has(id));
-  });
   const cnt=selectedIds.size;
-  document.getElementById('selectCount').textContent=cnt+' kijelölve';
-  document.getElementById('selectBar').classList.toggle('on',cnt>0);
+  document.getElementById('selectCount').textContent=cnt ? cnt+' kijelölve' : '0 kijelölve – válassz feladatot';
+  // Re-render to update checkboxes
+  renderList();
 }
 function selectAll(){
   document.querySelectorAll('#hwList .card[data-id]').forEach(c=>{
@@ -1497,6 +1507,26 @@ function renderHelpTab(){
 
 
 
+
+
+function exportSelectedExcel(){
+  if(!selectedIds.size){showToast('⚠️ Jelölj ki legalább egy feladatot!');return;}
+  const items=[...selectedIds].map(id=>homeworks.find(h=>h.id===id)).filter(Boolean);
+  items.sort((a,b)=>new Date(a.due||0)-new Date(b.due||0));
+  let csv='Tantárgy,Feladat,Határidő,Megjegyzés,Feltöltötte,Feltöltve,Képek\n';
+  items.forEach(h=>{
+    const row=[h.subject,h.desc,h.due||'',h.note||'',h.uploader,fmtDT(h.uploaded),(h.images||[]).length]
+      .map(v=>'"'+String(v).replace(/"/g,'""')+'"');
+    csv+=row.join(',')+'
+';
+  });
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`hazik_kivalasztott_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  showToast('📥 Exportálva!');
+}
 
 </script>
 </body>
