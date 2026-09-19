@@ -343,12 +343,21 @@ function parseCSV(csv){
 }
 
 async function sheetRequest(payload){
-  const r=await fetch(CFG.SCRIPT_URL,{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({...payload,sheetId:CFG.SHEET_ID})
-  });
-  if(!r.ok)throw new Error('Script hiba');
+  const url = CFG.SCRIPT_URL + '?sheetId=' + encodeURIComponent(CFG.SHEET_ID);
+  // Use no-cors for write operations (fire and forget)
+  if(payload.action !== 'loadTrash'){
+    await fetch(url, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: {'Content-Type': 'text/plain'},
+      body: JSON.stringify({...payload, sheetId: CFG.SHEET_ID})
+    });
+    return {status:'ok'};
+  }
+  // For loadTrash use GET with callback (JSONP-style via url params)
+  const getUrl = CFG.SCRIPT_URL + '?action=loadTrash&sheetId=' + encodeURIComponent(CFG.SHEET_ID) + '&t=' + Date.now();
+  const r = await fetch(getUrl);
+  if(!r.ok) throw new Error('Load failed');
   return r.json();
 }
 
