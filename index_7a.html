@@ -310,7 +310,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v7.2</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v7.3</span><span id="scriptVersion"></span></div>
 
 <script>
 const CFG = {
@@ -994,9 +994,7 @@ function renderRequestTab(){
 
     <div class="req-section">
       <h3>📖 Tantárgy? (opcionális)</h3>
-      <div class="req-chips" id="reqSubjChips">
-        ${cfgSubjects.map(s=>`<div class="req-chip ${reqSubjects.includes(s)?'on':''}" onclick="toggleReqSubj('${s.replace(/'/g,"\'")}')">${s}</div>`).join('')}
-      </div>
+      <div class="req-chips" id="reqSubjChips"></div>
     </div>
 
     <div class="req-section">
@@ -1007,6 +1005,22 @@ function renderRequestTab(){
     </div>
   `;
   updateDayChips();
+  populateSubjChips();
+}
+
+function populateSubjChips(){
+  const chips=document.getElementById('reqSubjChips');
+  if(!chips)return;
+  const selectEl=document.getElementById('newSubject');
+  const subjects=selectEl?Array.from(selectEl.options).map(o=>o.value):[];
+  chips.innerHTML='';
+  subjects.forEach(function(s){
+    const c=document.createElement('div');
+    c.className='req-chip'+(reqSubjects.includes(s)?' on':'');
+    c.textContent=s;
+    c.onclick=function(){toggleReqSubj(s);};
+    chips.appendChild(c);
+  });
 }
 
 function setReqMode(mode){
