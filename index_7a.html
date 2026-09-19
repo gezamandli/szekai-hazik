@@ -174,7 +174,6 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
     <button class="sel-btn" id="selectModeBtn" onclick="toggleSelectMode()">☑️ Kijelölés</button>
     <div id="selectHint" style="font-size:11px;color:var(--ink2);margin-top:3px;display:none">📱 Mobilon: tartsd nyomva a kártyát</div>
   </div>
-    <button class="export-btn" style="margin-bottom:0">📥 Export Excelbe</button>
   </div>
   <div id="hwList"></div>
 </div>
@@ -301,7 +300,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v5.6</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v5.8</span><span id="scriptVersion"></span></div>
 
 <script>
 const CFG = {
@@ -506,11 +505,15 @@ async function uploadToCloudinary(file,subject,dateStr,idx){
   const folder=`${CFG.CLOUD_FOLDER}/${slugify(subject)}${dateStr?'_'+dateStr:''}`;
   const ext = file.name.split('.').pop().toLowerCase() || 'jpg';
   const fname = `${slugify(subject)}${dateStr?'_'+dateStr:''}_${idx||1}.${ext}`;
+  // Rename file before upload to get correct filename
+  const safeName = slugify(subject)+(dateStr?'_'+dateStr:'')+'_'+(idx||1)+'.'+file.name.split('.').pop().toLowerCase();
+  const renamedFile = new File([file], safeName, {type: file.type});
   const fd=new FormData();
-  fd.append('file',file);
+  fd.append('file',renamedFile);
   fd.append('upload_preset',CFG.UPLOAD_PRESET);
   fd.append('folder',folder);
-  fd.append('public_id', fname);
+  fd.append('use_filename','true');
+  fd.append('unique_filename','false');
   const r=await fetch(`https://api.cloudinary.com/v1_1/${CFG.CLOUD_NAME}/image/upload`,{method:'POST',body:fd});
   if(!r.ok){const e=await r.json();throw new Error(e.error?.message||r.status);}
   const j=await r.json();
@@ -747,7 +750,13 @@ function renderList(){
   items.sort((a,b)=>new Date(b.uploaded)-new Date(a.uploaded));
   const el=document.getElementById('hwList');
   el.innerHTML=items.length?items.map(h=>cardHTML(h,selectMode)).join(''):`<div class="empty"><div class="ico">🎉</div><p>Nincs feladat!</p></div>`;
-  attachClicks('hwList');
+  // Wire clicks - openDetail handles selectMode internally
+  el.querySelectorAll('.card[data-id]').forEach(c=>{
+    let pressTimer=null;
+    c.ontouchstart=()=>{pressTimer=setTimeout(()=>{pressTimer=null;if(!selectMode){toggleSelectMode();toggleSelect(c.dataset.id,{stopPropagation:function(){}});}},500);};
+    c.ontouchend=c.ontouchmove=()=>{clearTimeout(pressTimer);pressTimer=null;};
+    c.onclick=()=>openDetail(c.dataset.id);
+  });
   document.getElementById('tab-list').textContent='📋 Feladatok'+(items.length?' ('+items.length+')':'');
 }
 
