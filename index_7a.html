@@ -11,46 +11,58 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 .hdr{background:var(--blue);color:#fff;padding:14px 16px 11px;position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 12px rgba(47,109,225,.3)}
 .hdr h1{font-size:17px;font-weight:800;letter-spacing:-.2px}.hdr .sub{font-size:11px;opacity:.75;margin-top:1px}
 .hdr-btn{background:rgba(255,255,255,.18);border:none;color:#fff;border-radius:8px;padding:7px 11px;font-size:15px;cursor:pointer}
-.tabs{display:flex;background:#fff;border-bottom:2px solid var(--line);position:sticky;top:64px;z-index:99}
-.tab{flex:1;padding:11px 4px;text-align:center;font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer;border-bottom:3px solid transparent}
+.tabs{display:flex;background:#fff;border-bottom:2px solid var(--line);position:sticky;top:64px;z-index:99;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex-shrink:0;padding:11px 10px;text-align:center;font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap}
 .tab.on{color:var(--blue);border-bottom-color:var(--blue)}
 .view{display:none;padding:14px 14px 96px}.view.on{display:block}
+/* Search bar */
+.search-bar{display:flex;gap:8px;margin-bottom:12px}
+.search-bar input{flex:1;padding:10px 13px;border:2px solid var(--line);border-radius:10px;font-size:15px;font-family:inherit;background:#fff;color:var(--ink)}
+.search-bar input:focus{outline:none;border-color:var(--blue)}
+/* Chips */
 .chips{display:flex;gap:7px;overflow-x:auto;padding-bottom:3px;margin-bottom:13px;scrollbar-width:none}
 .chips::-webkit-scrollbar{display:none}
 .chip{white-space:nowrap;padding:5px 13px;border-radius:20px;font-size:12px;font-weight:700;border:2px solid var(--line);background:#fff;color:var(--ink2);cursor:pointer}
 .chip.on{background:var(--blue);border-color:var(--blue);color:#fff}
+/* Cards */
 .card{background:var(--card);border-radius:var(--r);padding:13px 14px;margin-bottom:9px;border:1px solid var(--line);box-shadow:var(--sh);cursor:pointer}
 .card:active{outline:2px solid var(--blue)}
 .card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
 .subj{font-weight:800;font-size:15px}
 .badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap;flex-shrink:0}
-.ok{background:#d1fae5;color:var(--green)}.soon{background:#fef3c7;color:var(--amber)}.past{background:#fee2e2;color:var(--red)}
+.ok{background:#d1fae5;color:var(--green)}.soon{background:#fef3c7;color:var(--amber)}.past{background:#fee2e2;color:var(--red)}.nodue{background:#f3f4f6;color:var(--ink2)}
 .desc{font-size:14px;color:#374151;margin-top:6px;line-height:1.45}
 .meta{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;align-items:center}
 .tag{font-size:11px;background:var(--blue-bg);color:var(--blue);padding:2px 8px;border-radius:10px;font-weight:600}
 .who{font-size:11px;color:var(--ink2);margin-left:auto}
 .thumbs{display:flex;gap:5px;margin-top:8px;flex-wrap:wrap}
-.thumb{width:58px;height:58px;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
+.thumb{width:58px;height:58px;object-fit:cover;border-radius:8px;border:1px solid var(--line);background:var(--bg)}
 .thumb-more{width:58px;height:58px;border-radius:8px;background:var(--blue-bg);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--blue);border:1px solid var(--line)}
+/* FAB */
 .fab{position:fixed;bottom:22px;right:18px;width:56px;height:56px;border-radius:50%;background:#e55a10;color:#fff;font-size:28px;border:none;cursor:pointer;box-shadow:0 4px 18px rgba(229,90,16,.45);display:flex;align-items:center;justify-content:center;z-index:200}
 .fab:active{transform:scale(.93)}
+/* Overlay */
 .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.48);z-index:300;align-items:flex-end;justify-content:center}
 .overlay.on{display:flex}
 .sheet{background:#fff;border-radius:20px 20px 0 0;padding:16px 16px 44px;width:100%;max-width:560px;max-height:93vh;overflow-y:auto;animation:up .22s ease}
 @keyframes up{from{transform:translateY(100%)}}
 .handle{width:36px;height:4px;background:var(--line);border-radius:2px;margin:0 auto 14px}
 .sheet-title{font-size:18px;font-weight:900;margin-bottom:14px}
+/* Login */
 .login-screen{display:none;position:fixed;inset:0;background:var(--blue);z-index:500;flex-direction:column;align-items:center;justify-content:center;padding:24px}
 .login-screen.on{display:flex}
 .login-box{background:#fff;border-radius:20px;padding:28px 22px;width:100%;max-width:400px}
 .login-logo{font-size:52px;text-align:center;margin-bottom:8px}
 .login-title{font-size:22px;font-weight:900;text-align:center;margin-bottom:4px}
 .login-sub{font-size:14px;color:var(--ink2);text-align:center;margin-bottom:22px;line-height:1.5}
+/* Form */
 .field{margin-bottom:13px}
 .field label{display:block;font-size:11px;font-weight:800;color:var(--ink2);margin-bottom:5px;letter-spacing:.4px;text-transform:uppercase}
 .field input,.field textarea,.field select{width:100%;padding:11px 13px;border:2px solid var(--line);border-radius:10px;font-size:15px;font-family:inherit;color:var(--ink);background:#fff;-webkit-appearance:none;appearance:none;transition:border-color .15s}
 .field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--blue)}
 .field textarea{resize:vertical;min-height:72px}
+/* Image picker */
 .pick-btns{display:flex;gap:9px;margin-bottom:10px}
 .pick-btn{flex:1;padding:13px 8px;border-radius:11px;border:2px dashed var(--line);background:var(--bg);color:var(--ink2);font-size:13px;font-weight:700;cursor:pointer;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px}
 .pick-btn:active{border-color:var(--blue);color:var(--blue)}
@@ -61,16 +73,26 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 .prev-rm{position:absolute;top:-6px;right:-6px;background:var(--red);color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .progress{height:5px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:9px;display:none}
 .progress-fill{height:100%;background:var(--blue);width:0;transition:width .3s}
+/* Buttons */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:12px 18px;border-radius:11px;font-size:14px;font-weight:800;border:none;cursor:pointer;transition:transform .1s}
 .btn:active{transform:scale(.97)}
 .btn-primary{background:var(--blue);color:#fff}.btn-secondary{background:#fff;color:var(--blue);border:2px solid var(--blue)}
 .btn-danger{background:var(--red);color:#fff}.btn-full{width:100%}.btn-row{display:flex;gap:9px;margin-top:12px}
+/* Messenger */
 .msg-box{background:#f0f2f5;border-radius:11px;padding:14px;font-size:14px;line-height:1.65;white-space:pre-wrap;word-break:break-word;color:#1c1e21;margin-bottom:12px;border:1px solid #dde0e4}
 .fb-copy{width:100%;padding:13px;background:#1877f2;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:800;cursor:pointer;margin-bottom:9px;display:flex;align-items:center;justify-content:center;gap:8px}
+/* Gallery */
 .gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;margin-top:11px}
-.gallery-wrap{position:relative;display:inline-block}
-.gallery-wrap img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:9px;cursor:pointer;display:block}
-.gallery-rm{position:absolute;top:4px;right:4px;background:rgba(220,48,37,.85);color:#fff;border:none;border-radius:50%;width:24px;height:24px;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px)}
+.gallery-wrap{position:relative}
+.gallery-wrap img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:9px;cursor:pointer;display:block;background:var(--bg)}
+.gallery-rm{position:absolute;top:4px;right:4px;background:rgba(220,48,37,.85);color:#fff;border:none;border-radius:50%;width:24px;height:24px;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+/* Trash */
+.trash-card{background:#fff8f8;border-radius:var(--r);padding:13px 14px;margin-bottom:9px;border:1px solid #fecaca;box-shadow:var(--sh)}
+.trash-meta{font-size:12px;color:var(--ink2);margin-top:6px;line-height:1.7}
+.tbtn{flex:1;padding:10px 8px;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;border:2px solid}
+.tbtn-restore{background:#f0fdf4;border-color:var(--green);color:var(--green)}
+.tbtn-perm{background:#fff5f5;border-color:var(--red);color:var(--red)}
+/* Toast */
 .toast{position:fixed;bottom:86px;left:50%;transform:translateX(-50%) translateY(14px);background:#111827;color:#fff;padding:10px 20px;border-radius:24px;font-size:14px;font-weight:600;opacity:0;transition:all .25s;z-index:600;white-space:nowrap;pointer-events:none}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 .spin{display:inline-block;width:17px;height:17px;border:3px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:rot .7s linear infinite}
@@ -80,13 +102,11 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 .detail-actions{display:flex;flex-direction:column;gap:8px;margin-top:16px}
 .info-row{font-size:12px;color:var(--ink2);margin-bottom:6px}
 .upload-status{font-size:13px;color:var(--ink2);margin-top:6px;min-height:18px}
-.trash-card{background:#fff8f8;border-radius:var(--r);padding:13px 14px;margin-bottom:9px;border:1px solid #fecaca;box-shadow:var(--sh)}
-.trash-meta{font-size:12px;color:var(--ink2);margin-top:6px;line-height:1.7}
-.tbtn{flex:1;padding:10px 8px;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;border:2px solid}
-.tbtn-restore{background:#f0fdf4;border-color:var(--green);color:var(--green)}
-.tbtn-perm{background:#fff5f5;border-color:var(--red);color:var(--red)}
 .existing-imgs{margin-bottom:8px}
 .existing-imgs label{display:block;font-size:11px;font-weight:800;color:var(--ink2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px}
+/* Export btn */
+.export-btn{display:flex;align-items:center;gap:8px;padding:10px 14px;background:#fff;border:2px solid var(--line);border-radius:10px;font-size:13px;font-weight:700;color:var(--ink2);cursor:pointer;margin-bottom:12px}
+.export-btn:active{border-color:var(--blue);color:var(--blue)}
 </style>
 </head>
 <body>
@@ -95,7 +115,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
   <div class="login-box">
     <div class="login-logo">📚</div>
     <div class="login-title">7.a osztaly</div>
-    <div class="login-sub">Írd be a neved és a csoport PIN-kódját</div>
+    <div class="login-sub">Írd be a neved és a PIN-kódot</div>
     <div class="field"><label>Neved</label><input type="text" id="pinName" placeholder="Pl. Kiss Eva" autocomplete="name"></div>
     <div class="field"><label>PIN-kod</label><input type="password" id="pinCode" placeholder="••••" inputmode="numeric"></div>
     <button class="btn btn-primary btn-full" id="loginBtn">Belépés</button>
@@ -105,27 +125,44 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 
 <header class="hdr">
   <div><h1>📚 Házi Feladatok</h1><div class="sub">7.a osztaly</div></div>
-  <div style="display:flex;gap:8px;align-items:center">
+  <div style="display:flex;gap:6px;align-items:center">
     <span id="hdrName" style="font-size:12px;opacity:.85"></span>
+    <button class="hdr-btn" onclick="loadSheet()">🔄</button>
     <button class="hdr-btn" id="logoutBtn">↩</button>
   </div>
 </header>
 
 <nav class="tabs">
   <div class="tab on" id="tab-list">📋 Feladatok</div>
+  <div class="tab" id="tab-all">📦 Összes</div>
   <div class="tab" id="tab-notify">💬 Értesítő</div>
-  <div class="tab" id="tab-history">🕐 Archívum</div>
   <div class="tab" id="tab-trash">🗑️ Kuka</div>
 </nav>
 
-<div id="view-list" class="view on"><div class="chips" id="filterBar"></div><div id="hwList"></div></div>
-<div id="view-notify" class="view"><p style="font-size:14px;color:var(--ink2);margin-bottom:14px;">Válassz feladatot – elkészül a Messenger üzenet.</p><div id="notifyList"></div></div>
-<div id="view-history" class="view"><div id="historyList"></div></div>
+<div id="view-list" class="view on">
+  <div class="search-bar"><input type="search" id="searchList" placeholder="🔍 Keresés…" oninput="renderList()"></div>
+  <div class="chips" id="filterBar"></div>
+  <button class="export-btn" onclick="exportExcel('active')">📥 Export Excelbe</button>
+  <div id="hwList"></div>
+</div>
+
+<div id="view-all" class="view">
+  <div class="search-bar"><input type="search" id="searchAll" placeholder="🔍 Keresés…" oninput="renderAll2()"></div>
+  <div class="chips" id="filterBarAll"></div>
+  <button class="export-btn" onclick="exportExcel('all')">📥 Export Excelbe</button>
+  <div id="hwListAll"></div>
+</div>
+
+<div id="view-notify" class="view">
+  <p style="font-size:14px;color:var(--ink2);margin-bottom:14px;">Válassz feladatot – elkészül a Messenger üzenet.</p>
+  <div id="notifyList"></div>
+</div>
 
 <div id="view-trash" class="view"><div id="trashList"></div></div>
+
 <button class="fab" id="fabBtn">＋</button>
 
-<!-- ADD / EDIT SHEET -->
+<!-- ADD/EDIT SHEET -->
 <div class="overlay" id="addSheet">
 <div class="sheet">
   <div class="handle"></div>
@@ -152,7 +189,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
       <option>Közösségi nevelés</option>
       <option>Egyéb</option></select></div>
   <div class="field"><label>Feladat leírása</label><textarea id="newDesc" placeholder="Pl. Munkafüzet 34. oldal, 2-5. feladat"></textarea></div>
-  <div class="field"><label>Határidő</label><input type="date" id="newDue"></div>
+  <div class="field"><label>Határidő (opcionális)</label><input type="date" id="newDue"></div>
   <div class="field"><label>Megjegyzés (opcionális)</label><input type="text" id="newNote" placeholder="Pl. kell a füzet is"></div>
   <div class="field">
     <label>Képek</label>
@@ -202,9 +239,9 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
+<div id="appVersion" style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none">App v3.2</div>
 
 <script>
-// ── Config ──────────────────────────────────────────
 const CFG = {
   CNAME:         '7.a osztaly',
   PIN:           '2026',
@@ -213,29 +250,32 @@ const CFG = {
   CLOUD_NAME:    'g8tinasd',
   UPLOAD_PRESET: 'szekai_hazik',
   CLOUD_FOLDER:  'hazik_7a',
-  API_KEY:       '589756227586528',
 };
 
-// ── State ────────────────────────────────────────────
 let session = null;
 let homeworks = [];
-let pendingImgs = [];   // {file, dataUrl} – new images to upload
-let removedImgs = [];   // urls to remove from existing hw
-let keepImgs = [];      // existing image urls to keep
+let pendingImgs = [];
+let removedImgs = [];
+let keepImgs = [];
 let activeFilter = 'all';
-let editingId = null;   // null = new, string = editing
+let activeFilterAll = 'all';
+let editingId = null;
+let trashItems = [];
 
 // ── Helpers ──────────────────────────────────────────
-function slugify(s) {
-  return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'')
-    .replace(/[^a-zA-Z0-9]/g,'_').replace(/_+/g,'_').toLowerCase();
+function slugify(s){return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9]/g,'_').replace(/_+/g,'_').toLowerCase();}
+function safeJSON(s){
+  if(!s||s==='[]'||s==='""'||s==='')return[];
+  // Clean up if wrapped in extra quotes
+  let str = String(s).trim();
+  if(str.startsWith('"['))str=str.slice(1,-1);
+  try{const r=JSON.parse(str);return Array.isArray(r)?r:[];}catch{return[];}
 }
-
-function safeJSON(s){try{return JSON.parse(s||'[]');}catch{return[];}}
 function today0(){const d=new Date();d.setHours(0,0,0,0);return d;}
 function dueInfo(ds){
-  if(!ds)return{text:'Nincs határidő',cls:'ok'};
-  const d=new Date(ds);d.setHours(0,0,0,0);
+  if(!ds||ds==='')return{text:'Nincs határidő',cls:'nodue'};
+  const d=new Date(ds);if(isNaN(d))return{text:'?',cls:'nodue'};
+  d.setHours(0,0,0,0);
   const diff=Math.round((d-today0())/864e5);
   if(diff<0)return{text:'Lejárt',cls:'past'};
   if(diff===0)return{text:'Ma!',cls:'soon'};
@@ -243,164 +283,131 @@ function dueInfo(ds){
   if(diff<=3)return{text:diff+' nap',cls:'soon'};
   return{text:fmtDate(ds),cls:'ok'};
 }
-function fmtDate(s){if(!s)return'–';return new Date(s).toLocaleDateString('hu-HU',{month:'short',day:'numeric',weekday:'short'});}
-function fmtDT(s){return new Date(s).toLocaleString('hu-HU',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});}
-
+function fmtDate(s){if(!s)return'–';const d=new Date(s);if(isNaN(d))return s;return d.toLocaleDateString('hu-HU',{month:'short',day:'numeric',weekday:'short'});}
+function fmtDT(s){if(!s)return'';const d=new Date(s);if(isNaN(d))return s;return d.toLocaleString('hu-HU',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});}
 let _tt;
-function showToast(msg,dur=2700){
-  clearTimeout(_tt);const t=document.getElementById('toast');
-  t.textContent=msg;t.classList.add('on');
-  if(dur<99999)_tt=setTimeout(()=>t.classList.remove('on'),dur);
-}
+function showToast(msg,dur=2700){clearTimeout(_tt);const t=document.getElementById('toast');t.textContent=msg;t.classList.add('on');if(dur<99999)_tt=setTimeout(()=>t.classList.remove('on'),dur);}
 function hideToast(){document.getElementById('toast').classList.remove('on');}
 function openSheet(id){document.getElementById(id).classList.add('on');}
 function closeSheet(id){document.getElementById(id).classList.remove('on');}
 
 // ── Init ─────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
-  // Login
-  document.getElementById('loginBtn').onclick = signIn;
-  document.getElementById('pinCode').addEventListener('keydown', e => { if(e.key==='Enter') signIn(); });
-  document.getElementById('logoutBtn').onclick = logout;
-  document.getElementById('fabBtn').onclick = () => openAddSheet(null);
-  document.getElementById('cancelAddBtn').onclick = () => closeSheet('addSheet');
-  document.getElementById('saveBtn').onclick = saveHW;
-  document.getElementById('camBtn').onclick = () => document.getElementById('camInput').click();
-  document.getElementById('galleryBtn').onclick = () => document.getElementById('galleryInput').click();
-  document.getElementById('camInput').onchange = handleImgs;
-  document.getElementById('galleryInput').onchange = handleImgs;
-  document.getElementById('copyBtn').onclick = copyNotify;
-  document.getElementById('closeNotifyBtn').onclick = () => closeSheet('notifySheet');
-  document.getElementById('imgViewer').onclick = () => closeSheet('imgViewer');
-  document.getElementById('addSheet').onclick = e => { if(e.target===e.currentTarget.firstElementChild?.parentElement||e.target===document.getElementById('addSheet')) closeSheet('addSheet'); };
-  document.getElementById('detailSheet').onclick = e => { if(e.target===document.getElementById('detailSheet')) closeSheet('detailSheet'); };
-  document.getElementById('notifySheet').onclick = e => { if(e.target===document.getElementById('notifySheet')) closeSheet('notifySheet'); };
-
-  // Tabs
-  ['list','notify','history','trash'].forEach((name,i) => {
-    document.getElementById('tab-'+name).onclick = () => { switchTab(name); if(name==='trash') loadTrash(); };
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('loginBtn').onclick=signIn;
+  document.getElementById('pinCode').addEventListener('keydown',e=>{if(e.key==='Enter')signIn();});
+  document.getElementById('logoutBtn').onclick=logout;
+  document.getElementById('fabBtn').onclick=()=>openAddSheet(null);
+  document.getElementById('cancelAddBtn').onclick=()=>closeSheet('addSheet');
+  document.getElementById('saveBtn').onclick=saveHW;
+  document.getElementById('camBtn').onclick=()=>document.getElementById('camInput').click();
+  document.getElementById('galleryBtn').onclick=()=>document.getElementById('galleryInput').click();
+  document.getElementById('camInput').onchange=handleImgs;
+  document.getElementById('galleryInput').onchange=handleImgs;
+  document.getElementById('copyBtn').onclick=copyNotify;
+  document.getElementById('closeNotifyBtn').onclick=()=>closeSheet('notifySheet');
+  document.getElementById('imgViewer').onclick=()=>closeSheet('imgViewer');
+  document.getElementById('addSheet').onclick=e=>{if(e.target===document.getElementById('addSheet'))closeSheet('addSheet');};
+  document.getElementById('detailSheet').onclick=e=>{if(e.target===document.getElementById('detailSheet'))closeSheet('detailSheet');};
+  document.getElementById('notifySheet').onclick=e=>{if(e.target===document.getElementById('notifySheet'))closeSheet('notifySheet');};
+  ['list','all','notify','trash'].forEach(name=>{
+    document.getElementById('tab-'+name).onclick=()=>{switchTab(name);if(name==='trash')loadTrash();};
   });
-
-  // Restore session
-  const s = localStorage.getItem('hz_s_7a');
-  if(s){ session=JSON.parse(s); showApp(); }
+  const s=localStorage.getItem('hz_s_7a');
+  if(s){session=JSON.parse(s);showApp();}
 });
 
 // ── Auth ─────────────────────────────────────────────
 function signIn(){
-  const name = document.getElementById('pinName').value.trim();
-  const pin  = document.getElementById('pinCode').value.trim();
-  const err  = document.getElementById('loginErr');
+  const name=document.getElementById('pinName').value.trim();
+  const pin=document.getElementById('pinCode').value.trim();
+  const err=document.getElementById('loginErr');
   if(!name){err.textContent='Add meg a neved!';err.style.display='block';return;}
   if(pin!==CFG.PIN){err.textContent='Hibás PIN-kód!';err.style.display='block';return;}
   session={name};
   localStorage.setItem('hz_s_7a',JSON.stringify(session));
-  err.style.display='none';
-  showApp();
+  err.style.display='none';showApp();
 }
-
 function showApp(){
   document.getElementById('loginScreen').classList.remove('on');
   document.getElementById('hdrName').textContent=session.name;
   loadSheet();
-  loadTrash();
 }
-
 function logout(){
   if(!confirm('Kijelentkezel?'))return;
-  session=null;
-  localStorage.removeItem('hz_s_7a');
-  homeworks=[];
+  session=null;localStorage.removeItem('hz_s_7a');homeworks=[];
   document.getElementById('loginScreen').classList.add('on');
   document.getElementById('pinCode').value='';
+}
+
+// ── JSONP request ─────────────────────────────────────
+async function sheetRequest(params){
+  return new Promise((resolve,reject)=>{
+    const cbName='cb_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+    const base=CFG.SCRIPT_URL+'?sheetId='+encodeURIComponent(CFG.SHEET_ID)+'&callback='+cbName;
+    const qs=Object.entries(params).map(([k,v])=>encodeURIComponent(k)+'='+encodeURIComponent(typeof v==='object'?JSON.stringify(v):v)).join('&');
+    const url=base+'&'+qs+'&t='+Date.now();
+    window[cbName]=(data)=>{
+      delete window[cbName];document.head.removeChild(script);
+      if(data.version)document.getElementById('appVersion').textContent='v'+data.version+' · OK';
+      resolve(data);
+    };
+    const script=document.createElement('script');
+    script.src=url;
+    script.onerror=()=>{delete window[cbName];try{document.head.removeChild(script);}catch(e){}reject(new Error('Script hiba'));};
+    setTimeout(()=>{if(window[cbName]){delete window[cbName];try{document.head.removeChild(script);}catch(e){}reject(new Error('Timeout'));}},15000);
+    document.head.appendChild(script);
+  });
 }
 
 // ── Sheets ───────────────────────────────────────────
 async function loadSheet(){
   showToast('⏳ Betöltés…',99999);
   try{
-    const url=`https://docs.google.com/spreadsheets/d/${CFG.SHEET_ID}/gviz/tq?tqx=out:csv&range=A2:I&t=${Date.now()}`;
+    const url=`https://docs.google.com/spreadsheets/d/${CFG.SHEET_ID}/gviz/tq?tqx=out:json&sheet=Feladatok&t=${Date.now()}`;
     const r=await fetch(url);
-    const csv=await r.text();
-    homeworks=parseCSV(csv);
+    const text=await r.text();
+    // Google returns: /*O_o*/\ngoogle.visualization.Query.setResponse({...});
+    const json=JSON.parse(text.replace(/^[^(]+\(/,'').replace(/\);?\s*$/,''));
+    homeworks=parseGViz(json);
     localStorage.setItem('hz_hw_7a',JSON.stringify(homeworks));
-  }catch{
+  }catch(e){
+    console.warn('GViz load failed:',e);
     homeworks=JSON.parse(localStorage.getItem('hz_hw_7a')||'[]');
     showToast('⚠️ Offline – helyi adatok');
   }
   hideToast();renderAll();
 }
 
-function parseCSV(csv){
-  if(!csv.trim())return[];
-  return csv.trim().split('\n').filter(l=>l.trim()).map(line=>{
-    const cols=[];let cur='',inQ=false;
-    for(let i=0;i<line.length;i++){
-      if(line[i]==='"'){inQ=!inQ;}
-      else if(line[i]===','&&!inQ){cols.push(cur.trim());cur='';}
-      else cur+=line[i];
-    }
-    cols.push(cur.trim());
-    return{id:cols[0]||'',subject:cols[1]||'',desc:cols[2]||'',due:cols[3]||'',
-           note:cols[4]||'',uploader:cols[5]||'',uploaded:cols[6]||'',
-           images:safeJSON(cols[7]),cloudFolder:cols[8]||''};
-  }).filter(h=>h.id);
-}
-
-async function sheetRequest(params){
-  return new Promise((resolve, reject) => {
-    const cbName = 'cb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
-    const base = CFG.SCRIPT_URL + '?sheetId=' + encodeURIComponent(CFG.SHEET_ID) + '&callback=' + cbName;
-    const qs = Object.entries(params).map(([k,v])=>
-      encodeURIComponent(k)+'='+encodeURIComponent(typeof v==='object'?JSON.stringify(v):v)
-    ).join('&');
-    const url = base + '&' + qs + '&t=' + Date.now();
-
-    window[cbName] = (data) => {
-      delete window[cbName];
-      document.head.removeChild(script);
-      if(data.version) document.getElementById('appVersion').textContent = 'v' + data.version + ' · OK';
-      resolve(data);
-    };
-
-    const script = document.createElement('script');
-    script.src = url;
-    script.onerror = () => {
-      delete window[cbName];
-      document.head.removeChild(script);
-      reject(new Error('Script betöltési hiba'));
-    };
-    setTimeout(() => {
-      if(window[cbName]) {
-        delete window[cbName];
-        try { document.head.removeChild(script); } catch(e) {}
-        reject(new Error('Timeout'));
-      }
-    }, 15000);
-    document.head.appendChild(script);
-  });
+function parseGViz(json){
+  try{
+    const rows=json.table.rows;
+    const cols=json.table.cols;
+    return rows.map(row=>{
+      const get=(i)=>{const c=row.c&&row.c[i];return c&&c.v!=null?String(c.v):'';}
+      const images=safeJSON(get(7));
+      return{
+        id:get(0),subject:get(1),desc:get(2),due:get(3),
+        note:get(4),uploader:get(5),uploaded:get(6),
+        images:images,cloudFolder:get(8)||''
+      };
+    }).filter(h=>h.id&&h.id!=='id');
+  }catch(e){console.error('parseGViz error:',e);return[];}
 }
 
 // ── Cloudinary ───────────────────────────────────────
-async function uploadToCloudinary(file, subject, dateStr){
-  const folder=`${CFG.CLOUD_FOLDER}/${slugify(subject)}_${dateStr}`;
+async function uploadToCloudinary(file,subject,dateStr){
+  const folder=`${CFG.CLOUD_FOLDER}/${slugify(subject)}${dateStr?'_'+dateStr:''}`;
   const fd=new FormData();
   fd.append('file',file);
-  fd.append('upload_preset', CFG.UPLOAD_PRESET);
+  fd.append('upload_preset',CFG.UPLOAD_PRESET);
   fd.append('folder',folder);
   const r=await fetch(`https://api.cloudinary.com/v1_1/${CFG.CLOUD_NAME}/image/upload`,{method:'POST',body:fd});
-  if(!r.ok){const err=await r.json();throw new Error('Cloudinary: '+(err.error?.message||r.status));}
+  if(!r.ok){const e=await r.json();throw new Error(e.error?.message||r.status);}
   const j=await r.json();
-  return{url:j.secure_url, publicId:j.public_id, folder};
+  return{url:j.secure_url,publicId:j.public_id,folder};
 }
 
-async function deleteFromCloudinary(publicId){
-  // Note: Cloudinary unsigned delete not supported – images stay in cloud
-  // but we remove from our data. For full delete, signed API needed.
-  console.log('Cloudinary delete skipped (unsigned):', publicId);
-}
-
-// ── Image handling ────────────────────────────────────
+// ── Images ───────────────────────────────────────────
 function handleImgs(e){
   Array.from(e.target.files).forEach(f=>{
     const fr=new FileReader();
@@ -416,9 +423,8 @@ function renderNewPreviews(){
   document.getElementById('prevGrid').querySelectorAll('.prev-rm').forEach(btn=>{
     btn.onclick=()=>{pendingImgs.splice(+btn.dataset.i,1);renderNewPreviews();};
   });
-  document.getElementById('uploadStatus').textContent=pendingImgs.length?`${pendingImgs.length} új kép kiválasztva`:'';
+  document.getElementById('uploadStatus').textContent=pendingImgs.length?`${pendingImgs.length} új kép`:'';
 }
-
 function renderExistingPreviews(){
   const el=document.getElementById('existingGrid');
   const wrap=document.getElementById('existingImgs');
@@ -428,31 +434,21 @@ function renderExistingPreviews(){
     `<div class="prev-wrap"><img src="${url}"><button class="prev-rm" data-i="${i}">×</button></div>`
   ).join('');
   el.querySelectorAll('.prev-rm').forEach(btn=>{
-    btn.onclick=()=>{
-      const i=+btn.dataset.i;
-      removedImgs.push(keepImgs[i]);
-      keepImgs.splice(i,1);
-      renderExistingPreviews();
-    };
+    btn.onclick=()=>{removedImgs.push(keepImgs[+btn.dataset.i]);keepImgs.splice(+btn.dataset.i,1);renderExistingPreviews();};
   });
 }
 
-// ── Save / Update ─────────────────────────────────────
+// ── Save ─────────────────────────────────────────────
 async function saveHW(){
   const subject=document.getElementById('newSubject').value;
   const desc=document.getElementById('newDesc').value.trim();
   const due=document.getElementById('newDue').value;
   const note=document.getElementById('newNote').value.trim();
   if(!desc){showToast('⚠️ Írd le a feladatot!');return;}
-  
-
   const btn=document.getElementById('saveBtn');
   btn.innerHTML='<span class="spin"></span> Mentés…';btn.disabled=true;
-  const pw=document.getElementById('progressWrap');
-  const pf=document.getElementById('progressFill');
+  const pw=document.getElementById('progressWrap');const pf=document.getElementById('progressFill');
   pw.style.display='block';pf.style.width='0%';
-
-  // Upload new images
   const newUrls=[];let cloudFolder='';
   for(let i=0;i<pendingImgs.length;i++){
     try{
@@ -461,47 +457,30 @@ async function saveHW(){
       const res=await uploadToCloudinary(pendingImgs[i].file,subject,due);
       newUrls.push(res.url);
       cloudFolder=`https://console.cloudinary.com/console/media_library/search?q=folder:${encodeURIComponent(res.folder)}`;
-    }catch{showToast('⚠️ Egy kép nem töltődött fel');}
+    }catch(e){showToast('⚠️ Kép hiba: '+e.message);}
   }
   pf.style.width='90%';
-
   const allImages=[...keepImgs,...newUrls];
-
   if(editingId){
-    // Update existing
     const hw=homeworks.find(h=>h.id===editingId);
-    hw.subject=subject;hw.desc=desc;hw.due=due;hw.note=note;
-    hw.images=allImages;
+    hw.subject=subject;hw.desc=desc;hw.due=due;hw.note=note;hw.images=allImages;
     if(cloudFolder)hw.cloudFolder=cloudFolder;
     try{
-      await sheetRequest({action:'update',id:editingId,row:[
-        hw.id,hw.subject,hw.desc,hw.due,hw.note,hw.uploader,hw.uploaded,
-        JSON.stringify(hw.images),hw.cloudFolder||''
-      ]});
+      await sheetRequest({action:'update',id:editingId,row:JSON.stringify([hw.id,hw.subject,hw.desc,hw.due,hw.note,hw.uploader,hw.uploaded,JSON.stringify(hw.images),hw.cloudFolder||''])});
       showToast('✅ Frissítve!');
-    }catch{showToast('✅ Helyben frissítve (szinkron később)');}
-  } else {
-    // New
-    const hw={
-      id:Date.now().toString(),subject,desc,due,note,
-      uploader:session.name,uploaded:new Date().toISOString(),
-      images:allImages,cloudFolder
-    };
+    }catch{showToast('✅ Helyben frissítve');}
+  }else{
+    const hw={id:Date.now().toString(),subject,desc,due,note,uploader:session.name,uploaded:new Date().toISOString(),images:allImages,cloudFolder};
     homeworks.push(hw);
     try{
-      await sheetRequest({action:'append',row:[
-        hw.id,hw.subject,hw.desc,hw.due,hw.note,hw.uploader,hw.uploaded,
-        JSON.stringify(hw.images),hw.cloudFolder||''
-      ]});
+      await sheetRequest({action:'append',row:JSON.stringify([hw.id,hw.subject,hw.desc,hw.due,hw.note,hw.uploader,hw.uploaded,JSON.stringify(hw.images),hw.cloudFolder||''])});
       showToast('✅ Feltöltve!');
-    }catch{showToast('✅ Helyben mentve (szinkron később)');}
+    }catch{showToast('✅ Helyben mentve');}
   }
-
   localStorage.setItem('hz_hw_7a',JSON.stringify(homeworks));
   pf.style.width='100%';
   pendingImgs=[];keepImgs=[];removedImgs=[];
-  renderNewPreviews();
-  pw.style.display='none';
+  renderNewPreviews();pw.style.display='none';
   document.getElementById('uploadStatus').textContent='';
   btn.innerHTML='Mentés ✓';btn.disabled=false;
   closeSheet('addSheet');renderAll();
@@ -509,162 +488,164 @@ async function saveHW(){
 
 // ── Delete ────────────────────────────────────────────
 async function deleteHW(id){
-  if(!confirm('Biztosan törlöd? A Kukából visszaállítható lesz.'))return;
+  if(!confirm('Biztosan törlöd? Kukából visszaállítható.'))return;
   homeworks=homeworks.filter(h=>h.id!==id);
   localStorage.setItem('hz_hw_7a',JSON.stringify(homeworks));
-  try{
-    await sheetRequest({action:'delete',id:id,deletedBy:session.name});
-    showToast('🗑️ Törölve – Kukából visszaállítható');
-  }catch{showToast('🗑️ Helyben törölve.');}
-  closeSheet('detailSheet');renderAll();
-  loadTrash();
+  try{await sheetRequest({action:'delete',id:id,deletedBy:session.name});showToast('🗑️ Törölve – Kukában van');}
+  catch{showToast('🗑️ Helyben törölve');}
+  closeSheet('detailSheet');renderAll();loadTrash();
+}
+async function deleteImageFromHW(hwId,url){
+  if(!confirm('Törlöd ezt a képet?'))return;
+  const h=homeworks.find(x=>x.id===hwId);if(!h)return;
+  h.images=h.images.filter(u=>u!==url);
+  localStorage.setItem('hz_hw_7a',JSON.stringify(homeworks));
+  try{await sheetRequest({action:'update',id:hwId,row:JSON.stringify([h.id,h.subject,h.desc,h.due,h.note,h.uploader,h.uploaded,JSON.stringify(h.images),h.cloudFolder||''])});showToast('🗑️ Kép törölve');}
+  catch{showToast('🗑️ Helyben törölve');}
+  closeSheet('detailSheet');openDetail(hwId);
 }
 
-// ── Trash / Restore ──────────────────────────────────
-let trashItems = [];
-
+// ── Trash ─────────────────────────────────────────────
 async function loadTrash(){
-  try{
-    const r=await sheetRequest({action:'loadTrash'});
-    trashItems=r.data||[];
-  }catch{trashItems=[];}
+  try{const r=await sheetRequest({action:'loadTrash'});trashItems=r.data||[];}
+  catch{trashItems=[];}
   renderTrash();
 }
-
 function renderTrash(){
   const el=document.getElementById('trashList');
-  if(!trashItems.length){
-    el.innerHTML='<div class="empty"><div class="ico">🗑️</div><p>A Kuka üres.</p></div>';
-    return;
-  }
-  el.innerHTML='<div class="sec-label">Törölt feladatok – felhőből visszaállíthatók</div>'+
-    trashItems.map(h=>`
-      <div class="trash-card">
-        <div class="card-head">
-          <div class="subj">${h.subject}</div>
-          <div class="badge past">Törölve</div>
-        </div>
-        <div class="desc">${h.desc}</div>
-        <div class="trash-meta">
-          📅 Határidő: ${fmtDate(h.due)}<br>
-          ⬆️ Feltöltötte: ${h.uploader}<br>
-          🗑️ Törölte: <b>${h.deletedBy}</b> · ${fmtDT(h.deletedAt)}
-          ${safeJSON(h.images).length?`<br>🖼️ ${safeJSON(h.images).length} kép`:''}
-        </div>
-        <div style="display:flex;gap:8px;margin-top:10px">
-          <button class="tbtn tbtn-restore" onclick="restoreHW('${h.id}')">↩️ Visszaállítás</button>
-          <button class="tbtn tbtn-perm" onclick="permDeleteHW('${h.id}')">🗑️ Végleges törlés</button>
-        </div>
-      </div>`).join('');
+  if(!trashItems.length){el.innerHTML='<div class="empty"><div class="ico">🗑️</div><p>A Kuka üres.</p></div>';return;}
+  el.innerHTML='<div class="sec-label">Törölt feladatok – visszaállíthatók</div>'+
+    trashItems.map(h=>`<div class="trash-card">
+      <div class="card-head"><div class="subj">${h.subject}</div><div class="badge past">Törölve</div></div>
+      <div class="desc">${h.desc}</div>
+      <div class="trash-meta">📅 ${fmtDate(h.due)}<br>⬆️ ${h.uploader}<br>🗑️ <b>${h.deletedBy}</b> · ${fmtDT(h.deletedAt)}
+      ${safeJSON(h.images).length?`<br>🖼️ ${safeJSON(h.images).length} kép`:''}</div>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button class="tbtn tbtn-restore" onclick="restoreHW('${h.id}')">↩️ Visszaállítás</button>
+        <button class="tbtn tbtn-perm" onclick="permDeleteHW('${h.id}')">🗑️ Végleges törlés</button>
+      </div></div>`).join('');
 }
-
 async function restoreHW(id){
-  if(!confirm('Visszaállítod ezt a feladatot?'))return;
+  if(!confirm('Visszaállítod?'))return;
   showToast('⏳ Visszaállítás…',99999);
-  try{
-    const r=await sheetRequest({action:'restore',id:id});
-    await loadSheet();
-    await loadTrash();
-    hideToast();
-    showToast('✅ Visszaállítva!');
-  }catch{
-    hideToast();
-    showToast('⚠️ Hiba a visszaállításnál.');
-  }
+  try{await sheetRequest({action:'restore',id:id});await loadSheet();await loadTrash();hideToast();showToast('✅ Visszaállítva!');}
+  catch{hideToast();showToast('⚠️ Hiba a visszaállításnál.');}
+}
+async function permDeleteHW(id){
+  if(!confirm('Véglegesen törlöd?'))return;
+  try{await sheetRequest({action:'permDelete',id:id});await loadTrash();showToast('🗑️ Véglegesen törölve.');}
+  catch{showToast('⚠️ Hiba.');}
 }
 
-async function permDeleteHW(id){
-  if(!confirm('Véglegesen törlöd? Ez nem vonható vissza!'))return;
-  try{
-    await sheetRequest({action:'permDelete',id:id});
-    await loadTrash();
-    showToast('🗑️ Véglegesen törölve.');
-  }catch{showToast('⚠️ Hiba a törlésnél.');}
+// ── Export Excel ──────────────────────────────────────
+function exportExcel(mode){
+  const items = mode==='active' ? activeHW() : homeworks;
+  let csv = 'Tantárgy,Feladat,Határidő,Megjegyzés,Feltöltötte,Feltöltve,Képek száma\n';
+  items.forEach(h=>{
+    const row=[
+      h.subject, h.desc, h.due||'', h.note||'', h.uploader,
+      fmtDT(h.uploaded), (h.images||[]).length
+    ].map(v=>'"'+String(v).replace(/"/g,'""')+'"');
+    csv+=row.join(',')+'\n';
+  });
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`hazik_${CFG.CNAME.replace(/\s/g,'_')}_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  showToast('📥 Exportálva!');
 }
 
 // ── Render ────────────────────────────────────────────
-function renderAll(){renderFilters();renderList();renderNotifyList();renderHistory();}
+function renderAll(){renderFilters();renderList();renderAll2();renderNotifyList();}
 
 function renderFilters(){
   const subs=[...new Set(homeworks.map(h=>h.subject))];
-  const bar=document.getElementById('filterBar');
-  bar.innerHTML='';
-  const all=document.createElement('div');
-  all.className='chip'+(activeFilter==='all'?' on':'');
-  all.textContent='Összes';
-  all.onclick=()=>setFilter('all');
-  bar.appendChild(all);
-  subs.forEach(s=>{
-    const c=document.createElement('div');
-    c.className='chip'+(activeFilter===s?' on':'');
-    c.textContent=s;
-    c.onclick=()=>setFilter(s);
-    bar.appendChild(c);
+  ['filterBar','filterBarAll'].forEach((barId,idx)=>{
+    const bar=document.getElementById(barId);
+    bar.innerHTML='';
+    const all=document.createElement('div');
+    all.className='chip on';all.textContent='Összes';
+    all.onclick=()=>{if(idx===0){activeFilter='all';}else{activeFilterAll='all';}renderAll();};
+    bar.appendChild(all);
+    subs.forEach(s=>{
+      const c=document.createElement('div');
+      c.className='chip';c.textContent=s;
+      c.onclick=()=>{if(idx===0){activeFilter=s;}else{activeFilterAll=s;}renderAll();};
+      bar.appendChild(c);
+    });
   });
+  document.querySelectorAll('#filterBar .chip').forEach(c=>c.classList.toggle('on',c.textContent===(activeFilter==='all'?'Összes':activeFilter)));
+  document.querySelectorAll('#filterBarAll .chip').forEach(c=>c.classList.toggle('on',c.textContent===(activeFilterAll==='all'?'Összes':activeFilterAll)));
 }
-function setFilter(f){activeFilter=f;renderAll();}
+
+function activeHW(){return homeworks.filter(h=>{if(!h.due)return true;const d=new Date(h.due);d.setHours(0,0,0,0);return d>=today0();});}
+
+function filterSearch(items, searchId){
+  const q=document.getElementById(searchId)?.value?.toLowerCase()||'';
+  if(!q)return items;
+  return items.filter(h=>h.subject.toLowerCase().includes(q)||h.desc.toLowerCase().includes(q)||(h.note||'').toLowerCase().includes(q)||(h.uploader||'').toLowerCase().includes(q));
+}
 
 function cardHTML(h){
   const{text,cls}=dueInfo(h.due);
-  const imgs=(h.images||[]).slice(0,3);
-  const extra=(h.images||[]).length-3;
-  return `<div class="card" data-id="${h.id}">
+  const imgs=Array.isArray(h.images)?h.images.slice(0,3):[];
+  const extra=Array.isArray(h.images)?h.images.length-3:0;
+  return`<div class="card" data-id="${h.id}">
     <div class="card-head"><div class="subj">${h.subject}</div><div class="badge ${cls}">${text}</div></div>
     <div class="desc">${h.desc}</div>
-    ${imgs.length?`<div class="thumbs">${imgs.map(u=>`<img class="thumb" src="${u}">`).join('')}${extra>0?`<div class="thumb-more">+${extra}</div>`:''}</div>`:''}
+    ${imgs.length?`<div class="thumbs">${imgs.map(u=>`<img class="thumb" src="${u}" loading="lazy" onerror="this.style.display='none'">`).join('')}${extra>0?`<div class="thumb-more">+${extra}</div>`:''}</div>`:''}
     <div class="meta">
       ${h.note?`<span class="tag">📌 ${h.note}</span>`:''}
-      ${(h.images||[]).length?`<span class="tag">🖼️ ${h.images.length} kép</span>`:''}
+      ${imgs.length?`<span class="tag">🖼️ ${h.images.length}</span>`:''}
       <span class="who">⬆️ ${h.uploader} · ${fmtDT(h.uploaded)}</span>
     </div>
   </div>`;
 }
 
-function attachCardClicks(containerId){
-  document.getElementById(containerId).querySelectorAll('.card').forEach(card=>{
-    card.onclick=()=>openDetail(card.dataset.id);
-  });
+function attachClicks(containerId){
+  document.getElementById(containerId).querySelectorAll('.card').forEach(c=>c.onclick=()=>openDetail(c.dataset.id));
 }
-
-function activeHW(){return homeworks.filter(h=>{const d=new Date(h.due);d.setHours(0,0,0,0);return d>=today0();});}
 
 function renderList(){
   let items=activeHW();
   if(activeFilter!=='all')items=items.filter(h=>h.subject===activeFilter);
-  items.sort((a,b)=>new Date(a.due)-new Date(b.due));
+  items=filterSearch(items,'searchList');
+  items.sort((a,b)=>{if(!a.due)return 1;if(!b.due)return -1;return new Date(a.due)-new Date(b.due);});
   const el=document.getElementById('hwList');
   el.innerHTML=items.length?items.map(cardHTML).join(''):`<div class="empty"><div class="ico">🎉</div><p>Nincs aktív házi feladat!</p></div>`;
-  attachCardClicks('hwList');
+  attachClicks('hwList');
+  document.getElementById('tab-list').textContent='📋 Feladatok'+(items.length?' ('+items.length+')':'');
+}
+
+function renderAll2(){
+  let items=[...homeworks];
+  if(activeFilterAll!=='all')items=items.filter(h=>h.subject===activeFilterAll);
+  items=filterSearch(items,'searchAll');
+  items.sort((a,b)=>{if(!a.due)return 1;if(!b.due)return -1;return new Date(b.due)-new Date(a.due);});
+  const el=document.getElementById('hwListAll');
+  el.innerHTML=items.length?items.map(cardHTML).join(''):`<div class="empty"><div class="ico">📦</div><p>Nincs feladat.</p></div>`;
+  attachClicks('hwListAll');
+  document.getElementById('tab-all').textContent='📦 Összes'+(items.length?' ('+items.length+')':'');
 }
 
 function renderNotifyList(){
-  const items=activeHW().sort((a,b)=>new Date(a.due)-new Date(b.due));
+  const items=activeHW().sort((a,b)=>{if(!a.due)return 1;if(!b.due)return -1;return new Date(a.due)-new Date(b.due);});
   const el=document.getElementById('notifyList');
-  el.innerHTML=items.length?items.map(h=>{
-    const{text,cls}=dueInfo(h.due);
-    return`<div class="card" data-id="${h.id}">
-      <div class="card-head"><div class="subj">${h.subject}</div><div class="badge ${cls}">${text}</div></div>
-      <div class="desc">${h.desc}</div>
-      <div style="margin-top:8px;font-size:13px;color:var(--blue);font-weight:700;">💬 Értesítő generálása →</div>
-    </div>`;
-  }).join(''):`<div class="empty"><div class="ico">💬</div><p>Nincs aktív feladat.</p></div>`;
+  el.innerHTML=items.length?items.map(h=>{const{text,cls}=dueInfo(h.due);return`<div class="card" data-id="${h.id}">
+    <div class="card-head"><div class="subj">${h.subject}</div><div class="badge ${cls}">${text}</div></div>
+    <div class="desc">${h.desc}</div>
+    <div style="margin-top:8px;font-size:13px;color:var(--blue);font-weight:700;">💬 Értesítő generálása →</div>
+  </div>`;}).join(''):`<div class="empty"><div class="ico">💬</div><p>Nincs aktív feladat.</p></div>`;
   el.querySelectorAll('.card').forEach(c=>c.onclick=()=>openNotify(c.dataset.id));
-}
-
-function renderHistory(){
-  const items=homeworks.filter(h=>{const d=new Date(h.due);d.setHours(0,0,0,0);return d<today0();}).sort((a,b)=>new Date(b.due)-new Date(a.due));
-  const el=document.getElementById('historyList');
-  el.innerHTML=items.length?'<div class="sec-label">Lejárt feladatok</div>'+items.map(cardHTML).join(''):`<div class="empty"><div class="ico">📂</div><p>Még nincs archivált feladat.</p></div>`;
-  attachCardClicks('historyList');
 }
 
 // ── Detail ────────────────────────────────────────────
 function openDetail(id){
   const h=homeworks.find(x=>x.id===id);if(!h)return;
   const{text,cls}=dueInfo(h.due);
-  const imgs=h.images||[];
-  const dc=document.getElementById('detailContent');
-  dc.innerHTML=`
+  const imgs=Array.isArray(h.images)?h.images:[];
+  document.getElementById('detailContent').innerHTML=`
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:11px">
       <div style="font-size:20px;font-weight:900">${h.subject}</div>
       <div class="badge ${cls}" style="font-size:13px">${text}</div>
@@ -672,17 +653,15 @@ function openDetail(id){
     <div style="font-size:15px;line-height:1.6;margin-bottom:7px">${h.desc}</div>
     ${h.note?`<div class="info-row">📌 ${h.note}</div>`:''}
     <div class="info-row">⬆️ <b>${h.uploader}</b> · ${fmtDT(h.uploaded)}</div>
-    ${imgs.length?`<div class="gallery">${imgs.map(u=>`<div class="gallery-wrap"><img src="${u}" data-url="${u}"><button class="gallery-rm" data-url="${u}">×</button></div>`).join('')}</div>`:''}
+    ${imgs.length?`<div class="gallery">${imgs.map(u=>`<div class="gallery-wrap"><img src="${u}" loading="lazy" onerror="this.style.opacity='.3'" data-url="${u}"><button class="gallery-rm" data-url="${u}">×</button></div>`).join('')}</div>`:''}
     <div class="detail-actions">
       <button class="btn btn-primary btn-full" id="detNotifyBtn">💬 Értesítő generálása</button>
       <button class="btn btn-secondary btn-full" id="detRequestBtn">🙋 Feltöltést kér üzenet</button>
       <button class="btn btn-secondary btn-full" id="detEditBtn">✏️ Szerkesztés</button>
       <button class="btn btn-danger btn-full" id="detDeleteBtn">🗑️ Törlés</button>
     </div>`;
-
-  dc.querySelectorAll('.gallery-wrap img').forEach(img=>img.onclick=()=>{document.getElementById('viewerImg').src=img.dataset.url;openSheet('imgViewer');});
-  dc.querySelectorAll('.gallery-rm').forEach(btn=>btn.onclick=e=>{e.stopPropagation();deleteImageFromHW(id,btn.dataset.url);});
-  dc.getElementById=undefined;
+  document.querySelectorAll('.gallery-wrap img').forEach(img=>img.onclick=()=>{document.getElementById('viewerImg').src=img.dataset.url;openSheet('imgViewer');});
+  document.querySelectorAll('.gallery-rm').forEach(btn=>btn.onclick=e=>{e.stopPropagation();deleteImageFromHW(id,btn.dataset.url);});
   document.getElementById('detNotifyBtn').onclick=()=>{openNotify(id);closeSheet('detailSheet');};
   document.getElementById('detRequestBtn').onclick=()=>openRequestNotify(id);
   document.getElementById('detEditBtn').onclick=()=>{closeSheet('detailSheet');openAddSheet(id);};
@@ -690,46 +669,27 @@ function openDetail(id){
   openSheet('detailSheet');
 }
 
-async function deleteImageFromHW(hwId, url){
-  if(!confirm('Törlöd ezt a képet?'))return;
-  const h=homeworks.find(x=>x.id===hwId);if(!h)return;
-  h.images=h.images.filter(u=>u!==url);
-  localStorage.setItem('hz_hw_7a',JSON.stringify(homeworks));
-  try{
-    await sheetRequest({action:'update',id:hwId,row:[
-      h.id,h.subject,h.desc,h.due,h.note,h.uploader,h.uploaded,
-      JSON.stringify(h.images),h.cloudFolder||''
-    ]});
-    showToast('🗑️ Kép törölve.');
-  }catch{showToast('🗑️ Kép helyben törölve.');}
-  closeSheet('detailSheet');
-  openDetail(hwId);
-}
-
-// ── Add / Edit sheet ──────────────────────────────────
+// ── Add/Edit ──────────────────────────────────────────
 function openAddSheet(id){
-  editingId=id;
-  pendingImgs=[];keepImgs=[];removedImgs=[];
+  editingId=id;pendingImgs=[];keepImgs=[];removedImgs=[];
   renderNewPreviews();
   document.getElementById('progressWrap').style.display='none';
   document.getElementById('uploadStatus').textContent='';
-
   if(id){
     const h=homeworks.find(x=>x.id===id);
-    document.getElementById('addSheetTitle').textContent='Feladat szerkesztése';
+    document.getElementById('addSheetTitle').textContent='Szerkesztés';
     document.getElementById('newSubject').value=h.subject;
     document.getElementById('newDesc').value=h.desc;
-    document.getElementById('newDue').value=h.due;
+    document.getElementById('newDue').value=h.due||'';
     document.getElementById('newNote').value=h.note||'';
-    keepImgs=[...(h.images||[])];
+    keepImgs=[...(Array.isArray(h.images)?h.images:[])];
     renderExistingPreviews();
-  } else {
+  }else{
     document.getElementById('addSheetTitle').textContent='Új házi feladat';
     document.getElementById('newDesc').value='';
     document.getElementById('newNote').value='';
+    document.getElementById('newDue').value='';
     document.getElementById('existingImgs').style.display='none';
-    const t=new Date();t.setDate(t.getDate()+1);
-    document.getElementById('newDue').value=t.toISOString().split('T')[0];
   }
   openSheet('addSheet');
 }
@@ -742,35 +702,29 @@ function openNotify(id){
   msg+=`✏️ Feladat: ${h.desc}\n`;
   if(h.due)msg+=`📅 Határidő: ${fmtDate(h.due)}\n`;
   if(h.note)msg+=`📌 Megjegyzés: ${h.note}\n`;
-  if((h.images||[]).length)msg+=`\n🖼️ ${h.images.length} kép elérhető az appban\n`;
+  if((h.images||[]).length)msg+=`\n🖼️ ${h.images.length} kép az appban\n`;
   msg+=`\n✅ Feltöltötte: ${h.uploader}`;
   document.getElementById('notifyText').textContent=msg;
   openSheet('notifySheet');
 }
-
 function openRequestNotify(id){
   const h=homeworks.find(x=>x.id===id);if(!h)return;
-  let msg=`🙏 Sziasztok!\n\nMég nem tudjuk a ${h.subject} házi feladatot (${fmtDate(h.due)}).\n\nValaki fel tudná tölteni? Köszönöm! 🙂`;
+  let msg=`🙏 Sziasztok!\n\nMég nem tudjuk a ${h.subject} házi feladatot${h.due?' ('+fmtDate(h.due)+')':''}.\n\nValaki fel tudná tölteni? Köszönöm! 🙂`;
   document.getElementById('notifyText').textContent=msg;
   closeSheet('detailSheet');openSheet('notifySheet');
 }
-
 function copyNotify(){
   const t=document.getElementById('notifyText').textContent;
-  navigator.clipboard.writeText(t).then(()=>showToast('✅ Másolva! Illeszd be Messengerbe.')).catch(()=>{
-    const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);showToast('✅ Másolva!');
-  });
+  navigator.clipboard.writeText(t).then(()=>showToast('✅ Másolva!')).catch(()=>{const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);showToast('✅ Másolva!');});
 }
 
 // ── Tab switch ────────────────────────────────────────
 function switchTab(name){
-  ['list','notify','history','trash'].forEach(n=>{
+  ['list','all','notify','trash'].forEach(n=>{
     document.getElementById('tab-'+n).classList.toggle('on',n===name);
     document.getElementById('view-'+n).classList.toggle('on',n===name);
   });
 }
 </script>
-
-<div id="appVersion" style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none">App v3.0</div>
 </body>
 </html>
