@@ -300,7 +300,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v6.3</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v6.4</span><span id="scriptVersion"></span></div>
 
 <script>
 const CFG = {
@@ -959,42 +959,29 @@ let reqSubjects = []; // selected subjects
 let reqMode = 'day'; // 'day' | 'week' | 'subjects' | 'all'
 
 function renderRequestTab(){
-  const el = document.getElementById('requestContent');
+  const el=document.getElementById('requestContent');
+  const selectEl=document.getElementById('newSubject');
+  const cfgSubjects=selectEl?Array.from(selectEl.options).map(o=>o.value):[];
 
-
-  const allSubjects = [...new Set(homeworks.map(h=>h.subject))];
-  // Use CFG subjects from select options
-  const selectEl = document.getElementById('newSubject');
-  const cfgSubjects = selectEl ? Array.from(selectEl.options).map(o=>o.value) : allSubjects;
-
-  el.innerHTML = `
+  el.innerHTML=`
     <div style="margin-bottom:16px">
       <h3 style="font-size:16px;font-weight:900;margin-bottom:4px">🙋 Feltöltést kérő üzenet</h3>
-      <p style="font-size:13px;color:var(--ink2)">Állítsd össze mire kérsz házi feladatot, majd másold be Messengerbe.</p>
+      <p style="font-size:13px;color:var(--ink2)">Állítsd össze mire kérsz házi feladatot.</p>
     </div>
 
     <div class="req-section">
-      <h3>Mire kérj?</h3>
-      <div class="req-chips">
-        <div class="req-chip ${reqMode==='day'?'on':''}" onclick="setReqMode('day')">📅 Egy napra</div>
-        <div class="req-chip ${reqMode==='week'?'on':''}" onclick="setReqMode('week')">📆 Egész hétre</div>
-        <div class="req-chip ${reqMode==='subjects'?'on':''}" onclick="setReqMode('subjects')">📖 Tantárgyra</div>
-        <div class="req-chip ${reqMode==='all'?'on':''}" onclick="setReqMode('all')">📚 Mindenre</div>
-      </div>
-    </div>
-
-    <div class="req-section" id="reqDaySection" style="${reqMode==='day'?'':'display:none'}">
-      <h3>Melyik napra?</h3>
+      <h3>📅 Mikor? (opcionális)</h3>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
-        <input type="date" id="reqDatePicker" style="padding:8px 12px;border:2px solid var(--line);border-radius:10px;font-size:14px;font-family:inherit;color:var(--ink);background:#fff;cursor:pointer" onchange="addReqDate(this.value)">
+        <input type="date" id="reqDatePicker" style="padding:8px 12px;border:2px solid var(--line);border-radius:10px;font-size:14px;font-family:inherit;color:var(--ink);background:#fff;cursor:pointer" onchange="addReqDate(this.value);this.value=''">
         <button onclick="addReqDateToday()" style="padding:8px 12px;border:2px solid var(--line);border-radius:10px;font-size:13px;font-weight:700;background:#fff;color:var(--ink2);cursor:pointer">Ma</button>
         <button onclick="addReqDateTomorrow()" style="padding:8px 12px;border:2px solid var(--line);border-radius:10px;font-size:13px;font-weight:700;background:#fff;color:var(--ink2);cursor:pointer">Holnap</button>
+        <button onclick="addReqWeek()" style="padding:8px 12px;border:2px solid var(--line);border-radius:10px;font-size:13px;font-weight:700;background:#fff;color:var(--ink2);cursor:pointer">Egész hét</button>
       </div>
       <div class="req-chips" id="reqDayChips"></div>
     </div>
 
-    <div class="req-section" id="reqSubjSection" style="${reqMode==='subjects'?'':'display:none'}">
-      <h3>Melyik tantárgy(ak)?</h3>
+    <div class="req-section">
+      <h3>📖 Tantárgy? (opcionális)</h3>
       <div class="req-chips" id="reqSubjChips">
         ${cfgSubjects.map(s=>`<div class="req-chip ${reqSubjects.includes(s)?'on':''}" onclick="toggleReqSubj('${s.replace(/'/g,"\'")}')">${s}</div>`).join('')}
       </div>
@@ -1007,9 +994,11 @@ function renderRequestTab(){
       <button class="fb-copy" onclick="sendToMessenger(buildRequestMsg())" style="background:#0084ff;margin-top:8px">💬 Megnyitás Messengerben</button>
     </div>
   `;
+  updateDayChips();
 }
 
-function setReqMode(mode){
+function setReqMode(mode){ return; // deprecated
+function _setReqMode(mode){
   reqMode=mode;
   if(mode!=='day') reqDays=[];
   if(mode!=='subjects') reqSubjects=[];
@@ -1041,38 +1030,32 @@ function updateReqPreview(){
 }
 
 function buildRequestMsg(){
-  let msg=`🙏 Sziasztok!\n\n`;
-  if(reqMode==='all'){
-    msg+=`Kérném, hogy aki tudja a házi feladatokat, töltse fel az appba!\n`;
-  } else if(reqMode==='week'){
-    const now=new Date();
-    const mon=new Date(now);
-    mon.setDate(now.getDate()-(now.getDay()||7)+1);
-    const fri=new Date(mon);fri.setDate(mon.getDate()+4);
-    const fmt=d=>d.toLocaleDateString('hu-HU',{month:'short',day:'numeric'});
-    msg+=`Kérném a heti (${fmt(mon)}–${fmt(fri)}) házi feladatokat, aki tudja töltse fel az appba!\n`;
-  } else if(reqMode==='day'){
-    if(!reqDays.length){
-      msg+=`Kérném a házi feladatokat, aki tudja töltse fel az appba!\n`;
+  let msg='🙏 Sziasztok!\n\n';
+  const hasDays = reqDays.length > 0;
+  const hasSubjs = reqSubjects.length > 0;
+
+  if(!hasDays && !hasSubjs){
+    msg+='Kérném a házi feladatokat, aki tudja töltse fel az appba!\n';
+  } else {
+    msg+='Kérném';
+    // Subjects
+    if(hasSubjs){
+      if(reqSubjects.length===1) msg+=' a(z) '+reqSubjects[0];
+      else msg+=' a következő tantárgyak: '+reqSubjects.join(', ');
     } else {
+      msg+=' a házi feladatokat';
+    }
+    // Days
+    if(hasDays){
       const labels=reqDays.map(ds=>new Date(ds).toLocaleDateString('hu-HU',{weekday:'long',month:'long',day:'numeric'}));
-      msg+=`Kérném a következő napra szóló házi feladatokat:\n`;
-      labels.forEach(l=>msg+=`📅 ${l}\n`);
-      msg+=`\nAki tudja, töltse fel az appba!\n`;
+      if(labels.length===1) msg+=' ('+labels[0]+')';
+      else msg+=':\n'+labels.map(l=>'📅 '+l).join('\n');
     }
-  } else if(reqMode==='subjects'){
-    if(!reqSubjects.length){
-      msg+=`Kérném a házi feladatokat, aki tudja töltse fel az appba!\n`;
-    } else if(reqSubjects.length===1){
-      msg+=`Kérném a(z) ${reqSubjects[0]} házi feladatot, aki tudja töltse fel az appba!\n`;
-    } else {
-      msg+=`Kérném az alábbi tantárgyak házi feladatait:\n`;
-      reqSubjects.forEach(s=>msg+=`📖 ${s}\n`);
-      msg+=`\nAki tudja, töltse fel az appba!\n`;
-    }
+    msg+='\n\nAki tudja, töltse fel az appba!\n';
   }
-  msg+=`\nKöszönöm! 🙂`;
-  msg+=`\n\n🔗 https://gezamandli.github.io/szekai-hazik/index_5a.html`;
+  msg+='\nKöszönöm! 🙂';
+  const baseUrl='https://gezamandli.github.io/szekai-hazik/index_7a.html';
+  msg+='\n\n🔗 '+baseUrl;
   return msg;
 }
 
@@ -1560,6 +1543,22 @@ function exportSelectedExcel(){
 function addReqDate(ds){
   if(!ds)return;
   if(!reqDays.includes(ds))reqDays.push(ds);
+  reqDays.sort();
+  updateDayChips();
+  updateReqPreview();
+}
+
+function addReqWeek(){
+  // Add Mon-Fri of current week
+  const now=new Date();
+  const mon=new Date(now);
+  mon.setDate(now.getDate()-(now.getDay()||7)+1);
+  for(let i=0;i<5;i++){
+    const d=new Date(mon);
+    d.setDate(mon.getDate()+i);
+    const ds=d.toISOString().split('T')[0];
+    if(!reqDays.includes(ds))reqDays.push(ds);
+  }
   reqDays.sort();
   updateDayChips();
   updateReqPreview();
