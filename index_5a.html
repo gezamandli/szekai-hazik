@@ -287,7 +287,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div id="appVersion" style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none">App v4.6</div>
+<div id="appVersion" style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none">App v4.7</div>
 
 <script>
 const CFG = {
@@ -1320,7 +1320,7 @@ function printCard(id){
     .imgs{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
     .imgs img{max-width:300px;max-height:300px;object-fit:contain;border:1px solid #ddd;border-radius:6px}
     @media print{button{display:none}}
-  </style><script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  </style>
 </head><body>
   <button onclick="window.print()" style="margin-bottom:16px;padding:8px 16px;background:#2f6de1;color:#fff;border:none;border-radius:8px;cursor:pointer">🖨️ Nyomtatás</button>
   <h2>${h.subject}</h2>
@@ -1348,7 +1348,7 @@ function printSelected(){
     .imgs{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
     .imgs img{max-width:280px;max-height:280px;object-fit:contain;border:1px solid #ddd;border-radius:6px}
     @media print{.no-print{display:none}body{padding:8px}}
-  </style><script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  </style>
 </head><body>
   <button class="no-print" onclick="window.print()" style="margin-bottom:16px;padding:8px 16px;background:#2f6de1;color:#fff;border:none;border-radius:8px;cursor:pointer">🖨️ Nyomtatás (${items.length} feladat)</button>
   ${items.map(h=>{
