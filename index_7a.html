@@ -112,12 +112,12 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 .select-bar .cnt{font-size:14px;font-weight:800}
 .sb-btn{background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:9px;padding:9px 14px;font-size:13px;font-weight:700;cursor:pointer}
 .help-section{display:flex;gap:14px;margin-bottom:18px;align-items:flex-start}
-.ocr-box{background:#f8faff;border:2px solid var(--blue);border-radius:11px;padding:14px;margin-top:10px;font-size:13px;line-height:1.6;white-space:pre-wrap;color:var(--ink)}
-.ocr-btn{background:var(--blue-bg);border:1.5px solid var(--blue);color:var(--blue);border-radius:8px;padding:5px 11px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px}
-.ocr-actions{display:none;gap:6px;margin-top:6px;flex-wrap:wrap}
-.ocr-save-btn{background:var(--green);border:none;color:#fff;border-radius:8px;padding:5px 11px;font-size:12px;font-weight:700;cursor:pointer}
+
+
+
+
 .ocr-btn:active{opacity:.7}
-.ocr-copy{background:#fff;border:1.5px solid var(--line);color:var(--ink2);border-radius:8px;padding:5px 11px;font-size:12px;font-weight:700;cursor:pointer}
+
 .help-icon{font-size:28px;flex-shrink:0;width:40px;text-align:center}
 .help-title{font-size:15px;font-weight:800;margin-bottom:4px}
 .help-desc{font-size:13px;color:var(--ink2);line-height:1.6}
@@ -134,7 +134,6 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 .req-preview{background:#f0f2f5;border-radius:11px;padding:14px;font-size:14px;line-height:1.65;white-space:pre-wrap;word-break:break-word;color:#1c1e21;margin-bottom:12px;border:1px solid #dde0e4;min-height:80px}
 .export-btn:active{border-color:var(--blue);color:var(--blue)}
 </style>
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
 <body>
 
@@ -291,7 +290,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div id="appVersion" style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none">App v4.7</div>
+<div id="appVersion" style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none">App v4.9</div>
 
 <script>
 const CFG = {
@@ -485,7 +484,7 @@ function parseGViz(json){
       return{
         id:get(0),subject:get(1),desc:get(2),due:get(3),
         note:get(4),uploader:get(5),uploaded:get(6),
-        images:images,cloudFolder:get(8)||'',ocrText:get(9)||''
+        images:images,cloudFolder:get(8)||''
       };
     }).filter(h=>h.id&&h.id!=='id');
   }catch(e){console.error('parseGViz error:',e);return[];}
@@ -773,10 +772,7 @@ function openDetail(id){
     <div style="font-size:15px;line-height:1.6;margin-bottom:7px">${h.desc}</div>
     ${h.note?`<div class="info-row">📌 ${h.note}</div>`:''}
     <div class="info-row">⬆️ <b>${h.uploader}</b> · ${fmtDT(h.uploaded)}</div>
-    ${h.ocrText?`<div style="margin-top:10px">
-      <div style="font-size:11px;font-weight:800;color:var(--ink2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px">📝 Felismert szöveg</div>
-      <div class="ocr-box" style="display:block;margin-top:0">${h.ocrText}</div>
-    </div>`:''}
+    
     ${imgs.length?`
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:11px;margin-bottom:6px">
         <span style="font-size:12px;font-weight:700;color:var(--ink2)">${imgs.length} kép</span>
@@ -813,7 +809,7 @@ function openDetail(id){
   document.getElementById('detFavBtn').textContent=isFav(id)?'❤️ Kedvenc (töröl)':'🤍 Kedvencekhez';
   document.getElementById('detFavBtn').onclick=()=>toggleFav(id);
   document.getElementById('detPrintBtn').onclick=()=>printCard(id);
-  setTimeout(()=>addOcrToGallery(id), 100);
+
   document.getElementById('detEditBtn').onclick=()=>{closeSheet('detailSheet');openAddSheet(id);};
   document.getElementById('detDeleteBtn').onclick=()=>deleteHW(id);
   openSheet('detailSheet');
@@ -1403,6 +1399,8 @@ function renderHelpTab(){
       </div>
     </div>
 
+    
+
     <div class="help-section">
       <div class="help-icon">🔍</div>
       <div>
@@ -1491,143 +1489,13 @@ function renderHelpTab(){
 
 
 // ── OCR – Google Cloud Vision ─────────────────────────
-async function ocrImage(imgUrl, btnEl, resultEl, hwId){
-  btnEl.innerHTML='<span class="spin" style="border-top-color:var(--blue);border-color:rgba(47,109,225,.3)"></span> Felismerés...';
-  btnEl.disabled=true;
-  resultEl.style.display='none';
 
-  try{
-    btnEl.innerHTML='<span class="spin" style="border-top-color:var(--blue);border-color:rgba(47,109,225,.3)"></span> Betöltés...';
 
-    // Run Tesseract OCR - try Hungarian first, fallback to English
-    const result = await Tesseract.recognize(imgUrl, 'hun+eng', {
-      logger: m => {
-        if(m.status === 'recognizing text'){
-          const pct = Math.round(m.progress * 100);
-          btnEl.innerHTML = `<span class="spin" style="border-top-color:var(--blue);border-color:rgba(47,109,225,.3)"></span> ${pct}%`;
-        }
-      }
-    });
 
-    const text = result.data.text.trim();
 
-    if(!text){
-      resultEl.innerHTML='<i style="color:var(--ink2)">Nem sikerült szöveget felismerni ezen a képen.</i>';
-    } else {
-      resultEl.textContent = text;
-      // Show action buttons
-      const actRow = resultEl.nextElementSibling;
-      if(actRow && actRow.classList.contains('ocr-actions')){
-        actRow.style.display='flex';
-        actRow.querySelector('.ocr-save-btn').onclick = ()=>showOcrSaveModal(text, hwId);
-      }
-    }
-    resultEl.style.display='block';
-  } catch(e){
-    resultEl.innerHTML='<span style="color:var(--red)">Hiba: '+e.message+'</span>';
-    resultEl.style.display='block';
-  }
 
-  btnEl.innerHTML='🔍 Újra';
-  btnEl.disabled=false;
-}
 
-function showOcrSaveModal(text, hwId){
-  // Open a modal with the OCR text, let user edit and save as note or new entry
-  const existing = document.getElementById('ocrSaveModal');
-  if(existing) existing.remove();
 
-  const modal = document.createElement('div');
-  modal.id = 'ocrSaveModal';
-  modal.className = 'overlay on';
-  modal.innerHTML = `
-    <div class="sheet" onclick="event.stopPropagation()">
-      <div class="handle"></div>
-      <div class="sheet-title">📝 Felismert szöveg mentése</div>
-      <p style="font-size:13px;color:var(--ink2);margin-bottom:12px">Szerkeszd meg és mentsd be a feladat leírásába, vagy másold ki.</p>
-      <div class="field">
-        <label>Felismert szöveg</label>
-        <textarea id="ocrTextEdit" style="min-height:120px">${text}</textarea>
-      </div>
-      <div class="btn-row">
-        <button class="btn btn-secondary" style="flex:1" onclick="document.getElementById('ocrSaveModal').remove()">Mégse</button>
-        <button class="btn btn-secondary" style="flex:1" onclick="
-          navigator.clipboard.writeText(document.getElementById('ocrTextEdit').value).then(()=>showToast('✅ Másolva!'));
-        ">📋 Másolás</button>
-        <button class="btn btn-primary" style="flex:2" onclick="saveOcrToHw('${hwId}')">💾 Mentés leírásba</button>
-      </div>
-    </div>`;
-  modal.onclick = e => { if(e.target===modal) modal.remove(); };
-  document.body.appendChild(modal);
-}
-
-async function saveOcrToHw(hwId){
-  const text = document.getElementById('ocrTextEdit').value.trim();
-  if(!text){ showToast('⚠️ Üres szöveg!'); return; }
-  const h = homeworks.find(x=>x.id===hwId);
-  if(!h){ showToast('⚠️ Feladat nem található!'); return; }
-
-  // Save to separate ocrText field (col J, index 9)
-  h.ocrText = (h.ocrText ? h.ocrText + '\n---\n' : '') + text;
-  localStorage.setItem('hz_hw_7a', JSON.stringify(homeworks));
-
-  try{
-    await sheetRequest({action:'update', id:hwId, row:JSON.stringify([
-      h.id, h.subject, h.desc, h.due, h.note, h.uploader, h.uploaded,
-      JSON.stringify(h.images||[]), h.cloudFolder||'', h.ocrText||''
-    ])});
-    showToast('✅ OCR szöveg mentve!');
-  }catch{
-    showToast('✅ Helyben mentve!');
-  }
-
-  document.getElementById('ocrSaveModal').remove();
-  closeSheet('detailSheet');
-  openDetail(hwId);
-  renderAll();
-}
-
-function addOcrToGallery(hwId){
-  document.querySelectorAll('.gallery-wrap').forEach((wrap,i)=>{
-    if(wrap.querySelector('.ocr-btn')) return;
-    const img = wrap.querySelector('img');
-    if(!img) return;
-    const url = img.dataset.url || img.src;
-
-    // Result box
-    const resultEl = document.createElement('div');
-    resultEl.className='ocr-box';
-    resultEl.style.display='none';
-
-    // Action buttons (copy + save) - shown after successful OCR
-    const actRow = document.createElement('div');
-    actRow.className='ocr-actions';
-    const copyEl = document.createElement('button');
-    copyEl.className='ocr-copy';
-    copyEl.textContent='📋 Másolás';
-    copyEl.onclick=()=>navigator.clipboard.writeText(resultEl.textContent).then(()=>showToast('✅ Szöveg másolva!'));
-    const saveEl = document.createElement('button');
-    saveEl.className='ocr-save-btn';
-    saveEl.textContent='💾 Mentés leírásba';
-    actRow.appendChild(copyEl);
-    actRow.appendChild(saveEl);
-
-    // OCR button
-    const btnEl = document.createElement('button');
-    btnEl.className='ocr-btn';
-    btnEl.innerHTML='🔍 Szöveg felismerése';
-    btnEl.onclick=()=>ocrImage(url, btnEl, resultEl, hwId);
-
-    // Button row
-    const btnRow = document.createElement('div');
-    btnRow.style.cssText='display:flex;gap:6px;margin-top:6px;align-items:center;flex-wrap:wrap';
-    btnRow.appendChild(btnEl);
-
-    wrap.insertAdjacentElement('afterend', actRow);
-    wrap.insertAdjacentElement('afterend', resultEl);
-    wrap.insertAdjacentElement('afterend', btnRow);
-  });
-}
 
 </script>
 </body>
