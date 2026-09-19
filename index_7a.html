@@ -134,6 +134,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 .req-preview{background:#f0f2f5;border-radius:11px;padding:14px;font-size:14px;line-height:1.65;white-space:pre-wrap;word-break:break-word;color:#1c1e21;margin-bottom:12px;border:1px solid #dde0e4;min-height:80px}
 .export-btn:active{border-color:var(--blue);color:var(--blue)}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
 <body>
 
@@ -290,7 +291,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div id="appVersion" style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none">App v4.4</div>
+<div id="appVersion" style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none">App v4.6</div>
 
 <script>
 const CFG = {
@@ -301,7 +302,6 @@ const CFG = {
   CLOUD_NAME:    'g8tinasd',
   UPLOAD_PRESET: 'szekai_hazik',
   CLOUD_FOLDER:  'hazik_7a',
-  VISION_KEY:    '***REMOVED***',
 };
 
 let session = null;
@@ -485,7 +485,7 @@ function parseGViz(json){
       return{
         id:get(0),subject:get(1),desc:get(2),due:get(3),
         note:get(4),uploader:get(5),uploaded:get(6),
-        images:images,cloudFolder:get(8)||''
+        images:images,cloudFolder:get(8)||'',ocrText:get(9)||''
       };
     }).filter(h=>h.id&&h.id!=='id');
   }catch(e){console.error('parseGViz error:',e);return[];}
@@ -773,6 +773,10 @@ function openDetail(id){
     <div style="font-size:15px;line-height:1.6;margin-bottom:7px">${h.desc}</div>
     ${h.note?`<div class="info-row">📌 ${h.note}</div>`:''}
     <div class="info-row">⬆️ <b>${h.uploader}</b> · ${fmtDT(h.uploaded)}</div>
+    ${h.ocrText?`<div style="margin-top:10px">
+      <div style="font-size:11px;font-weight:800;color:var(--ink2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px">📝 Felismert szöveg</div>
+      <div class="ocr-box" style="display:block;margin-top:0">${h.ocrText}</div>
+    </div>`:''}
     ${imgs.length?`
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:11px;margin-bottom:6px">
         <span style="font-size:12px;font-weight:700;color:var(--ink2)">${imgs.length} kép</span>
@@ -1320,7 +1324,8 @@ function printCard(id){
     .imgs{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
     .imgs img{max-width:300px;max-height:300px;object-fit:contain;border:1px solid #ddd;border-radius:6px}
     @media print{button{display:none}}
-  </style></head><body>
+  </style><script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+</head><body>
   <button onclick="window.print()" style="margin-bottom:16px;padding:8px 16px;background:#2f6de1;color:#fff;border:none;border-radius:8px;cursor:pointer">🖨️ Nyomtatás</button>
   <h2>${h.subject}</h2>
   <div class="meta">📅 ${text} &nbsp;|&nbsp; ⬆️ ${h.uploader} &nbsp;|&nbsp; ${fmtDT(h.uploaded)}</div>
@@ -1347,7 +1352,8 @@ function printSelected(){
     .imgs{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
     .imgs img{max-width:280px;max-height:280px;object-fit:contain;border:1px solid #ddd;border-radius:6px}
     @media print{.no-print{display:none}body{padding:8px}}
-  </style></head><body>
+  </style><script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+</head><body>
   <button class="no-print" onclick="window.print()" style="margin-bottom:16px;padding:8px 16px;background:#2f6de1;color:#fff;border:none;border-radius:8px;cursor:pointer">🖨️ Nyomtatás (${items.length} feladat)</button>
   ${items.map(h=>{
     const imgs=h.images||[];
@@ -1491,39 +1497,19 @@ async function ocrImage(imgUrl, btnEl, resultEl, hwId){
   resultEl.style.display='none';
 
   try{
-    // Step 1: Fetch image and convert to base64 (needed for Vision API)
-    const imgResp = await fetch(imgUrl);
-    if(!imgResp.ok) throw new Error('Kép letöltés sikertelen: '+imgResp.status);
-    const blob = await imgResp.blob();
-    const b64 = await new Promise((res,rej)=>{
-      const fr=new FileReader();
-      fr.onload=()=>res(fr.result.split(',')[1]);
-      fr.onerror=rej;
-      fr.readAsDataURL(blob);
+    btnEl.innerHTML='<span class="spin" style="border-top-color:var(--blue);border-color:rgba(47,109,225,.3)"></span> Betöltés...';
+
+    // Run Tesseract OCR - try Hungarian first, fallback to English
+    const result = await Tesseract.recognize(imgUrl, 'hun+eng', {
+      logger: m => {
+        if(m.status === 'recognizing text'){
+          const pct = Math.round(m.progress * 100);
+          btnEl.innerHTML = `<span class="spin" style="border-top-color:var(--blue);border-color:rgba(47,109,225,.3)"></span> ${pct}%`;
+        }
+      }
     });
 
-    // Step 2: Send base64 to Vision API
-    const r = await fetch(
-      'https://vision.googleapis.com/v1/images:annotate?key='+CFG.VISION_KEY,
-      {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({
-          requests:[{
-            image:{content: b64},
-            features:[
-              {type:'DOCUMENT_TEXT_DETECTION', maxResults:1},
-              {type:'TEXT_DETECTION', maxResults:1}
-            ]
-          }]
-        })
-      }
-    );
-    const j = await r.json();
-    if(j.error) throw new Error(j.error.message);
-    const text = j.responses?.[0]?.fullTextAnnotation?.text 
-               || j.responses?.[0]?.textAnnotations?.[0]?.description 
-               || '';
+    const text = result.data.text.trim();
 
     if(!text){
       resultEl.innerHTML='<i style="color:var(--ink2)">Nem sikerült szöveget felismerni ezen a képen.</i>';
@@ -1581,17 +1567,16 @@ async function saveOcrToHw(hwId){
   const h = homeworks.find(x=>x.id===hwId);
   if(!h){ showToast('⚠️ Feladat nem található!'); return; }
 
-  // Append to description
-  const sep = h.desc ? '\n--- OCR ---\n' : '';
-  h.desc = h.desc + sep + text;
+  // Save to separate ocrText field (col J, index 9)
+  h.ocrText = (h.ocrText ? h.ocrText + '\n---\n' : '') + text;
   localStorage.setItem('hz_hw_7a', JSON.stringify(homeworks));
 
   try{
     await sheetRequest({action:'update', id:hwId, row:JSON.stringify([
-      h.id,h.subject,h.desc,h.due,h.note,h.uploader,h.uploaded,
-      JSON.stringify(h.images||[]),h.cloudFolder||''
+      h.id, h.subject, h.desc, h.due, h.note, h.uploader, h.uploaded,
+      JSON.stringify(h.images||[]), h.cloudFolder||'', h.ocrText||''
     ])});
-    showToast('✅ Szöveg mentve a leírásba!');
+    showToast('✅ OCR szöveg mentve!');
   }catch{
     showToast('✅ Helyben mentve!');
   }
