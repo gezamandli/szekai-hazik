@@ -310,7 +310,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v7.4</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v7.5</span><span id="scriptVersion"></span></div>
 
 <script>
 const CFG = {
@@ -1231,8 +1231,10 @@ function passesDateFilter(h){
     return upStr>=weekAgo;
   }
   if(activeDateFilter==='range'){
-    if(dateFrom&&upStr<dateFrom)return false;
-    if(dateTo&&upStr>dateTo)return false;
+    console.log('RANGE CHECK: upStr=['+upStr+'] from=['+dateFrom+'] to=['+dateTo+'] upStr>dateTo='+(upStr>dateTo));
+    if(dateFrom&&upStr<dateFrom){console.log('FILTERED by from');return false;}
+    if(dateTo&&upStr>dateTo){console.log('FILTERED by to');return false;}
+    console.log('PASSED filter');
     return true;
   }
   return true;
