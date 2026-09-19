@@ -288,7 +288,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div id="appVersion" style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none">App v4.2</div>
+<div id="appVersion" style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none">App v4.3</div>
 
 <script>
 const CFG = {
@@ -408,22 +408,36 @@ function logout(){
 
 // ── JSONP request ─────────────────────────────────────
 async function sheetRequest(params){
-  return new Promise((resolve,reject)=>{
-    const cbName='cb_'+Date.now()+'_'+Math.random().toString(36).slice(2);
-    const base=CFG.SCRIPT_URL+'?sheetId='+encodeURIComponent(CFG.SHEET_ID)+'&callback='+cbName;
-    const qs=Object.entries(params).map(([k,v])=>encodeURIComponent(k)+'='+encodeURIComponent(typeof v==='object'?JSON.stringify(v):v)).join('&');
-    const url=base+'&'+qs+'&t='+Date.now();
-    window[cbName]=(data)=>{
-      delete window[cbName];document.head.removeChild(script);
-      if(data.version)document.getElementById('appVersion').textContent='v'+data.version+' · OK';
-      resolve(data);
-    };
-    const script=document.createElement('script');
-    script.src=url;
-    script.onerror=()=>{delete window[cbName];try{document.head.removeChild(script);}catch(e){}reject(new Error('Script hiba'));};
-    setTimeout(()=>{if(window[cbName]){delete window[cbName];try{document.head.removeChild(script);}catch(e){}reject(new Error('Timeout'));}},20000);
-    document.head.appendChild(script);
-  });
+  const base = CFG.SCRIPT_URL + '?sheetId=' + encodeURIComponent(CFG.SHEET_ID);
+  const qs = Object.entries(params).map(([k,v])=>
+    encodeURIComponent(k)+'='+encodeURIComponent(typeof v==='object'?JSON.stringify(v):v)
+  ).join('&');
+  const url = base + '&' + qs + '&t=' + Date.now();
+  
+  try {
+    const r = await fetch(url, {redirect:'follow'});
+    const text = await r.text();
+    const data = JSON.parse(text);
+    if(data.version) document.getElementById('appVersion').textContent='v'+data.version+' · OK';
+    return data;
+  } catch(e) {
+    // Fallback: try JSONP
+    return new Promise((resolve,reject)=>{
+      const cbName='cb_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+      const cbUrl = url + '&callback=' + cbName;
+      window[cbName]=(data)=>{
+        delete window[cbName];
+        try{document.head.removeChild(script);}catch(e){}
+        if(data.version) document.getElementById('appVersion').textContent='v'+data.version+' · OK';
+        resolve(data);
+      };
+      const script=document.createElement('script');
+      script.src=cbUrl;
+      script.onerror=()=>{delete window[cbName];try{document.head.removeChild(script);}catch(e){}reject(new Error('Script hiba'));};
+      setTimeout(()=>{if(window[cbName]){delete window[cbName];try{document.head.removeChild(script);}catch(e){}reject(new Error('Timeout'));}},20000);
+      document.head.appendChild(script);
+    });
+  }
 }
 
 // ── Sheets ───────────────────────────────────────────
