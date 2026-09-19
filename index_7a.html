@@ -323,7 +323,12 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('closeNotifyBtn').onclick=()=>closeSheet('notifySheet');
   // lightbox handled separately
   document.getElementById('addSheet').onclick=e=>{if(e.target===document.getElementById('addSheet'))closeSheet('addSheet');};
-  document.getElementById('detailSheet').onclick=e=>{if(e.target===document.getElementById('detailSheet'))closeSheet('detailSheet');};
+  document.getElementById('detailSheet').onclick=e=>{
+    if(e.target===document.getElementById('detailSheet')){
+      closeSheet('detailSheet');
+      history.replaceState(null,'',window.location.pathname+window.location.search);
+    }
+  };
   document.getElementById('notifySheet').onclick=e=>{if(e.target===document.getElementById('notifySheet'))closeSheet('notifySheet');};
   ['list','request','trash'].forEach(name=>{
     document.getElementById('tab-'+name).onclick=()=>{switchTab(name);if(name==='trash')loadTrash();if(name==='request')renderRequestTab();renderAll();};
@@ -346,8 +351,16 @@ function signIn(){
 function showApp(){
   document.getElementById('loginScreen').classList.remove('on');
   document.getElementById('hdrName').textContent=session.name;
-  loadSheet();
+  loadSheet().then(()=>{
+    const hash = window.location.hash.slice(1);
+    if(hash) openDetail(hash);
+  });
 }
+
+window.addEventListener('hashchange', ()=>{
+  const hash = window.location.hash.slice(1);
+  if(hash) openDetail(hash);
+});
 function logout(){
   if(!confirm('Kijelentkezel?'))return;
   session=null;localStorage.removeItem('hz_s_7a');homeworks=[];
@@ -378,6 +391,7 @@ async function sheetRequest(params){
 // ── Sheets ───────────────────────────────────────────
 async function loadSheet(){
   showToast('⏳ Betöltés…',99999);
+  return new Promise(async (resolve)=>{
   try{
     const url=`https://docs.google.com/spreadsheets/d/${CFG.SHEET_ID}/gviz/tq?tqx=out:json&sheet=Feladatok&t=${Date.now()}`;
     const r=await fetch(url);
@@ -392,6 +406,8 @@ async function loadSheet(){
     showToast('⚠️ Offline – helyi adatok');
   }
   hideToast();renderAll();
+  resolve();
+  });
 }
 
 function parseGViz(json){
@@ -675,6 +691,7 @@ function renderNotifyList(){
 // ── Detail ────────────────────────────────────────────
 function openDetail(id){
   const h=homeworks.find(x=>x.id===id);if(!h)return;
+  history.replaceState(null,'','#'+id);
   const{text,cls}=dueInfo(h.due);
   const imgs=Array.isArray(h.images)?h.images:[];
   document.getElementById('detailContent').innerHTML=`
@@ -698,6 +715,7 @@ function openDetail(id){
     <div class="detail-actions">
       <button class="btn btn-primary btn-full" id="detNotifyBtn" style="background:#0084ff">💬 Értesítő küldése Messengerben</button>
       <button class="btn btn-secondary btn-full" id="detCopyBtn">📋 Értesítő másolása</button>
+      <button class="btn btn-secondary btn-full" id="detLinkBtn">🔗 Link másolása</button>
       <button class="btn btn-secondary btn-full" id="detEditBtn">✏️ Szerkesztés</button>
       <button class="btn btn-danger btn-full" id="detDeleteBtn">🗑️ Törlés</button>
     </div>`;
@@ -708,6 +726,12 @@ function openDetail(id){
   if(dlAll)dlAll.onclick=()=>downloadAll(imgs);
   document.getElementById('detNotifyBtn').onclick=()=>{sendToMessenger(buildNotifyMsg(id));};
   document.getElementById('detCopyBtn').onclick=()=>{copyNotifyMsg(id);};
+  document.getElementById('detLinkBtn').onclick=()=>{
+    const url=cardUrl(id);
+    navigator.clipboard.writeText(url).then(()=>showToast('🔗 Link másolva!')).catch(()=>{
+      const ta=document.createElement('textarea');ta.value=url;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);showToast('🔗 Link másolva!');
+    });
+  };
   document.getElementById('detRequestBtn') && (document.getElementById('detRequestBtn').onclick=()=>{closeSheet('detailSheet');switchTab('request');renderRequestTab();});
   document.getElementById('detEditBtn').onclick=()=>{closeSheet('detailSheet');openAddSheet(id);};
   document.getElementById('detDeleteBtn').onclick=()=>deleteHW(id);
@@ -759,6 +783,7 @@ function buildNotifyMsg(id){
     imgs.forEach(u=>msg+=cloudShort(u)+'\n');
   }
   msg+=`\n✅ Feltöltötte: ${h.uploader}`;
+  msg+=`\n🔗 ${cardUrl(h.id)}`;
   return msg;
 }
 
@@ -1062,6 +1087,11 @@ function lbRender(){
 
   // Download button
   document.getElementById('lbDownload').onclick = () => downloadImg(lbImages[lbIndex], lbIndex+1);
+}
+
+
+function cardUrl(id){
+  return window.location.href.split('#')[0] + '#' + id;
 }
 
 </script>
