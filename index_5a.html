@@ -170,9 +170,9 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
   <div class="chips" id="filterBar"></div>
   <div class="date-filter-bar" id="dateFilterBar"></div>
   <div id="dateRangePicker" style="display:none;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
-    <input type="date" id="dateFrom" style="padding:7px 10px;border:2px solid var(--line);border-radius:10px;font-size:13px;font-family:inherit;color:var(--ink)" onchange="applyDateRange()">
+    <input type="date" id="dateFrom" style="padding:7px 10px;border:2px solid var(--line);border-radius:10px;font-size:13px;font-family:inherit;color:var(--ink)" oninput="applyDateRange()" onchange="applyDateRange()">
     <span style="font-size:13px;color:var(--ink2)">–</span>
-    <input type="date" id="dateTo" style="padding:7px 10px;border:2px solid var(--line);border-radius:10px;font-size:13px;font-family:inherit;color:var(--ink)" onchange="applyDateRange()">
+    <input type="date" id="dateTo" style="padding:7px 10px;border:2px solid var(--line);border-radius:10px;font-size:13px;font-family:inherit;color:var(--ink)" oninput="applyDateRange()" onchange="applyDateRange()">
     <button onclick="clearDateRange()" style="padding:7px 10px;border:2px solid var(--line);border-radius:10px;font-size:12px;font-weight:700;background:#fff;color:var(--ink2);cursor:pointer">✕ Törlés</button>
   </div>
   <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
@@ -302,7 +302,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v6.7</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v6.8</span><span id="scriptVersion"></span></div>
 
 <script>
 const CFG = {
@@ -1207,6 +1207,7 @@ function passesDateFilter(h){
     return upStr>=weekAgo;
   }
   if(activeDateFilter==='range'){
+    console.log('range filter: upStr='+upStr+' from='+dateFrom+' to='+dateTo);
     if(dateFrom&&upStr<dateFrom)return false;
     if(dateTo&&upStr>dateTo)return false;
     return true;
