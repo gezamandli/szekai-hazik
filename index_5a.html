@@ -731,7 +731,13 @@ function openNotify(id){
   msg+=`✏️ Feladat: ${h.desc}\n`;
   if(h.due)msg+=`📅 Határidő: ${fmtDate(h.due)}\n`;
   if(h.note)msg+=`📌 Megjegyzés: ${h.note}\n`;
-  if((h.images||[]).length)msg+=`\n🖼️ ${h.images.length} kép az appban\n`;
+  const imgs=h.images||[];
+  if(imgs.length===1){
+    msg+=`\n🖼️ Kép:\n${imgs[0]}\n`;
+  } else if(imgs.length>1){
+    msg+=`\n🖼️ Képek (${imgs.length} db):\n`;
+    imgs.forEach((u,i)=>msg+=`${i+1}. ${u}\n`);
+  }
   msg+=`\n✅ Feltöltötte: ${h.uploader}`;
   document.getElementById('notifyText').textContent=msg;
   openSheet('notifySheet');
