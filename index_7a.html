@@ -571,7 +571,8 @@ async function deleteHW(id){
   if(!confirm('Biztosan törlöd? Kukából visszaállítható.'))return;
   homeworks=homeworks.filter(h=>h.id!==id);
   // Remove from favs
-  const favs=getFavs();favs.delete(id);localStorage.setItem(favKey(),JSON.stringify([...favs]));
+  favSet.delete(id);localStorage.setItem('hz_fav_cache_7a',JSON.stringify([...favSet]));
+  removeFavFromCloud(id);
   localStorage.setItem('hz_hw_7a',JSON.stringify(homeworks));
   try{await sheetRequest({action:'delete',id:id,deletedBy:session.name});showToast('🗑️ Törölve – Kukában van');}
   catch{showToast('🗑️ Helyben törölve');}
@@ -1242,22 +1243,44 @@ function copySelected(){
 }
 
 
-// ── Favourites ────────────────────────────────────────
-function favKey(){ return 'hz_fav_7a_'+session.name.replace(/\s/g,'_'); }
-function getFavs(){ try{ return new Set(JSON.parse(localStorage.getItem(favKey())||'[]')); }catch{return new Set();} }
-function isFav(id){ return getFavs().has(id); }
-function toggleFav(id,e){
-  if(e)e.stopPropagation();
-  const favs=getFavs();
-  if(favs.has(id))favs.delete(id);else favs.add(id);
-  localStorage.setItem(favKey(),JSON.stringify([...favs]));
-  renderList();
-  // Update detail view fav button if open
-  const btn=document.getElementById('detFavBtn');
-  if(btn)btn.textContent=favs.has(id)?'❤️ Kedvenc':'🤍 Kedvencekhez';
+// ── Favourites (cloud synced) ─────────────────────────
+let favSet = new Set(); // loaded from cloud on login
+
+async function loadFavs(){
+  try{
+    const r = await sheetRequest({action:'loadFavs', userName:session.name});
+    favSet = new Set(r.data||[]);
+    localStorage.setItem('hz_fav_cache_7a', JSON.stringify([...favSet]));
+  }catch{
+    // fallback to cache
+    try{ favSet=new Set(JSON.parse(localStorage.getItem('hz_fav_cache_7a')||'[]')); }catch{}
+  }
 }
-function clearFavsForUser(){
-  localStorage.removeItem(favKey());
+
+function isFav(id){ return favSet.has(id); }
+
+async function toggleFav(id,e){
+  if(e)e.stopPropagation();
+  const wasFav = favSet.has(id);
+  if(wasFav){ favSet.delete(id); } else { favSet.add(id); }
+  // Update cache immediately
+  localStorage.setItem('hz_fav_cache_7a', JSON.stringify([...favSet]));
+  // Update button
+  const btn=document.getElementById('detFavBtn');
+  if(btn)btn.textContent=favSet.has(id)?'❤️ Kedvenc (töröl)':'🤍 Kedvencekhez';
+  renderList();
+  // Sync to cloud
+  try{
+    await sheetRequest({
+      action: wasFav ? 'removeFav' : 'addFav',
+      userName: session.name,
+      hwId: id
+    });
+  }catch{ showToast('⚠️ Kedvenc szinkron sikertelen'); }
+}
+
+async function removeFavFromCloud(hwId){
+  try{ await sheetRequest({action:'removeFavHw', hwId}); }catch{}
 }
 
 // ── Print ─────────────────────────────────────────────

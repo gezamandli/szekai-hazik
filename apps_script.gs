@@ -1,7 +1,5 @@
-// Google Apps Script – Házi Feladat App v2
-// Deploy: Execute as Me, Anyone can access
-
-const VERSION = '2.1';
+// Google Apps Script – Házi Feladat App v4.0
+const VERSION = '4.0';
 
 function getSheets(sheetId) {
   const ss = SpreadsheetApp.openById(sheetId);
@@ -12,7 +10,16 @@ function getSheets(sheetId) {
     trash = ss.insertSheet('Kuka');
     trash.appendRow(['id','subject','desc','due','note','uploader','uploaded','images','cloudFolder','deletedAt','deletedBy']);
   }
-  return { ss, main, trash };
+  let favs = ss.getSheetByName('Kedvencek');
+  if (!favs) {
+    favs = ss.insertSheet('Kedvencek');
+    favs.appendRow(['userName','hwId','addedAt']);
+  }
+  return { ss, main, trash, favs };
+}
+
+function sanitizeRow(row) {
+  return row.map(val => val === null || val === undefined ? '' : String(val));
 }
 
 function doGet(e) {
@@ -20,109 +27,146 @@ function doGet(e) {
     const p = e.parameter;
     const sheetId = p.sheetId;
     const action  = p.action || 'ping';
+    const callback = p.callback;
+    let result;
 
     if (action === 'ping') {
-      return json({status:'ok', version: VERSION});
+      result = {status:'ok', version: VERSION};
     }
-
-    if (action === 'loadTrash') {
+    else if (action === 'loadTrash' && sheetId) {
       const { trash } = getSheets(sheetId);
       const vals = trash.getDataRange().getValues();
       const rows = vals.slice(1).map(r => ({
-        id: String(r[0]), subject: String(r[1]), desc: String(r[2]),
-        due: String(r[3]), note: String(r[4]), uploader: String(r[5]),
-        uploaded: String(r[6]), images: String(r[7]), cloudFolder: String(r[8]),
-        deletedAt: String(r[9]), deletedBy: String(r[10])
+        id:String(r[0]), subject:String(r[1]), desc:String(r[2]),
+        due:String(r[3]), note:String(r[4]), uploader:String(r[5]),
+        uploaded:String(r[6]), images:String(r[7]), cloudFolder:String(r[8]),
+        deletedAt:String(r[9]), deletedBy:String(r[10])
       })).filter(r => r.id && r.id !== 'id');
-      return json({status:'ok', version: VERSION, data: rows});
+      result = {status:'ok', version:VERSION, data:rows};
     }
-
-    if (action === 'append') {
-      const { main } = getSheets(sheetId);
-      const row = JSON.parse(p.row);
-      main.appendRow(row);
-      return json({status:'ok', version: VERSION});
+    else if (action === 'loadFavs' && sheetId) {
+      const { favs } = getSheets(sheetId);
+      const vals = favs.getDataRange().getValues();
+      const userName = p.userName || '';
+      const rows = vals.slice(1)
+        .filter(r => String(r[0]) === userName)
+        .map(r => String(r[1]))
+        .filter(id => id && id !== 'hwId');
+      result = {status:'ok', version:VERSION, data:rows};
     }
-
-    if (action === 'update') {
-      const { main } = getSheets(sheetId);
-      const row = JSON.parse(p.row);
-      const id  = p.id;
-      const vals = main.getRange('A:A').getValues();
-      for (let i = 0; i < vals.length; i++) {
-        if (String(vals[i][0]) === String(id)) {
-          main.getRange(i+1, 1, 1, row.length).setValues([row]);
-          return json({status:'ok', version: VERSION});
+    else if (action === 'addFav' && sheetId) {
+      const { favs } = getSheets(sheetId);
+      const userName = p.userName || '';
+      const hwId = p.hwId || '';
+      // Check not already there
+      const vals = favs.getDataRange().getValues();
+      const exists = vals.slice(1).some(r => String(r[0])===userName && String(r[1])===hwId);
+      if (!exists) favs.appendRow([userName, hwId, new Date().toISOString()]);
+      result = {status:'ok', version:VERSION};
+    }
+    else if (action === 'removeFav' && sheetId) {
+      const { favs } = getSheets(sheetId);
+      const userName = p.userName || '';
+      const hwId = p.hwId || '';
+      const vals = favs.getRange('A:B').getValues();
+      for (let i = 1; i < vals.length; i++) {
+        if (String(vals[i][0])===userName && String(vals[i][1])===hwId) {
+          favs.deleteRow(i+1);
+          break;
         }
       }
-      return json({status:'ok', msg:'not found', version: VERSION});
+      result = {status:'ok', version:VERSION};
     }
-
-    if (action === 'delete') {
-      const { main, trash } = getSheets(sheetId);
-      const id = p.id;
-      const deletedBy = p.deletedBy || '';
+    else if (action === 'removeFavHw' && sheetId) {
+      // Remove all favs for a deleted hw
+      const { favs } = getSheets(sheetId);
+      const hwId = p.hwId || '';
+      const vals = favs.getRange('A:B').getValues();
+      for (let i = vals.length-1; i >= 1; i--) {
+        if (String(vals[i][1])===hwId) favs.deleteRow(i+1);
+      }
+      result = {status:'ok', version:VERSION};
+    }
+    else if (action === 'append' && sheetId) {
+      const { main } = getSheets(sheetId);
+      const row = JSON.parse(p.row);
+      main.appendRow(sanitizeRow(row));
+      result = {status:'ok', version:VERSION};
+    }
+    else if (action === 'update' && sheetId) {
+      const { main } = getSheets(sheetId);
+      const row = JSON.parse(p.row);
       const vals = main.getRange('A:A').getValues();
       for (let i = 0; i < vals.length; i++) {
-        if (String(vals[i][0]) === String(id)) {
-          const lastCol = main.getLastColumn();
-          const row = main.getRange(i+1, 1, 1, Math.max(lastCol,9)).getValues()[0];
-          const trashRow = [
-            row[0],row[1],row[2],row[3],row[4],row[5],row[6],row[7],row[8]||'',
-            new Date().toISOString(), deletedBy
-          ];
-          trash.appendRow(trashRow);
-          main.deleteRow(i + 1);
-          return json({status:'ok', version: VERSION});
+        if (String(vals[i][0]) === String(p.id)) {
+          main.getRange(i+1,1,1,sanitizeRow(row).length).setValues([sanitizeRow(row)]);
+          result = {status:'ok', version:VERSION}; break;
         }
       }
-      return json({status:'ok', msg:'not found', version: VERSION});
+      if (!result) result = {status:'ok', msg:'not found', version:VERSION};
     }
-
-    if (action === 'restore') {
+    else if (action === 'delete' && sheetId) {
       const { main, trash } = getSheets(sheetId);
-      const id = p.id;
+      const vals = main.getRange('A:A').getValues();
+      for (let i = 0; i < vals.length; i++) {
+        if (String(vals[i][0]) === String(p.id)) {
+          const lastCol = Math.max(main.getLastColumn(), 9);
+          const row = main.getRange(i+1,1,1,lastCol).getValues()[0];
+          trash.appendRow([
+            String(row[0]),String(row[1]),String(row[2]),String(row[3]),
+            String(row[4]),String(row[5]),String(row[6]),String(row[7]),
+            String(row[8]||''), new Date().toISOString(), String(p.deletedBy||'')
+          ]);
+          main.deleteRow(i+1);
+          result = {status:'ok', version:VERSION}; break;
+        }
+      }
+      if (!result) result = {status:'ok', msg:'not found', version:VERSION};
+    }
+    else if (action === 'restore' && sheetId) {
+      const { main, trash } = getSheets(sheetId);
       const vals = trash.getRange('A:A').getValues();
       for (let i = 1; i < vals.length; i++) {
-        if (String(vals[i][0]) === String(id)) {
-          const row = trash.getRange(i+1, 1, 1, 9).getValues()[0];
-          const newId = String(Date.now());
-          row[0] = newId;
-          main.appendRow(row);
-          trash.deleteRow(i + 1);
-          return json({status:'ok', newId: newId, version: VERSION});
+        if (String(vals[i][0]) === String(p.id)) {
+          const row = trash.getRange(i+1,1,1,9).getValues()[0];
+          row[0] = String(Date.now());
+          main.appendRow(sanitizeRow(row));
+          trash.deleteRow(i+1);
+          result = {status:'ok', newId:row[0], version:VERSION}; break;
         }
       }
-      return json({status:'ok', msg:'not found', version: VERSION});
+      if (!result) result = {status:'ok', msg:'not found', version:VERSION};
     }
-
-    if (action === 'permDelete') {
+    else if (action === 'permDelete' && sheetId) {
       const { trash } = getSheets(sheetId);
-      const id = p.id;
       const vals = trash.getRange('A:A').getValues();
       for (let i = 1; i < vals.length; i++) {
-        if (String(vals[i][0]) === String(id)) {
-          trash.deleteRow(i + 1);
-          return json({status:'ok', version: VERSION});
+        if (String(vals[i][0]) === String(p.id)) {
+          trash.deleteRow(i+1);
+          result = {status:'ok', version:VERSION}; break;
         }
       }
-      return json({status:'ok', msg:'not found', version: VERSION});
+      if (!result) result = {status:'ok', msg:'not found', version:VERSION};
+    }
+    else {
+      result = {status:'unknown', action, version:VERSION};
     }
 
-    return json({status:'unknown', action, version: VERSION});
+    const jsonStr = JSON.stringify(result);
+    if (callback) {
+      return ContentService.createTextOutput(callback+'('+jsonStr+')').setMimeType(ContentService.MimeType.JAVASCRIPT);
+    }
+    return ContentService.createTextOutput(jsonStr).setMimeType(ContentService.MimeType.JSON);
 
   } catch(err) {
-    return json({status:'error', message: err.toString(), version: VERSION});
+    const out = JSON.stringify({status:'error', message:err.toString(), version:VERSION});
+    if (e.parameter.callback) {
+      return ContentService.createTextOutput(e.parameter.callback+'('+out+')').setMimeType(ContentService.MimeType.JAVASCRIPT);
+    }
+    return ContentService.createTextOutput(out).setMimeType(ContentService.MimeType.JSON);
   }
 }
 
 function doPost(e) {
-  // Fallback – minden GET-tel megy, POST nem szükséges
-  return json({status:'ok', msg:'use GET', version: VERSION});
-}
-
-function json(obj) {
-  return ContentService
-    .createTextOutput(JSON.stringify(obj))
-    .setMimeType(ContentService.MimeType.JSON);
+  return ContentService.createTextOutput(JSON.stringify({status:'ok',msg:'use GET',version:VERSION})).setMimeType(ContentService.MimeType.JSON);
 }
