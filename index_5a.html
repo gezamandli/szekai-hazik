@@ -768,18 +768,21 @@ function cloudShort(url){
 
 function buildNotifyMsg(id){
   const h=homeworks.find(x=>x.id===id);if(!h)return'';
-  let msg=`📚 Házi feladat – ${CFG.CNAME}\n\n`;
-  msg+=`📖 Tantárgy: ${h.subject}\n`;
-  msg+=`✏️ Feladat: ${h.desc}\n`;
-  if(h.due)msg+=`📅 Határidő: ${fmtDate(h.due)}\n`;
-  if(h.note)msg+=`📌 Megjegyzés: ${h.note}\n`;
-  const imgs=h.images||[];
-  if(imgs.length){
-    msg+=`\n🖼️ Kép${imgs.length>1?'ek ('+imgs.length+' db)':''}:\n`;
-    imgs.forEach(u=>msg+=cloudShort(u)+'\n');
-  }
-  msg+=`\n✅ Feltöltötte: ${h.uploader}`;
-  msg+=`\n🔗 ${cardUrl(h.id)}`;
+  let msg=`📚 Házi feladat – ${CFG.CNAME}
+
+`;
+  msg+=`📖 Tantárgy: ${h.subject}
+`;
+  msg+=`✏️ Feladat: ${h.desc}
+`;
+  if(h.due)msg+=`📅 Határidő: ${fmtDate(h.due)}
+`;
+  if(h.note)msg+=`📌 Megjegyzés: ${h.note}
+`;
+  msg+=`
+✅ Feltöltötte: ${h.uploader}`;
+  msg+=`
+🔗 ${cardUrl(h.id)}`;
   return msg;
 }
 
