@@ -1211,7 +1211,6 @@ function passesDateFilter(h){
     return upStr>=weekAgo;
   }
   if(activeDateFilter==='range'){
-    console.log('checking: upStr='+upStr+' h.uploaded='+h.uploaded+' from='+dateFrom+' to='+dateTo+' result='+((!dateFrom||upStr>=dateFrom)&&(!dateTo||upStr<=dateTo)));
     if(dateFrom&&upStr<dateFrom)return false;
     if(dateTo&&upStr>dateTo)return false;
     return true;
@@ -1356,10 +1355,7 @@ function printCard(id){
     '@media print{.no-print{display:none}html,body{margin:0;padding:0}}'
   ].join('');
   const w=window.open('','_blank');
-  w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0"><title>'+h.subject+'</title>'
+  w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+h.subject+'</title>'
     +'<style>'+style+'</style></head><body>'
     +'<div class="cover">'
     +'<div class="no-print" style="margin-bottom:16px"><button onclick="window.print()" '
