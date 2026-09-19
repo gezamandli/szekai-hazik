@@ -264,7 +264,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 
 <!-- DETAIL SHEET -->
 <div class="overlay" id="detailSheet">
-<div class="sheet"><div class="handle"></div><div id="detailContent"></div></div>
+<div class="sheet"><div class="handle"></div><button onclick="closeSheet('detailSheet');history.replaceState(null,'',window.location.pathname+window.location.search)" style="position:absolute;top:12px;right:16px;background:var(--bg);border:none;border-radius:50%;width:32px;height:32px;font-size:18px;cursor:pointer;color:var(--ink2);display:flex;align-items:center;justify-content:center">✕</button><div id="detailContent"></div></div>
 </div>
 
 <!-- NOTIFY SHEET -->
@@ -296,7 +296,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v6.2</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v6.3</span><span id="scriptVersion"></span></div>
 
 <script>
 const CFG = {
@@ -986,14 +986,7 @@ function renderRequestTab(){
         <button onclick="addReqDateToday()" style="padding:8px 12px;border:2px solid var(--line);border-radius:10px;font-size:13px;font-weight:700;background:#fff;color:var(--ink2);cursor:pointer">Ma</button>
         <button onclick="addReqDateTomorrow()" style="padding:8px 12px;border:2px solid var(--line);border-radius:10px;font-size:13px;font-weight:700;background:#fff;color:var(--ink2);cursor:pointer">Holnap</button>
       </div>
-      <div class="req-chips" id="reqDayChips">
-        ${reqDays.map(ds=>{
-          const d=new Date(ds);
-          const label=d.toLocaleDateString('hu-HU',{weekday:'short',month:'short',day:'numeric'});
-          return '<div class="req-chip on" style="display:flex;align-items:center;gap:4px">'+label+'<span onclick="toggleReqDay(''+ds+'')" style="cursor:pointer;font-size:12px;opacity:.7;margin-left:2px">✕</span></div>';
-        }).join('')}
-        ${reqDays.length===0?'<span style="font-size:13px;color:var(--ink2)">Válassz dátumot fentebb</span>':''}
-      </div>
+      <div class="req-chips" id="reqDayChips"></div>
     </div>
 
     <div class="req-section" id="reqSubjSection" style="${reqMode==='subjects'?'':'display:none'}">
@@ -1022,18 +1015,9 @@ function setReqMode(mode){
 
 function toggleReqDay(ds){
   const i=reqDays.indexOf(ds);
-  if(i>=0) reqDays.splice(i,1);
-  else reqDays.push(ds);
+  if(i>=0)reqDays.splice(i,1);else reqDays.push(ds);
   reqDays.sort();
-  // Refresh chips
-  const chips=document.getElementById('reqDayChips');
-  if(chips){
-    chips.innerHTML=reqDays.map(d=>{
-      const label=new Date(d).toLocaleDateString('hu-HU',{weekday:'short',month:'short',day:'numeric'});
-      return '<div class="req-chip on" style="display:flex;align-items:center;gap:4px">'+label
-        +'<span onclick="toggleReqDay(''+d+'')" style="cursor:pointer;font-size:12px;opacity:.7;margin-left:2px">✕</span></div>';
-    }).join('')||'<span style="font-size:13px;color:var(--ink2)">Válassz dátumot</span>';
-  }
+  updateDayChips();
   updateReqPreview();
 }
 
@@ -1043,6 +1027,7 @@ function toggleReqSubj(s){
   document.querySelectorAll('#reqSubjChips .req-chip').forEach(c=>{
     if(c.textContent===s) c.classList.toggle('on', reqSubjects.includes(s));
   });
+  updateDayChips();
   updateReqPreview();
 }
 
@@ -1569,19 +1554,11 @@ function exportSelectedExcel(){
 
 
 function addReqDate(ds){
-  if(!ds) return;
-  if(!reqDays.includes(ds)) reqDays.push(ds);
+  if(!ds)return;
+  if(!reqDays.includes(ds))reqDays.push(ds);
   reqDays.sort();
+  updateDayChips();
   updateReqPreview();
-  // Re-render day section chips only
-  const chips = document.getElementById('reqDayChips');
-  if(chips){
-    chips.innerHTML = reqDays.map(d=>{
-      const label=new Date(d).toLocaleDateString('hu-HU',{weekday:'short',month:'short',day:'numeric'});
-      return '<div class="req-chip on" style="display:flex;align-items:center;gap:4px">'+label
-        +'<span onclick="toggleReqDay(''+d+'')" style="cursor:pointer;font-size:12px;opacity:.7;margin-left:2px">✕</span></div>';
-    }).join('') || '<span style="font-size:13px;color:var(--ink2)">Válassz dátumot</span>';
-  }
 }
 
 function addReqDateToday(){
@@ -1593,6 +1570,19 @@ function addReqDateTomorrow(){
   const d=new Date();
   d.setDate(d.getDate()+1);
   addReqDate(d.toISOString().split('T')[0]);
+}
+
+
+function updateDayChips(){
+  const chips=document.getElementById('reqDayChips');
+  if(!chips)return;
+  chips.innerHTML=reqDays.length
+    ? reqDays.map(d=>{
+        const label=new Date(d).toLocaleDateString('hu-HU',{weekday:'short',month:'short',day:'numeric'});
+        return '<div class="req-chip on" style="display:flex;align-items:center;gap:4px;cursor:default">'+label
+          +'<span onclick="toggleReqDay(''+d+'')" style="cursor:pointer;font-size:12px;margin-left:4px;opacity:.7">✕</span></div>';
+      }).join('')
+    : '<span style="font-size:13px;color:var(--ink2)">Válassz dátumot fentebb</span>';
 }
 
 </script>
