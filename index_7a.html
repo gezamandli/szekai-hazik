@@ -234,6 +234,7 @@ function slugify(s) {
 function safeJSON(s){try{return JSON.parse(s||'[]');}catch{return[];}}
 function today0(){const d=new Date();d.setHours(0,0,0,0);return d;}
 function dueInfo(ds){
+  if(!ds)return{text:'Nincs határidő',cls:'ok'};
   const d=new Date(ds);d.setHours(0,0,0,0);
   const diff=Math.round((d-today0())/864e5);
   if(diff<0)return{text:'Lejárt',cls:'past'};
@@ -242,7 +243,7 @@ function dueInfo(ds){
   if(diff<=3)return{text:diff+' nap',cls:'soon'};
   return{text:fmtDate(ds),cls:'ok'};
 }
-function fmtDate(s){return new Date(s).toLocaleDateString('hu-HU',{month:'short',day:'numeric',weekday:'short'});}
+function fmtDate(s){if(!s)return'–';return new Date(s).toLocaleDateString('hu-HU',{month:'short',day:'numeric',weekday:'short'});}
 function fmtDT(s){return new Date(s).toLocaleString('hu-HU',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});}
 
 let _tt;
@@ -347,17 +348,37 @@ function parseCSV(csv){
 }
 
 async function sheetRequest(params){
-  const base = CFG.SCRIPT_URL + '?sheetId=' + encodeURIComponent(CFG.SHEET_ID);
-  const qs = Object.entries(params).map(([k,v])=>
-    encodeURIComponent(k)+'='+encodeURIComponent(typeof v==='object'?JSON.stringify(v):v)
-  ).join('&');
-  const url = base + '&' + qs + '&t=' + Date.now();
-  const r = await fetch(url);
-  if(!r.ok) throw new Error('Script hiba ' + r.status);
-  const j = await r.json();
-  // Show version in footer
-  if(j.version) document.getElementById('appVersion').textContent = 'v' + j.version + ' · Script OK';
-  return j;
+  return new Promise((resolve, reject) => {
+    const cbName = 'cb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+    const base = CFG.SCRIPT_URL + '?sheetId=' + encodeURIComponent(CFG.SHEET_ID) + '&callback=' + cbName;
+    const qs = Object.entries(params).map(([k,v])=>
+      encodeURIComponent(k)+'='+encodeURIComponent(typeof v==='object'?JSON.stringify(v):v)
+    ).join('&');
+    const url = base + '&' + qs + '&t=' + Date.now();
+
+    window[cbName] = (data) => {
+      delete window[cbName];
+      document.head.removeChild(script);
+      if(data.version) document.getElementById('appVersion').textContent = 'v' + data.version + ' · OK';
+      resolve(data);
+    };
+
+    const script = document.createElement('script');
+    script.src = url;
+    script.onerror = () => {
+      delete window[cbName];
+      document.head.removeChild(script);
+      reject(new Error('Script betöltési hiba'));
+    };
+    setTimeout(() => {
+      if(window[cbName]) {
+        delete window[cbName];
+        try { document.head.removeChild(script); } catch(e) {}
+        reject(new Error('Timeout'));
+      }
+    }, 15000);
+    document.head.appendChild(script);
+  });
 }
 
 // ── Cloudinary ───────────────────────────────────────
@@ -365,10 +386,10 @@ async function uploadToCloudinary(file, subject, dateStr){
   const folder=`${CFG.CLOUD_FOLDER}/${slugify(subject)}_${dateStr}`;
   const fd=new FormData();
   fd.append('file',file);
-  fd.append('upload_preset',CFG.UPLOAD_PRESET);
+  fd.append('upload_preset', CFG.UPLOAD_PRESET);
   fd.append('folder',folder);
   const r=await fetch(`https://api.cloudinary.com/v1_1/${CFG.CLOUD_NAME}/image/upload`,{method:'POST',body:fd});
-  if(!r.ok)throw new Error('Cloudinary hiba');
+  if(!r.ok){const err=await r.json();throw new Error('Cloudinary: '+(err.error?.message||r.status));}
   const j=await r.json();
   return{url:j.secure_url, publicId:j.public_id, folder};
 }
@@ -423,7 +444,7 @@ async function saveHW(){
   const due=document.getElementById('newDue').value;
   const note=document.getElementById('newNote').value.trim();
   if(!desc){showToast('⚠️ Írd le a feladatot!');return;}
-  if(!due){showToast('⚠️ Add meg a határidőt!');return;}
+  
 
   const btn=document.getElementById('saveBtn');
   btn.innerHTML='<span class="spin"></span> Mentés…';btn.disabled=true;
@@ -719,7 +740,7 @@ function openNotify(id){
   let msg=`📚 Házi feladat – ${CFG.CNAME}\n\n`;
   msg+=`📖 Tantárgy: ${h.subject}\n`;
   msg+=`✏️ Feladat: ${h.desc}\n`;
-  msg+=`📅 Határidő: ${fmtDate(h.due)}\n`;
+  if(h.due)msg+=`📅 Határidő: ${fmtDate(h.due)}\n`;
   if(h.note)msg+=`📌 Megjegyzés: ${h.note}\n`;
   if((h.images||[]).length)msg+=`\n🖼️ ${h.images.length} kép elérhető az appban\n`;
   msg+=`\n✅ Feltöltötte: ${h.uploader}`;
@@ -750,6 +771,6 @@ function switchTab(name){
 }
 </script>
 
-<div id="appVersion" style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none">App v2.1</div>
+<div id="appVersion" style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none">App v3.0</div>
 </body>
 </html>
