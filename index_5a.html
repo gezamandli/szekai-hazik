@@ -107,6 +107,13 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 /* Export btn */
 .export-btn{display:flex;align-items:center;gap:8px;padding:10px 14px;background:#fff;border:2px solid var(--line);border-radius:10px;font-size:13px;font-weight:700;color:var(--ink2);cursor:pointer;margin-bottom:12px}
 .export-btn:active{border-color:var(--blue);color:var(--blue)}
+.req-section{margin-bottom:16px}
+.req-section h3{font-size:13px;font-weight:800;color:var(--ink2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.req-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.req-chip{padding:6px 12px;border-radius:20px;font-size:13px;font-weight:600;border:2px solid var(--line);background:#fff;color:var(--ink2);cursor:pointer;transition:all .15s}
+.req-chip.on{background:var(--blue);border-color:var(--blue);color:#fff}
+.req-preview{background:#f0f2f5;border-radius:11px;padding:14px;font-size:14px;line-height:1.65;white-space:pre-wrap;word-break:break-word;color:#1c1e21;margin-bottom:12px;border:1px solid #dde0e4;min-height:80px}
+.export-btn:active{border-color:var(--blue);color:var(--blue)}
 </style>
 </head>
 <body>
@@ -136,6 +143,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
   <div class="tab on" id="tab-list">📋 Feladatok</div>
   <div class="tab" id="tab-all">📦 Összes</div>
   <div class="tab" id="tab-notify">💬 Értesítő</div>
+  <div class="tab" id="tab-request">🙋 Kérés</div>
   <div class="tab" id="tab-trash">🗑️ Kuka</div>
 </nav>
 
@@ -158,6 +166,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
   <div id="notifyList"></div>
 </div>
 
+<div id="view-request" class="view"><div id="requestContent"></div></div>
 <div id="view-trash" class="view"><div id="trashList"></div></div>
 
 <button class="fab" id="fabBtn">＋</button>
@@ -305,8 +314,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('addSheet').onclick=e=>{if(e.target===document.getElementById('addSheet'))closeSheet('addSheet');};
   document.getElementById('detailSheet').onclick=e=>{if(e.target===document.getElementById('detailSheet'))closeSheet('detailSheet');};
   document.getElementById('notifySheet').onclick=e=>{if(e.target===document.getElementById('notifySheet'))closeSheet('notifySheet');};
-  ['list','all','notify','trash'].forEach(name=>{
-    document.getElementById('tab-'+name).onclick=()=>{switchTab(name);if(name==='trash')loadTrash();renderAll();};
+  ['list','all','notify','request','trash'].forEach(name=>{
+    document.getElementById('tab-'+name).onclick=()=>{switchTab(name);if(name==='trash')loadTrash();if(name==='request')renderRequestTab();renderAll();};
   });
   const s=localStorage.getItem('hz_s_5a');
   if(s){session=JSON.parse(s);showApp();}
@@ -738,7 +747,7 @@ function copyNotify(){
 
 // ── Tab switch ────────────────────────────────────────
 function switchTab(name){
-  ['list','all','notify','trash'].forEach(n=>{
+  ['list','all','notify','request','trash'].forEach(n=>{
     document.getElementById('tab-'+n).classList.toggle('on',n===name);
     document.getElementById('view-'+n).classList.toggle('on',n===name);
   });
@@ -773,6 +782,149 @@ async function downloadAll(imgs){
   hideToast();
   showToast('✅ Összes letöltve!');
 }
+
+// ── Request tab ───────────────────────────────────────
+let reqDays = [];    // selected day strings YYYY-MM-DD
+let reqSubjects = []; // selected subjects
+let reqMode = 'day'; // 'day' | 'week' | 'subjects' | 'all'
+
+function renderRequestTab(){
+  const el = document.getElementById('requestContent');
+
+  // Build week days (Mon-Fri from today)
+  const days = [];
+  const now = new Date();
+  // Show next 7 days
+  for(let i=0;i<7;i++){
+    const d = new Date(now);
+    d.setDate(now.getDate()+i);
+    const dow = d.getDay();
+    if(dow===0||dow===6) continue; // skip weekends
+    days.push(d);
+    if(days.length>=5) break;
+  }
+
+  const allSubjects = [...new Set(homeworks.map(h=>h.subject))];
+  // Use CFG subjects from select options
+  const selectEl = document.getElementById('newSubject');
+  const cfgSubjects = selectEl ? Array.from(selectEl.options).map(o=>o.value) : allSubjects;
+
+  el.innerHTML = `
+    <div style="margin-bottom:16px">
+      <h3 style="font-size:16px;font-weight:900;margin-bottom:4px">🙋 Feltöltést kérő üzenet</h3>
+      <p style="font-size:13px;color:var(--ink2)">Állítsd össze mire kérsz házi feladatot, majd másold be Messengerbe.</p>
+    </div>
+
+    <div class="req-section">
+      <h3>Mire kérj?</h3>
+      <div class="req-chips">
+        <div class="req-chip ${reqMode==='day'?'on':''}" onclick="setReqMode('day')">📅 Egy napra</div>
+        <div class="req-chip ${reqMode==='week'?'on':''}" onclick="setReqMode('week')">📆 Egész hétre</div>
+        <div class="req-chip ${reqMode==='subjects'?'on':''}" onclick="setReqMode('subjects')">📖 Tantárgyra</div>
+        <div class="req-chip ${reqMode==='all'?'on':''}" onclick="setReqMode('all')">📚 Mindenre</div>
+      </div>
+    </div>
+
+    <div class="req-section" id="reqDaySection" style="${reqMode==='day'?'':'display:none'}">
+      <h3>Melyik napra?</h3>
+      <div class="req-chips" id="reqDayChips">
+        ${days.map(d=>{
+          const ds=d.toISOString().split('T')[0];
+          const label=d.toLocaleDateString('hu-HU',{weekday:'short',month:'short',day:'numeric'});
+          return `<div class="req-chip ${reqDays.includes(ds)?'on':''}" onclick="toggleReqDay('${ds}')" data-ds="${ds}">${label}</div>`;
+        }).join('')}
+      </div>
+    </div>
+
+    <div class="req-section" id="reqSubjSection" style="${reqMode==='subjects'?'':'display:none'}">
+      <h3>Melyik tantárgy(ak)?</h3>
+      <div class="req-chips" id="reqSubjChips">
+        ${cfgSubjects.map(s=>`<div class="req-chip ${reqSubjects.includes(s)?'on':''}" onclick="toggleReqSubj('${s.replace(/'/g,"\'")}')">${s}</div>`).join('')}
+      </div>
+    </div>
+
+    <div class="req-section">
+      <h3>Előnézet</h3>
+      <div class="req-preview" id="reqPreview">${buildRequestMsg()}</div>
+      <button class="fb-copy" onclick="copyRequestMsg()">📋 Másolás vágólapra</button>
+    </div>
+  `;
+}
+
+function setReqMode(mode){
+  reqMode=mode;
+  if(mode!=='day') reqDays=[];
+  if(mode!=='subjects') reqSubjects=[];
+  renderRequestTab();
+  updateReqPreview();
+}
+
+function toggleReqDay(ds){
+  const i=reqDays.indexOf(ds);
+  if(i>=0) reqDays.splice(i,1); else reqDays.push(ds);
+  // Update chip
+  document.querySelectorAll('#reqDayChips .req-chip').forEach(c=>{
+    if(c.dataset.ds===ds) c.classList.toggle('on', reqDays.includes(ds));
+  });
+  updateReqPreview();
+}
+
+function toggleReqSubj(s){
+  const i=reqSubjects.indexOf(s);
+  if(i>=0) reqSubjects.splice(i,1); else reqSubjects.push(s);
+  document.querySelectorAll('#reqSubjChips .req-chip').forEach(c=>{
+    if(c.textContent===s) c.classList.toggle('on', reqSubjects.includes(s));
+  });
+  updateReqPreview();
+}
+
+function updateReqPreview(){
+  const el=document.getElementById('reqPreview');
+  if(el) el.textContent=buildRequestMsg();
+}
+
+function buildRequestMsg(){
+  let msg=`🙏 Sziasztok!\n\n`;
+  if(reqMode==='all'){
+    msg+=`Kérném, hogy aki tudja a házi feladatokat, töltse fel az appba!\n`;
+  } else if(reqMode==='week'){
+    const now=new Date();
+    const mon=new Date(now);
+    mon.setDate(now.getDate()-(now.getDay()||7)+1);
+    const fri=new Date(mon);fri.setDate(mon.getDate()+4);
+    const fmt=d=>d.toLocaleDateString('hu-HU',{month:'short',day:'numeric'});
+    msg+=`Kérném a heti (${fmt(mon)}–${fmt(fri)}) házi feladatokat, aki tudja töltse fel az appba!\n`;
+  } else if(reqMode==='day'){
+    if(!reqDays.length){
+      msg+=`Kérném a házi feladatokat, aki tudja töltse fel az appba!\n`;
+    } else {
+      const labels=reqDays.map(ds=>new Date(ds).toLocaleDateString('hu-HU',{weekday:'long',month:'long',day:'numeric'}));
+      msg+=`Kérném a következő napra szóló házi feladatokat:\n`;
+      labels.forEach(l=>msg+=`📅 ${l}\n`);
+      msg+=`\nAki tudja, töltse fel az appba!\n`;
+    }
+  } else if(reqMode==='subjects'){
+    if(!reqSubjects.length){
+      msg+=`Kérném a házi feladatokat, aki tudja töltse fel az appba!\n`;
+    } else if(reqSubjects.length===1){
+      msg+=`Kérném a(z) ${reqSubjects[0]} házi feladatot, aki tudja töltse fel az appba!\n`;
+    } else {
+      msg+=`Kérném az alábbi tantárgyak házi feladatait:\n`;
+      reqSubjects.forEach(s=>msg+=`📖 ${s}\n`);
+      msg+=`\nAki tudja, töltse fel az appba!\n`;
+    }
+  }
+  msg+=`\nKöszönöm! 🙂`;
+  return msg;
+}
+
+function copyRequestMsg(){
+  const t=buildRequestMsg();
+  navigator.clipboard.writeText(t).then(()=>showToast('✅ Másolva! Illeszd be Messengerbe.')).catch(()=>{
+    const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);showToast('✅ Másolva!');
+  });
+}
+
 </script>
 </body>
 </html>
