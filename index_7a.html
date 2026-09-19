@@ -186,7 +186,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 
 <script>
 const CFG = {
-  7.a osztály:    '7.a osztály',
+  CNAME:    '7.a osztály',
   PIN:           '2026',
   SHEET_ID:      '1XzvvQFt8CpwiXep8BeZb8M59s6R5lBZQEF0DZU2EyGk',
   CLOUD_NAME:    'g8tinasd',
@@ -267,7 +267,7 @@ function safeJSON(s){try{return JSON.parse(s||'[]');}catch{return [];}}
 
 async function appendToSheet(hw) {
   // Use Google Apps Script Web App for unauthenticated write
-  const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzzRiUqePXcUAMeRSc5pmsbdfJMGWZ3KNjxfGsNQ-WmozY35REzTqvOJMoeay7_biOb/exec'; if(!WEB_APP_URL){throw new Error('no_script');}
+  const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzzRiUqePXcUAMeRSc5pmsbdfJMGWZ3KNjxfGsNQ-WmozY35REzTqvOJMoeay7_biOb/exec';
   if (!WEB_APP_URL) throw new Error('no_script');
   const r = await fetch(WEB_APP_URL, {
     method: 'POST',
@@ -454,7 +454,7 @@ function viewImg(url){document.getElementById('viewerImg').src=url;openSheet('im
 
 function openNotify(id){
   const h=homeworks.find(x=>x.id===id);if(!h)return;
-  let msg=`📚 Házi feladat – ${CFG.7.a osztály}\n\n`;
+  let msg=`📚 Házi feladat – ${CFG.CNAME}\n\n`;
   msg+=`📖 Tantárgy: ${h.subject}\n`;
   msg+=`✏️ Feladat: ${h.desc}\n`;
   msg+=`📅 Határidő: ${fmtDate(h.due)}\n`;
