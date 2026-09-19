@@ -297,7 +297,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div id="appVersion" style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none">App v5.5</div>
+<div id="appVersion" style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none">App v5.6</div>
 
 <script>
 const CFG = {
@@ -742,7 +742,7 @@ function renderList(){
   // Sort: newest upload first
   items.sort((a,b)=>new Date(b.uploaded)-new Date(a.uploaded));
   const el=document.getElementById('hwList');
-  el.innerHTML=items.length?items.map(cardHTML).join(''):`<div class="empty"><div class="ico">🎉</div><p>Nincs feladat!</p></div>`;
+  el.innerHTML=items.length?items.map(h=>cardHTML(h,selectMode)).join(''):`<div class="empty"><div class="ico">🎉</div><p>Nincs feladat!</p></div>`;
   attachClicks('hwList');
   document.getElementById('tab-list').textContent='📋 Feladatok'+(items.length?' ('+items.length+')':'');
 }
@@ -753,7 +753,7 @@ function renderAll2(){
   items=filterSearch(items,'searchAll');
   items.sort((a,b)=>{if(!a.due)return 1;if(!b.due)return -1;return new Date(b.due)-new Date(a.due);});
   const el=document.getElementById('hwListAll');
-  el.innerHTML=items.length?items.map(cardHTML).join(''):`<div class="empty"><div class="ico">📦</div><p>Nincs feladat.</p></div>`;
+  el.innerHTML=items.length?items.map(h=>cardHTML(h,selectMode)).join(''):`<div class="empty"><div class="ico">📦</div><p>Nincs feladat.</p></div>`;
   attachClicks('hwListAll');
   document.getElementById('tab-all').textContent='📦 Összes'+(items.length?' ('+items.length+')':'');
 }
@@ -1369,7 +1369,11 @@ function printSelected(){
     .desc{font-size:15px;line-height:1.6;margin-bottom:8px}
     .imgs{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
     .imgs img{max-width:280px;max-height:280px;object-fit:contain;border:1px solid #ddd;border-radius:6px}
-    @media print{.no-print{display:none}body{padding:8px}}
+    .img-page{page-break-before:always;width:100vw;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px}
+    .img-page img{max-width:100%;max-height:calc(100vh - 30px);object-fit:contain}
+    .img-label{font-size:12px;color:#999;margin-bottom:6px}
+    @page{size:landscape;margin:5mm}
+    @media print{.no-print{display:none}body{padding:0}}
   </style>
 </head><body>
   <button class="no-print" onclick="window.print()" style="margin-bottom:16px;padding:8px 16px;background:#2f6de1;color:#fff;border:none;border-radius:8px;cursor:pointer">🖨️ Nyomtatás (${items.length} feladat)</button>
@@ -1377,9 +1381,9 @@ function printSelected(){
     const imgs=h.images||[];
     const{text}=dueInfo(h.due);
     const imgPgs=imgs.map((u,i)=>`
-      <div style="page-break-before:always;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:16px">
-        <div style="font-size:13px;color:#666;margin-bottom:8px">${h.subject} – ${i+1}/${imgs.length}. kép</div>
-        <img src="${u}" style="max-width:100%;max-height:90vh;object-fit:contain;border-radius:8px">
+      <div class="img-page">
+        <div class="img-label">${h.subject} – ${i+1}/${imgs.length}. kép</div>
+        <img src="${u}">
       </div>`).join('');
     return`<div class="hw">
       <h2>${h.subject}</h2>
