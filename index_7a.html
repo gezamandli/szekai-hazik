@@ -288,7 +288,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div id="appVersion" style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none">App v4.1</div>
+<div id="appVersion" style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none">App v4.2</div>
 
 <script>
 const CFG = {
@@ -421,7 +421,7 @@ async function sheetRequest(params){
     const script=document.createElement('script');
     script.src=url;
     script.onerror=()=>{delete window[cbName];try{document.head.removeChild(script);}catch(e){}reject(new Error('Script hiba'));};
-    setTimeout(()=>{if(window[cbName]){delete window[cbName];try{document.head.removeChild(script);}catch(e){}reject(new Error('Timeout'));}},15000);
+    setTimeout(()=>{if(window[cbName]){delete window[cbName];try{document.head.removeChild(script);}catch(e){}reject(new Error('Timeout'));}},20000);
     document.head.appendChild(script);
   });
 }
@@ -444,6 +444,7 @@ async function loadSheet(){
     showToast('⚠️ Offline – helyi adatok');
   }
   hideToast();renderAll();
+  loadFavs();
   resolve();
   });
 }
