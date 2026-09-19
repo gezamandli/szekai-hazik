@@ -1584,7 +1584,7 @@ function updateDayChips(){
     ? reqDays.map(d=>{
         const label=new Date(d).toLocaleDateString('hu-HU',{weekday:'short',month:'short',day:'numeric'});
         return '<div class="req-chip on" style="display:flex;align-items:center;gap:4px;cursor:default">'+label
-          +'<span onclick="toggleReqDay(''+d+'')" style="cursor:pointer;font-size:12px;margin-left:4px;opacity:.7">✕</span></div>';
+          +'<span onclick="toggleReqDay(\"'+d+'\")" style="cursor:pointer;font-size:12px;margin-left:4px;opacity:.7">✕</span></div>';
       }).join('')
     : '<span style="font-size:13px;color:var(--ink2)">Válassz dátumot fentebb</span>';
 }
