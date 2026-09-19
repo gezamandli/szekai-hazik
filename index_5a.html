@@ -306,7 +306,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v7.3</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v7.4</span><span id="scriptVersion"></span></div>
 
 <script>
 const CFG = {
@@ -470,6 +470,7 @@ async function loadSheet(){
     // Google returns: /*O_o*/\ngoogle.visualization.Query.setResponse({...});
     const json=JSON.parse(text.replace(/^[^(]+\(/,'').replace(/\);?\s*$/,''));
     homeworks=parseGViz(json);
+    console.log('Loaded '+homeworks.length+' items, first uploaded: '+(homeworks[0]?homeworks[0].uploaded:'none'));
     localStorage.setItem('hz_hw_5a',JSON.stringify(homeworks));
   }catch(e){
     console.warn('GViz load failed:',e);
@@ -750,6 +751,7 @@ function attachClicks(containerId){
 }
 
 function renderList(){
+  console.log('renderList: homeworks='+homeworks.length+' activeFilter='+activeFilter+' dateFilter='+activeDateFilter+' from='+dateFrom+' to='+dateTo);
   let items=[...homeworks];
   if(activeFilter==='__fav__')items=items.filter(h=>isFav(h.id));
   else if(activeFilter!=='all')items=items.filter(h=>h.subject===activeFilter);
