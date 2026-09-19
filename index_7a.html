@@ -83,7 +83,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 .fb-copy{width:100%;padding:13px;background:#1877f2;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:800;cursor:pointer;margin-bottom:9px;display:flex;align-items:center;justify-content:center;gap:8px}
 /* Gallery */
 .gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;margin-top:11px}
-.gallery-wrap{position:relative}
+.gallery-wrap{position:relative;display:block}
 .gallery-wrap img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:9px;cursor:pointer;display:block;background:var(--bg)}
 .gallery-rm{position:absolute;top:4px;right:4px;background:rgba(220,48,37,.85);color:#fff;border:none;border-radius:50%;width:24px;height:24px;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 /* Trash */
@@ -310,7 +310,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('detailSheet').onclick=e=>{if(e.target===document.getElementById('detailSheet'))closeSheet('detailSheet');};
   document.getElementById('notifySheet').onclick=e=>{if(e.target===document.getElementById('notifySheet'))closeSheet('notifySheet');};
   ['list','all','notify','trash'].forEach(name=>{
-    document.getElementById('tab-'+name).onclick=()=>{switchTab(name);if(name==='trash')loadTrash();};
+    document.getElementById('tab-'+name).onclick=()=>{switchTab(name);if(name==='trash')loadTrash();if(name==='list'||name==='all')renderAll();};
   });
   const s=localStorage.getItem('hz_s_7a');
   if(s){session=JSON.parse(s);showApp();}
@@ -381,9 +381,19 @@ async function loadSheet(){
 function parseGViz(json){
   try{
     const rows=json.table.rows;
-    const cols=json.table.cols;
     return rows.map(row=>{
-      const get=(i)=>{const c=row.c&&row.c[i];return c&&c.v!=null?String(c.v):'';}
+      const get=(i)=>{
+        const c=row.c&&row.c[i];
+        if(!c||c.v==null)return '';
+        // GViz returns dates as "Date(2026,9,11)" - convert to YYYY-MM-DD
+        const v=String(c.v);
+        const dm=v.match(/^Date\((\d+),(\d+),(\d+)\)$/);
+        if(dm){
+          const y=dm[1],m=String(+dm[2]+1).padStart(2,'0'),d=String(dm[3]).padStart(2,'0');
+          return y+'-'+m+'-'+d;
+        }
+        return v;
+      };
       const images=safeJSON(get(7));
       return{
         id:get(0),subject:get(1),desc:get(2),due:get(3),
@@ -653,7 +663,16 @@ function openDetail(id){
     <div style="font-size:15px;line-height:1.6;margin-bottom:7px">${h.desc}</div>
     ${h.note?`<div class="info-row">📌 ${h.note}</div>`:''}
     <div class="info-row">⬆️ <b>${h.uploader}</b> · ${fmtDT(h.uploaded)}</div>
-    ${imgs.length?`<div class="gallery">${imgs.map(u=>`<div class="gallery-wrap"><img src="${u}" loading="lazy" onerror="this.style.opacity='.3'" data-url="${u}"><button class="gallery-rm" data-url="${u}">×</button></div>`).join('')}</div>`:''}
+    ${imgs.length?`
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:11px;margin-bottom:6px">
+        <span style="font-size:12px;font-weight:700;color:var(--ink2)">${imgs.length} kép</span>
+        <button onclick="downloadAll(${JSON.stringify(imgs)})" style="background:var(--blue-bg);border:none;color:var(--blue);font-size:12px;font-weight:700;padding:5px 12px;border-radius:8px;cursor:pointer">⬇️ Összes letöltése</button>
+      </div>
+      <div class="gallery">${imgs.map((u,i)=>`<div class="gallery-wrap">
+        <img src="${u}" loading="lazy" onerror="this.style.opacity='.3'" data-url="${u}">
+        <button class="gallery-rm" data-url="${u}">×</button>
+        <button onclick="downloadImg('${u}',${i+1})" style="position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,.55);color:#fff;border:none;border-radius:6px;padding:3px 6px;font-size:11px;cursor:pointer">⬇️</button>
+      </div>`).join('')}</div>`:''}
     <div class="detail-actions">
       <button class="btn btn-primary btn-full" id="detNotifyBtn">💬 Értesítő generálása</button>
       <button class="btn btn-secondary btn-full" id="detRequestBtn">🙋 Feltöltést kér üzenet</button>
@@ -724,6 +743,36 @@ function switchTab(name){
     document.getElementById('tab-'+n).classList.toggle('on',n===name);
     document.getElementById('view-'+n).classList.toggle('on',n===name);
   });
+}
+
+// ── Download images ───────────────────────────────────
+async function downloadImg(url, idx){
+  try{
+    showToast('⏳ Letöltés…', 99999);
+    const r = await fetch(url);
+    const blob = await r.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `hazi_kep_${idx}.jpg`;
+    a.click();
+    hideToast();
+    showToast('✅ Letöltve!');
+  }catch(e){
+    hideToast();
+    // Fallback: open in new tab
+    window.open(url, '_blank');
+  }
+}
+
+async function downloadAll(imgs){
+  if(!imgs||!imgs.length)return;
+  showToast('⏳ Letöltés folyamatban…', 99999);
+  for(let i=0;i<imgs.length;i++){
+    await downloadImg(imgs[i], i+1);
+    if(i<imgs.length-1) await new Promise(r=>setTimeout(r,800));
+  }
+  hideToast();
+  showToast('✅ Összes letöltve!');
 }
 </script>
 </body>
