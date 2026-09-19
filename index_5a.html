@@ -106,6 +106,23 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 .existing-imgs label{display:block;font-size:11px;font-weight:800;color:var(--ink2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px}
 /* Export btn */
 .export-btn{display:flex;align-items:center;gap:8px;padding:10px 14px;background:#fff;border:2px solid var(--line);border-radius:10px;font-size:13px;font-weight:700;color:var(--ink2);cursor:pointer;margin-bottom:12px}
+.card.selected{outline:3px solid var(--blue);background:#f0f7ff}
+.select-bar{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--blue);color:#fff;padding:14px 16px;z-index:250;align-items:center;justify-content:space-between;gap:10px;box-shadow:0 -2px 12px rgba(47,109,225,.3)}
+.select-bar.on{display:flex}
+.select-bar .cnt{font-size:14px;font-weight:800}
+.sb-btn{background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:9px;padding:9px 14px;font-size:13px;font-weight:700;cursor:pointer}
+.help-section{display:flex;gap:14px;margin-bottom:18px;align-items:flex-start}
+.ocr-box{background:#f8faff;border:2px solid var(--blue);border-radius:11px;padding:14px;margin-top:10px;font-size:13px;line-height:1.6;white-space:pre-wrap;color:var(--ink)}
+.ocr-btn{background:var(--blue-bg);border:1.5px solid var(--blue);color:var(--blue);border-radius:8px;padding:5px 11px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px}
+.ocr-btn:active{opacity:.7}
+.ocr-copy{background:#fff;border:1.5px solid var(--line);color:var(--ink2);border-radius:8px;padding:5px 11px;font-size:12px;font-weight:700;cursor:pointer}
+.help-icon{font-size:28px;flex-shrink:0;width:40px;text-align:center}
+.help-title{font-size:15px;font-weight:800;margin-bottom:4px}
+.help-desc{font-size:13px;color:var(--ink2);line-height:1.6}
+.date-filter-bar{display:flex;gap:6px;overflow-x:auto;padding-bottom:3px;margin-bottom:10px;scrollbar-width:none}
+.date-filter-bar::-webkit-scrollbar{display:none}
+.sel-btn{padding:8px 14px;border-radius:10px;font-size:13px;font-weight:700;border:2px solid var(--line);background:#fff;color:var(--ink2);cursor:pointer}
+.sel-btn.on{background:var(--blue-bg);border-color:var(--blue);color:var(--blue)}
 .export-btn:active{border-color:var(--blue);color:var(--blue)}
 .req-section{margin-bottom:16px}
 .req-section h3{font-size:13px;font-weight:800;color:var(--ink2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
@@ -143,13 +160,29 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
   <div class="tab on" id="tab-list">📋 Feladatok</div>
   <div class="tab" id="tab-request">🙋 Kérés</div>
   <div class="tab" id="tab-trash">🗑️ Kuka</div>
+  <div class="tab" id="tab-help">❓ Súgó</div>
 </nav>
 
 <div id="view-list" class="view on">
   <div class="search-bar"><input type="search" id="searchList" placeholder="🔍 Keresés…" oninput="renderList()"></div>
   <div class="chips" id="filterBar"></div>
-  <button class="export-btn" onclick="exportExcel('active')">📥 Export Excelbe</button>
+  <div class="date-filter-bar" id="dateFilterBar"></div>
+  <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+    <button class="sel-btn" id="selectModeBtn" onclick="toggleSelectMode()">☑️ Kijelölés</button>
+    <button class="export-btn" style="margin-bottom:0">📥 Export Excelbe</button>
+  </div>
   <div id="hwList"></div>
+</div>
+<div id="view-help" class="view"><div id="helpContent"></div></div>
+<div class="select-bar" id="selectBar">
+  <div class="cnt" id="selectCount">0 kijelölve</div>
+  <div style="display:flex;gap:8px">
+    <button class="sb-btn" onclick="selectAll()">Mind</button>
+    <button class="sb-btn" onclick="sendSelected()">💬 Küldés</button>
+    <button class="sb-btn" onclick="copySelected()">📋 Másolás</button>
+    <button class="sb-btn" onclick="printSelected()">🖨️ Nyomtatás</button>
+    <button class="sb-btn" onclick="cancelSelect()">✕</button>
+  </div>
 </div>
 
 
@@ -189,6 +222,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
       <option value="dolgozat">📝 Dolgozat</option>
       <option value="projekt">🎯 Projekt</option>
       <option value="anyag">📖 Tanulnivaló anyag</option>
+      <option value="orai">📝 Órai anyag</option>
     </select>
   </div>
   <div class="field"><label>Határidő (opcionális)</label><input type="date" id="newDue"></div>
@@ -272,6 +306,9 @@ let activeFilter = 'all';
 let activeFilterAll = 'all';
 let editingId = null;
 let trashItems = [];
+let selectMode = false;
+let selectedIds = new Set();
+let activeDateFilter = "all";
 
 // ── Helpers ──────────────────────────────────────────
 function slugify(s){return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9]/g,'_').replace(/_+/g,'_').toLowerCase();}
@@ -326,7 +363,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
   };
   document.getElementById('notifySheet').onclick=e=>{if(e.target===document.getElementById('notifySheet'))closeSheet('notifySheet');};
-  ['list','request','trash'].forEach(name=>{
+  ['list','request','trash','help'].forEach(name=>{
     document.getElementById('tab-'+name).onclick=()=>{switchTab(name);if(name==='trash')loadTrash();if(name==='request')renderRequestTab();renderAll();};
   });
   const s=localStorage.getItem('hz_s_5a');
@@ -529,6 +566,8 @@ async function saveHW(){
 async function deleteHW(id){
   if(!confirm('Biztosan törlöd? Kukából visszaállítható.'))return;
   homeworks=homeworks.filter(h=>h.id!==id);
+  // Remove from favs
+  const favs=getFavs();favs.delete(id);localStorage.setItem(favKey(),JSON.stringify([...favs]));
   localStorage.setItem('hz_hw_5a',JSON.stringify(homeworks));
   try{await sheetRequest({action:'delete',id:id,deletedBy:session.name});showToast('🗑️ Törölve – Kukában van');}
   catch{showToast('🗑️ Helyben törölve');}
@@ -578,7 +617,14 @@ async function permDeleteHW(id){
 
 // ── Export Excel ──────────────────────────────────────
 function exportExcel(mode){
-  const items = mode==='active' ? activeHW() : homeworks;
+  // Use currently filtered/visible items
+  let items=[...homeworks];
+  if(activeFilter==='__fav__')items=items.filter(h=>isFav(h.id));
+  else if(activeFilter!=='all')items=items.filter(h=>h.subject===activeFilter);
+  items=items.filter(passesDateFilter);
+  const q=document.getElementById('searchList')?.value?.toLowerCase()||'';
+  if(q)items=items.filter(h=>h.subject.toLowerCase().includes(q)||h.desc.toLowerCase().includes(q)||(h.note||'').toLowerCase().includes(q));
+  items.sort((a,b)=>new Date(b.uploaded)-new Date(a.uploaded));
   let csv = 'Tantárgy,Feladat,Határidő,Megjegyzés,Feltöltötte,Feltöltve,Képek száma\n';
   items.forEach(h=>{
     const row=[
@@ -596,23 +642,26 @@ function exportExcel(mode){
 }
 
 // ── Render ────────────────────────────────────────────
-function renderAll(){renderFilters();renderList();}
+function renderAll(){renderFilters();renderDateFilters();renderList();}
 
 function renderFilters(){
   const subs=[...new Set(homeworks.map(h=>h.subject))];
   const bar=document.getElementById('filterBar');
   bar.innerHTML='';
   const all=document.createElement('div');
-  all.className='chip on';all.textContent='Összes';
+  all.className='chip'+(activeFilter==='all'?' on':'');all.textContent='Összes';
   all.onclick=()=>{activeFilter='all';renderAll();};
   bar.appendChild(all);
+  const fav=document.createElement('div');
+  fav.className='chip'+(activeFilter==='__fav__'?' on':'');fav.textContent='❤️ Kedvencek';
+  fav.onclick=()=>{activeFilter='__fav__';renderAll();};
+  bar.appendChild(fav);
   subs.forEach(s=>{
     const c=document.createElement('div');
-    c.className='chip';c.textContent=s;
+    c.className='chip'+(activeFilter===s?' on':'');c.textContent=s;
     c.onclick=()=>{activeFilter=s;renderAll();};
     bar.appendChild(c);
   });
-  document.querySelectorAll('#filterBar .chip').forEach(c=>c.classList.toggle('on',c.textContent===(activeFilter==='all'?'Összes':activeFilter)));
 }
 
 function activeHW(){return homeworks.filter(h=>{if(!h.due)return true;const d=new Date(h.due);d.setHours(0,0,0,0);return d>=today0();});}
@@ -623,9 +672,11 @@ function filterSearch(items, searchId){
   return items.filter(h=>h.subject.toLowerCase().includes(q)||h.desc.toLowerCase().includes(q)||(h.note||'').toLowerCase().includes(q)||(h.uploader||'').toLowerCase().includes(q));
 }
 
-const TYPE_LABELS={'temaзaro':'⚠️ Témazáró','dolgozat':'📝 Dolgozat','projekt':'🎯 Projekt','anyag':'📖 Anyag'};
+const TYPE_LABELS={'temaзaro':'⚠️ Témazáró','dolgozat':'📝 Dolgozat','projekt':'🎯 Projekt','anyag':'📖 Anyag','orai':'📝 Órai anyag'};
 
-function cardHTML(h){
+function cardHTML(h,selMode=false){
+  const chk=selMode?`<span style="width:22px;height:22px;border-radius:50%;border:2px solid var(--blue);background:${selectedIds.has(h.id)?"var(--blue)":"#fff"};display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;margin-right:6px">${selectedIds.has(h.id)?"✓":""}</span>`:"";
+
   const{text,cls}=dueInfo(h.due);
   const imgs=Array.isArray(h.images)?h.images.slice(0,3):[];
   const extra=Array.isArray(h.images)?h.images.length-3:0;
@@ -633,7 +684,7 @@ function cardHTML(h){
   const typeLabel=h.type&&TYPE_LABELS[h.type]?`<span class="badge type-${h.type}" style="margin-left:4px">${TYPE_LABELS[h.type]}</span>`:'';
   return`<div class="card" data-id="${h.id}" style="${isPast?'opacity:.65;':''}${h.type==='temaзaro'?'border-left:4px solid #f59e0b;':''}${h.type==='dolgozat'?'border-left:4px solid #7c3aed;':''}">
     <div class="card-head">
-      <div class="subj">${h.subject}${typeLabel}</div>
+      ${chk}<div class="subj">${h.subject}${typeLabel}</div>
       <div class="badge ${cls}">${text}</div>
     </div>
     <div class="desc">${h.desc}</div>
@@ -652,7 +703,8 @@ function attachClicks(containerId){
 
 function renderList(){
   let items=[...homeworks];
-  if(activeFilter!=='all')items=items.filter(h=>h.subject===activeFilter);
+  if(activeFilter==='__fav__')items=items.filter(h=>isFav(h.id));
+  else if(activeFilter!=='all')items=items.filter(h=>h.subject===activeFilter);
   items=filterSearch(items,'searchList');
   // Sort: newest upload first
   items.sort((a,b)=>new Date(b.uploaded)-new Date(a.uploaded));
@@ -712,6 +764,8 @@ function openDetail(id){
       <button class="btn btn-primary btn-full" id="detNotifyBtn" style="background:#0084ff">💬 Értesítő küldése Messengerben</button>
       <button class="btn btn-secondary btn-full" id="detCopyBtn">📋 Értesítő másolása</button>
       <button class="btn btn-secondary btn-full" id="detLinkBtn">🔗 Link másolása</button>
+      <button class="btn btn-secondary btn-full" id="detFavBtn">❤️ Kedvenc</button>
+      <button class="btn btn-secondary btn-full" id="detPrintBtn">🖨️ Nyomtatás</button>
       <button class="btn btn-secondary btn-full" id="detEditBtn">✏️ Szerkesztés</button>
       <button class="btn btn-danger btn-full" id="detDeleteBtn">🗑️ Törlés</button>
     </div>`;
@@ -729,6 +783,10 @@ function openDetail(id){
     });
   };
   document.getElementById('detRequestBtn') && (document.getElementById('detRequestBtn').onclick=()=>{closeSheet('detailSheet');switchTab('request');renderRequestTab();});
+  document.getElementById('detFavBtn').textContent=isFav(id)?'❤️ Kedvenc (töröl)':'🤍 Kedvencekhez';
+  document.getElementById('detFavBtn').onclick=()=>toggleFav(id);
+  document.getElementById('detPrintBtn').onclick=()=>printCard(id);
+  setTimeout(addOcrToGallery, 100);
   document.getElementById('detEditBtn').onclick=()=>{closeSheet('detailSheet');openAddSheet(id);};
   document.getElementById('detDeleteBtn').onclick=()=>deleteHW(id);
   openSheet('detailSheet');
@@ -810,7 +868,7 @@ function copyNotify(){
 
 // ── Tab switch ────────────────────────────────────────
 function switchTab(name){
-  ['list','request','trash'].forEach(n=>{
+  ['list','request','trash','help'].forEach(n=>{
     document.getElementById('tab-'+n).classList.toggle('on',n===name);
     document.getElementById('view-'+n).classList.toggle('on',n===name);
   });
@@ -1095,6 +1153,379 @@ function lbRender(){
 
 function cardUrl(id){
   return window.location.href.split('#')[0] + '#' + id;
+}
+
+
+function renderDateFilters(){
+  const bar=document.getElementById('dateFilterBar');if(!bar)return;
+  const filters=[
+    {id:'all',label:'Bármikor'},{id:'today',label:'Ma'},
+    {id:'week',label:'Elmúlt hét'},{id:'month',label:'Elmúlt hónap'},
+    {id:'3month',label:'Elmúlt 3 hónap'}
+  ];
+  bar.innerHTML=filters.map(f=>`<div class="chip ${activeDateFilter===f.id?'on':''}" onclick="setDateFilter('${f.id}')">${f.label}</div>`).join('');
+}
+function setDateFilter(f){activeDateFilter=f;renderList();renderDateFilters();}
+function passesDateFilter(h){
+  if(activeDateFilter==='all')return true;
+  const up=new Date(h.uploaded),now=new Date();
+  if(activeDateFilter==='today')return up.toDateString()===now.toDateString();
+  const diff=(now-up)/(864e5);
+  if(activeDateFilter==='week')return diff<=7;
+  if(activeDateFilter==='month')return diff<=30;
+  if(activeDateFilter==='3month')return diff<=90;
+  return true;
+}
+function toggleSelectMode(){
+  selectMode=!selectMode;selectedIds.clear();
+  const btn=document.getElementById('selectModeBtn');
+  btn.classList.toggle('on',selectMode);
+  btn.textContent=selectMode?'✕ Mégsem':'☑️ Kijelölés';
+  document.getElementById('selectBar').classList.remove('on');
+  renderList();
+}
+function cancelSelect(){
+  selectMode=false;selectedIds.clear();
+  document.getElementById('selectModeBtn').classList.remove('on');
+  document.getElementById('selectModeBtn').textContent='☑️ Kijelölés';
+  document.getElementById('selectBar').classList.remove('on');
+  renderList();
+}
+function toggleSelect(id,e){
+  e.stopPropagation();
+  if(selectedIds.has(id))selectedIds.delete(id);else selectedIds.add(id);
+  document.querySelectorAll('.card[data-id]').forEach(c=>{
+    if(c.dataset.id===id)c.classList.toggle('selected',selectedIds.has(id));
+  });
+  const cnt=selectedIds.size;
+  document.getElementById('selectCount').textContent=cnt+' kijelölve';
+  document.getElementById('selectBar').classList.toggle('on',cnt>0);
+}
+function selectAll(){
+  document.querySelectorAll('#hwList .card[data-id]').forEach(c=>{
+    selectedIds.add(c.dataset.id);c.classList.add('selected');
+  });
+  const cnt=selectedIds.size;
+  document.getElementById('selectCount').textContent=cnt+' kijelölve';
+  document.getElementById('selectBar').classList.toggle('on',cnt>0);
+}
+function buildMultiMsg(){
+  const items=[...selectedIds].map(id=>homeworks.find(h=>h.id===id)).filter(Boolean);
+  items.sort((a,b)=>new Date(a.due||0)-new Date(b.due||0));
+  let msg=`📚 Házi feladatok – ${CFG.CNAME} (${items.length} feladat)\n\n`;
+  items.forEach(h=>{
+    msg+=`📖 ${h.subject}`;
+    if(h.due)msg+=` – ${fmtDate(h.due)}`;
+    msg+=`\n✏️ ${h.desc}\n`;
+    if(h.note)msg+=`📌 ${h.note}\n`;
+    const imgs=h.images||[];
+    if(imgs.length)msg+=`🖼️ ${imgs.length} fotó\n`;
+    msg+=`🔗 ${cardUrl(h.id)}\n\n`;
+  });
+  msg+=`✅ Feltöltötte: ${[...new Set(items.map(h=>h.uploader))].join(', ')}`;
+  return msg;
+}
+function sendSelected(){
+  if(!selectedIds.size){showToast('⚠️ Jelölj ki legalább egy feladatot!');return;}
+  sendToMessenger(buildMultiMsg());
+}
+function copySelected(){
+  if(!selectedIds.size){showToast('⚠️ Jelölj ki legalább egy feladatot!');return;}
+  const t=buildMultiMsg();
+  navigator.clipboard.writeText(t).then(()=>showToast('✅ Másolva!')).catch(()=>{
+    const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);showToast('✅ Másolva!');
+  });
+}
+
+
+// ── Favourites ────────────────────────────────────────
+function favKey(){ return 'hz_fav_5a_'+session.name.replace(/\s/g,'_'); }
+function getFavs(){ try{ return new Set(JSON.parse(localStorage.getItem(favKey())||'[]')); }catch{return new Set();} }
+function isFav(id){ return getFavs().has(id); }
+function toggleFav(id,e){
+  if(e)e.stopPropagation();
+  const favs=getFavs();
+  if(favs.has(id))favs.delete(id);else favs.add(id);
+  localStorage.setItem(favKey(),JSON.stringify([...favs]));
+  renderList();
+  // Update detail view fav button if open
+  const btn=document.getElementById('detFavBtn');
+  if(btn)btn.textContent=favs.has(id)?'❤️ Kedvenc':'🤍 Kedvencekhez';
+}
+function clearFavsForUser(){
+  localStorage.removeItem(favKey());
+}
+
+// ── Print ─────────────────────────────────────────────
+function printCard(id){
+  const h=homeworks.find(x=>x.id===id);if(!h)return;
+  const imgs=h.images||[];
+  const{text}=dueInfo(h.due);
+  let w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <title>${h.subject} – házi</title>
+  <style>
+    body{font-family:sans-serif;padding:24px;max-width:700px;margin:0 auto}
+    h2{margin-bottom:4px}
+    .meta{color:#666;font-size:14px;margin-bottom:16px}
+    .desc{font-size:16px;margin-bottom:12px;line-height:1.6}
+    .imgs{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+    .imgs img{max-width:300px;max-height:300px;object-fit:contain;border:1px solid #ddd;border-radius:6px}
+    @media print{button{display:none}}
+  </style></head><body>
+  <button onclick="window.print()" style="margin-bottom:16px;padding:8px 16px;background:#2f6de1;color:#fff;border:none;border-radius:8px;cursor:pointer">🖨️ Nyomtatás</button>
+  <h2>${h.subject}</h2>
+  <div class="meta">📅 ${text} &nbsp;|&nbsp; ⬆️ ${h.uploader} &nbsp;|&nbsp; ${fmtDT(h.uploaded)}</div>
+  <div class="desc">${h.desc}</div>
+  ${h.note?`<div class="meta">📌 ${h.note}</div>`:''}
+  ${imgs.length?`<div class="imgs">${imgs.map(u=>`<img src="${u}">`).join('')}</div>`:''}
+  </body></html>`);
+  w.document.close();
+}
+
+function printSelected(){
+  if(!selectedIds.size){showToast('⚠️ Jelölj ki legalább egy feladatot!');return;}
+  const items=[...selectedIds].map(id=>homeworks.find(h=>h.id===id)).filter(Boolean);
+  items.sort((a,b)=>new Date(a.due||0)-new Date(b.due||0));
+  let w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <title>Házi feladatok</title>
+  <style>
+    body{font-family:sans-serif;padding:24px;max-width:700px;margin:0 auto}
+    .hw{border:1px solid #ddd;border-radius:10px;padding:16px;margin-bottom:20px;page-break-inside:avoid}
+    h2{margin:0 0 4px;font-size:18px}
+    .meta{color:#666;font-size:13px;margin-bottom:10px}
+    .desc{font-size:15px;line-height:1.6;margin-bottom:8px}
+    .imgs{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+    .imgs img{max-width:280px;max-height:280px;object-fit:contain;border:1px solid #ddd;border-radius:6px}
+    @media print{.no-print{display:none}body{padding:8px}}
+  </style></head><body>
+  <button class="no-print" onclick="window.print()" style="margin-bottom:16px;padding:8px 16px;background:#2f6de1;color:#fff;border:none;border-radius:8px;cursor:pointer">🖨️ Nyomtatás (${items.length} feladat)</button>
+  ${items.map(h=>{
+    const imgs=h.images||[];
+    const{text}=dueInfo(h.due);
+    return`<div class="hw">
+      <h2>${h.subject}</h2>
+      <div class="meta">📅 ${text} &nbsp;|&nbsp; ⬆️ ${h.uploader}</div>
+      <div class="desc">${h.desc}</div>
+      ${h.note?`<div class="meta">📌 ${h.note}</div>`:''}
+      ${imgs.length?`<div class="imgs">${imgs.map(u=>`<img src="${u}">`).join('')}</div>`:''}
+    </div>`;
+  }).join('')}
+  </body></html>`);
+  w.document.close();
+}
+
+// ── Help tab ──────────────────────────────────────────
+function renderHelpTab(){
+  const el=document.getElementById('helpContent');
+  el.innerHTML=`
+  <div style="padding:4px 0 16px">
+    <h2 style="font-size:20px;font-weight:900;margin-bottom:4px">📖 Használati útmutató</h2>
+    <p style="font-size:14px;color:var(--ink2);margin-bottom:20px">Minden funkció leírása</p>
+
+    <div class="help-section">
+      <div class="help-icon">📋</div>
+      <div>
+        <div class="help-title">Feladatok lista</div>
+        <div class="help-desc">Az összes házi feladat egy helyen. Legfelül a legújabb. Lejárt feladatok halványan jelennek meg.
+        <br><br>🟢 Zöld = van idő &nbsp; 🟡 Sárga = 1-3 nap &nbsp; 🔴 Piros = ma/lejárt &nbsp; ⚪ Szürke = nincs határidő</div>
+      </div>
+    </div>
+
+    <div class="help-section">
+      <div class="help-icon">➕</div>
+      <div>
+        <div class="help-title">Új feladat hozzáadása</div>
+        <div class="help-desc">A narancssárga <b>+</b> gombra kattintva adhatsz hozzá új feladatot. Megadhatod a tantárgyat, leírást, határidőt, típust (Témazáró, Dolgozat stb.) és képeket is csatolhatsz – akár kamerával fotózva, akár galériából választva.</div>
+      </div>
+    </div>
+
+    <div class="help-section">
+      <div class="help-icon">📷</div>
+      <div>
+        <div class="help-title">Képek feltöltése</div>
+        <div class="help-desc">Feladat hozzáadásakor vagy szerkesztéskor tölthetsz fel képeket. <b>📷 Fénykép készítése</b> = azonnal kamerát nyit. <b>🖼️ Meglévő kép</b> = galériából választ. A képek a Cloudinary felhőbe kerülnek, minden eszközön láthatók.</div>
+      </div>
+    </div>
+
+    <div class="help-section">
+      <div class="help-icon">🔍</div>
+      <div>
+        <div class="help-title">Keresés és szűrés</div>
+        <div class="help-desc">A keresőmezőbe írva azonnal szűr tantárgy, leírás és megjegyzés alapján. A színes chipek tantárgy szerint szűrnek. Az <b>❤️ Kedvencek</b> chip csak a kedvenc feladatokat mutatja. A dátum szűrővel az elmúlt nap/hét/hónap feladatait láthatod.</div>
+      </div>
+    </div>
+
+    <div class="help-section">
+      <div class="help-icon">❤️</div>
+      <div>
+        <div class="help-title">Kedvencek</div>
+        <div class="help-desc">Feladatot megnyitva a <b>❤️ Kedvencekhez</b> gombbal jelölheted meg. A kedvencek csak az adott eszközön és felhasználónévhez vannak mentve. Ha kijelentkezel, a kedvenceid megmaradnak.</div>
+      </div>
+    </div>
+
+    <div class="help-section">
+      <div class="help-icon">💬</div>
+      <div>
+        <div class="help-title">Értesítő küldése</div>
+        <div class="help-desc">Feladatot megnyitva az <b>💬 Értesítő küldése Messengerben</b> gomb megnyitja a Messenger megosztást – a szöveg automatikusan benne van, csak a csoportot kell kiválasztani. A <b>📋 Értesítő másolása</b> gomb csak a vágólapra teszi.</div>
+      </div>
+    </div>
+
+    <div class="help-section">
+      <div class="help-icon">☑️</div>
+      <div>
+        <div class="help-title">Többes kijelölés</div>
+        <div class="help-desc">A <b>☑️ Kijelölés</b> gombra kattintva kijelölési módba kerülsz. Ezután a kártyákra kattintva jelölheted ki őket. Az alul megjelenő sávban: <b>Mind</b> = mindet kijelöli, <b>💬 Küldés</b> = összefoglalót küld Messengerbe, <b>📋 Másolás</b> = vágólapra teszi, <b>🖨️ Nyomtatás</b> = nyomtatási nézet képekkel.</div>
+      </div>
+    </div>
+
+    <div class="help-section">
+      <div class="help-icon">🖨️</div>
+      <div>
+        <div class="help-title">Nyomtatás</div>
+        <div class="help-desc">Feladatot megnyitva a <b>🖨️ Nyomtatás</b> gombbal kinyomtathatod a feladatot a képekkel együtt. Több feladatot kijelölve a <b>🖨️ Nyomtatás</b> gomb az összeset egy nyomtatási nézetben mutatja.</div>
+      </div>
+    </div>
+
+    <div class="help-section">
+      <div class="help-icon">🙋</div>
+      <div>
+        <div class="help-title">Feltöltést kérő üzenet</div>
+        <div class="help-desc">A <b>Kérés</b> fülön generálhatsz kérő üzenetet: egy napra, egész hétre, egy vagy több tantárgyra, vagy mindenre. Az üzenet végén ott van az app linkje. Küldheted Messengeren vagy másolhatod.</div>
+      </div>
+    </div>
+
+    <div class="help-section">
+      <div class="help-icon">🗑️</div>
+      <div>
+        <div class="help-title">Törlés és visszaállítás</div>
+        <div class="help-desc">Törölt feladatok a <b>🗑️ Kuka</b> fülre kerülnek – ott visszaállíthatók vagy végleg törölhetők. A kuka adatai a Google Sheets-ben vannak, minden eszközön láthatók.</div>
+      </div>
+    </div>
+
+    <div class="help-section">
+      <div class="help-icon">🔗</div>
+      <div>
+        <div class="help-title">Feladat linkje</div>
+        <div class="help-desc">Minden feladatnak saját linkje van. A <b>🔗 Link másolása</b> gombbal másolhatod – ezt elküldve a link megnyitásakor közvetlenül az a feladat nyílik meg. A Messenger értesítőkbe automatikusan belekerül a link.</div>
+      </div>
+    </div>
+
+    <div class="help-section">
+      <div class="help-icon">📥</div>
+      <div>
+        <div class="help-title">Export Excelbe</div>
+        <div class="help-desc">Az <b>📥 Export Excelbe</b> gomb letölti az aktuálisan látható feladatokat CSV formátumban, amit Excel megnyit. A szűrők (tantárgy, dátum, keresés) hatnak az exportra is.</div>
+      </div>
+    </div>
+
+    <div class="help-section">
+      <div class="help-icon">🔄</div>
+      <div>
+        <div class="help-title">Frissítés</div>
+        <div class="help-desc">A fejlécben a <b>🔄</b> gomb újratölti a feladatokat a Google Sheets-ből. Ha valaki új feladatot töltött fel és nem látod, nyomj rá.</div>
+      </div>
+    </div>
+
+    <div style="margin-top:24px;padding:14px;background:var(--blue-bg);border-radius:12px;font-size:13px;color:var(--blue)">
+      <b>PIN kód:</b> A csoportban megosztott PIN-kóddal lehet belépni. Képek feltöltéséhez internet kapcsolat szükséges.
+    </div>
+  </div>`;
+}
+
+
+// ── OCR – Google Cloud Vision ─────────────────────────
+async function ocrImage(imgUrl, btnEl, resultEl){
+  btnEl.innerHTML='<span class="spin" style="border-top-color:var(--blue);border-color:rgba(47,109,225,.3)"></span> Felismerés...';
+  btnEl.disabled=true;
+  resultEl.style.display='none';
+
+  try{
+    // Fetch image and convert to base64
+    const resp = await fetch(imgUrl);
+    const blob = await resp.blob();
+    const b64 = await new Promise(res=>{
+      const fr=new FileReader();
+      fr.onload=()=>res(fr.result.split(',')[1]);
+      fr.readAsDataURL(blob);
+    });
+
+    // Call Google Vision API
+    const r = await fetch(
+      'https://vision.googleapis.com/v1/images:annotate?key='+CFG.VISION_KEY,
+      {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          requests:[{
+            image:{content: b64},
+            features:[{type:'DOCUMENT_TEXT_DETECTION', maxResults:1}]
+          }]
+        })
+      }
+    );
+    const j = await r.json();
+    const text = j.responses?.[0]?.fullTextAnnotation?.text || '';
+
+    if(!text){
+      resultEl.textContent='Nem sikerült szöveget felismerni a képen.';
+    } else {
+      resultEl.textContent = text;
+    }
+    resultEl.style.display='block';
+  } catch(e){
+    resultEl.textContent='Hiba: '+e.message;
+    resultEl.style.display='block';
+  }
+
+  btnEl.innerHTML='🔍 Újra';
+  btnEl.disabled=false;
+}
+
+function addOcrToGallery(){
+  // Add OCR buttons to each gallery image in detail view
+  document.querySelectorAll('.gallery-wrap').forEach((wrap,i)=>{
+    if(wrap.querySelector('.ocr-btn')) return; // already added
+    const img = wrap.querySelector('img');
+    if(!img) return;
+    const url = img.dataset.url || img.src;
+
+    // Result box
+    const resultEl = document.createElement('div');
+    resultEl.className='ocr-box';
+    resultEl.style.display='none';
+    resultEl.id='ocr-result-'+i;
+
+    // Copy button
+    const copyEl = document.createElement('button');
+    copyEl.className='ocr-copy';
+    copyEl.textContent='📋 Másolás';
+    copyEl.style.display='none';
+    copyEl.onclick=()=>{
+      navigator.clipboard.writeText(resultEl.textContent).then(()=>showToast('✅ Szöveg másolva!'));
+    };
+
+    // OCR button
+    const btnEl = document.createElement('button');
+    btnEl.className='ocr-btn';
+    btnEl.innerHTML='🔍 Szöveg felismerése';
+    btnEl.onclick=async ()=>{
+      await ocrImage(url, btnEl, resultEl);
+      copyEl.style.display = resultEl.textContent && !resultEl.textContent.startsWith('Hiba') && !resultEl.textContent.startsWith('Nem') ? 'inline-flex' : 'none';
+    };
+
+    // Button row
+    const btnRow = document.createElement('div');
+    btnRow.style.cssText='display:flex;gap:6px;margin-top:6px;align-items:center;flex-wrap:wrap';
+    btnRow.appendChild(btnEl);
+    btnRow.appendChild(copyEl);
+
+    // Insert after gallery-wrap
+    wrap.insertAdjacentElement('afterend', btnRow);
+    btnRow.insertAdjacentElement('afterend', resultEl);
+  });
 }
 
 </script>
