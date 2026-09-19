@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Házi Feladat – 5.a osztály</title>
+<title>Házi Feladat – 5.a osztaly</title>
 <style>
 :root{--ink:#1a1d27;--ink2:#4b5063;--bg:#f7f8fc;--card:#fff;--line:#e4e7f0;--blue:#2f6de1;--blue-bg:#eef3fd;--green:#1a9e5c;--amber:#c47f00;--red:#d93025;--r:13px;--sh:0 2px 10px rgba(0,0,0,.07)}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -68,7 +68,9 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 .msg-box{background:#f0f2f5;border-radius:11px;padding:14px;font-size:14px;line-height:1.65;white-space:pre-wrap;word-break:break-word;color:#1c1e21;margin-bottom:12px;border:1px solid #dde0e4}
 .fb-copy{width:100%;padding:13px;background:#1877f2;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:800;cursor:pointer;margin-bottom:9px;display:flex;align-items:center;justify-content:center;gap:8px}
 .gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;margin-top:11px}
-.gallery img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:9px;cursor:pointer}
+.gallery-wrap{position:relative;display:inline-block}
+.gallery-wrap img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:9px;cursor:pointer;display:block}
+.gallery-rm{position:absolute;top:4px;right:4px;background:rgba(220,48,37,.85);color:#fff;border:none;border-radius:50%;width:24px;height:24px;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px)}
 .toast{position:fixed;bottom:86px;left:50%;transform:translateX(-50%) translateY(14px);background:#111827;color:#fff;padding:10px 20px;border-radius:24px;font-size:14px;font-weight:600;opacity:0;transition:all .25s;z-index:600;white-space:nowrap;pointer-events:none}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 .spin{display:inline-block;width:17px;height:17px;border:3px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:rot .7s linear infinite}
@@ -78,6 +80,13 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 .detail-actions{display:flex;flex-direction:column;gap:8px;margin-top:16px}
 .info-row{font-size:12px;color:var(--ink2);margin-bottom:6px}
 .upload-status{font-size:13px;color:var(--ink2);margin-top:6px;min-height:18px}
+.trash-card{background:#fff8f8;border-radius:var(--r);padding:13px 14px;margin-bottom:9px;border:1px solid #fecaca;box-shadow:var(--sh)}
+.trash-meta{font-size:12px;color:var(--ink2);margin-top:6px;line-height:1.7}
+.tbtn{flex:1;padding:10px 8px;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;border:2px solid}
+.tbtn-restore{background:#f0fdf4;border-color:var(--green);color:var(--green)}
+.tbtn-perm{background:#fff5f5;border-color:var(--red);color:var(--red)}
+.existing-imgs{margin-bottom:8px}
+.existing-imgs label{display:block;font-size:11px;font-weight:800;color:var(--ink2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px}
 </style>
 </head>
 <body>
@@ -85,39 +94,42 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 <div class="login-screen on" id="loginScreen">
   <div class="login-box">
     <div class="login-logo">📚</div>
-    <div class="login-title">5.a osztály</div>
+    <div class="login-title">5.a osztaly</div>
     <div class="login-sub">Írd be a neved és a csoport PIN-kódját</div>
-    <div class="field"><label>Neved</label><input type="text" id="pinName" placeholder="Pl. Kiss Éva" autocomplete="name"></div>
-    <div class="field"><label>PIN-kód</label><input type="password" id="pinCode" placeholder="••••" inputmode="numeric" onkeydown="if(event.key==='Enter')signIn()"></div>
-    <button class="btn btn-primary btn-full" onclick="signIn()">Belépés</button>
+    <div class="field"><label>Neved</label><input type="text" id="pinName" placeholder="Pl. Kiss Eva" autocomplete="name"></div>
+    <div class="field"><label>PIN-kod</label><input type="password" id="pinCode" placeholder="••••" inputmode="numeric"></div>
+    <button class="btn btn-primary btn-full" id="loginBtn">Belépés</button>
     <p id="loginErr" style="color:var(--red);font-size:13px;margin-top:10px;text-align:center;display:none"></p>
   </div>
 </div>
 
 <header class="hdr">
-  <div><h1>📚 Házi Feladatok</h1><div class="sub">5.a osztály</div></div>
+  <div><h1>📚 Házi Feladatok</h1><div class="sub">5.a osztaly</div></div>
   <div style="display:flex;gap:8px;align-items:center">
     <span id="hdrName" style="font-size:12px;opacity:.85"></span>
-    <button class="hdr-btn" onclick="logout()">↩</button>
+    <button class="hdr-btn" id="logoutBtn">↩</button>
   </div>
 </header>
 
 <nav class="tabs">
-  <div class="tab on" onclick="switchTab('list')">📋 Feladatok</div>
-  <div class="tab"    onclick="switchTab('notify')">💬 Értesítő</div>
-  <div class="tab"    onclick="switchTab('history')">🕐 Archívum</div>
+  <div class="tab on" id="tab-list">📋 Feladatok</div>
+  <div class="tab" id="tab-notify">💬 Értesítő</div>
+  <div class="tab" id="tab-history">🕐 Archívum</div>
+  <div class="tab" id="tab-trash">🗑️ Kuka</div>
 </nav>
 
 <div id="view-list" class="view on"><div class="chips" id="filterBar"></div><div id="hwList"></div></div>
 <div id="view-notify" class="view"><p style="font-size:14px;color:var(--ink2);margin-bottom:14px;">Válassz feladatot – elkészül a Messenger üzenet.</p><div id="notifyList"></div></div>
 <div id="view-history" class="view"><div id="historyList"></div></div>
 
-<button class="fab" onclick="openAddSheet()">＋</button>
+<div id="view-trash" class="view"><div id="trashList"></div></div>
+<button class="fab" id="fabBtn">＋</button>
 
-<div class="overlay" id="addSheet" onclick="closeSheet('addSheet')">
-<div class="sheet" onclick="event.stopPropagation()">
+<!-- ADD / EDIT SHEET -->
+<div class="overlay" id="addSheet">
+<div class="sheet">
   <div class="handle"></div>
-  <div class="sheet-title">Új házi feladat</div>
+  <div class="sheet-title" id="addSheetTitle">Új házi feladat</div>
   <div class="field"><label>Tantárgy</label><select id="newSubject">      <option>Magyar irodalom</option>
       <option>Magyar nyelv</option>
       <option>Matematika</option>
@@ -135,45 +147,52 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
       <option>Technika és tervezés</option>
       <option>Közösségi nevelés</option>
       <option>Egyéb</option></select></div>
-  <div class="field"><label>Feladat leírása</label><textarea id="newDesc" placeholder="Pl. Munkafüzet 34. oldal, 2–5. feladat"></textarea></div>
+  <div class="field"><label>Feladat leírása</label><textarea id="newDesc" placeholder="Pl. Munkafüzet 34. oldal, 2-5. feladat"></textarea></div>
   <div class="field"><label>Határidő</label><input type="date" id="newDue"></div>
   <div class="field"><label>Megjegyzés (opcionális)</label><input type="text" id="newNote" placeholder="Pl. kell a füzet is"></div>
   <div class="field">
-    <label>Képek (opcionális)</label>
-    <div class="pick-btns">
-      <div class="pick-btn" onclick="document.getElementById('camInput').click()"><span class="ico">📷</span><span>Fénykép<br>készítése</span></div>
-      <div class="pick-btn" onclick="document.getElementById('galleryInput').click()"><span class="ico">🖼️</span><span>Meglévő<br>kép</span></div>
+    <label>Képek</label>
+    <div class="existing-imgs" id="existingImgs" style="display:none">
+      <label>Jelenlegi képek (X = töröl):</label>
+      <div class="prev-grid" id="existingGrid"></div>
     </div>
-    <input type="file" id="camInput" accept="image/*" capture="environment" style="display:none" onchange="handleImgs(event)">
-    <input type="file" id="galleryInput" accept="image/*" multiple style="display:none" onchange="handleImgs(event)">
+    <div class="pick-btns">
+      <div class="pick-btn" id="camBtn"><span class="ico">📷</span><span>Fénykép<br>készítése</span></div>
+      <div class="pick-btn" id="galleryBtn"><span class="ico">🖼️</span><span>Meglévő<br>kép</span></div>
+    </div>
+    <input type="file" id="camInput" accept="image/*" capture="environment" style="display:none">
+    <input type="file" id="galleryInput" accept="image/*" multiple style="display:none">
     <div class="prev-grid" id="prevGrid"></div>
     <div class="upload-status" id="uploadStatus"></div>
     <div class="progress" id="progressWrap"><div class="progress-fill" id="progressFill"></div></div>
   </div>
   <div class="btn-row">
-    <button class="btn btn-secondary" style="flex:1" onclick="closeSheet('addSheet')">Mégse</button>
-    <button class="btn btn-primary" style="flex:2" id="saveBtn" onclick="saveHW()">Mentés ✓</button>
+    <button class="btn btn-secondary" style="flex:1" id="cancelAddBtn">Mégse</button>
+    <button class="btn btn-primary" style="flex:2" id="saveBtn">Mentés ✓</button>
   </div>
 </div>
 </div>
 
-<div class="overlay" id="detailSheet" onclick="closeSheet('detailSheet')">
-<div class="sheet" onclick="event.stopPropagation()"><div class="handle"></div><div id="detailContent"></div></div>
+<!-- DETAIL SHEET -->
+<div class="overlay" id="detailSheet">
+<div class="sheet"><div class="handle"></div><div id="detailContent"></div></div>
 </div>
 
-<div class="overlay" id="notifySheet" onclick="closeSheet('notifySheet')">
-<div class="sheet" onclick="event.stopPropagation()">
+<!-- NOTIFY SHEET -->
+<div class="overlay" id="notifySheet">
+<div class="sheet">
   <div class="handle"></div>
   <div class="sheet-title">💬 Messenger üzenet</div>
   <p style="font-size:13px;color:var(--ink2);margin-bottom:11px;">Másold ki és illeszd be a csoportba:</p>
   <div class="msg-box" id="notifyText"></div>
-  <button class="fb-copy" onclick="copyNotify()">📋 Másolás vágólapra</button>
-  <button class="btn btn-secondary btn-full" onclick="closeSheet('notifySheet')">Bezárás</button>
+  <button class="fb-copy" id="copyBtn">📋 Másolás vágólapra</button>
+  <button class="btn btn-secondary btn-full" id="closeNotifyBtn">Bezárás</button>
 </div>
 </div>
 
-<div class="overlay" id="imgViewer" onclick="closeSheet('imgViewer')">
-<div style="width:100%;max-width:560px;padding:14px" onclick="event.stopPropagation()">
+<!-- IMAGE VIEWER -->
+<div class="overlay" id="imgViewer">
+<div style="width:100%;max-width:560px;padding:14px">
   <img id="viewerImg" src="" style="width:100%;border-radius:13px;max-height:82vh;object-fit:contain">
 </div>
 </div>
@@ -181,194 +200,34 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 <div class="toast" id="toast"></div>
 
 <script>
+// ── Config ──────────────────────────────────────────
 const CFG = {
-  CNAME:    '5.a osztály',
+  CNAME:         '5.a osztaly',
   PIN:           '2026',
   SHEET_ID:      '1KopuaNCn1nUn8JHDBYEjEqKp3EXaLErX8qvkeOu8ndk',
+  SCRIPT_URL:    'https://script.google.com/macros/s/AKfycbzzRiUqePXcUAMeRSc5pmsbdfJMGWZ3KNjxfGsNQ-WmozY35REzTqvOJMoeay7_biOb/exec',
   CLOUD_NAME:    'g8tinasd',
   UPLOAD_PRESET: 'szekai_hazik',
   CLOUD_FOLDER:  'hazik_5a',
+  API_KEY:       '589756227586528',
 };
 
+// ── State ────────────────────────────────────────────
 let session = null;
 let homeworks = [];
-let pendingImgs = [];
+let pendingImgs = [];   // {file, dataUrl} – new images to upload
+let removedImgs = [];   // urls to remove from existing hw
+let keepImgs = [];      // existing image urls to keep
 let activeFilter = 'all';
+let editingId = null;   // null = new, string = editing
 
-window.onload = () => {
-  const s = localStorage.getItem('hz_session_5a');
-  if (s) { session = JSON.parse(s); showApp(); }
-};
-
-function showApp() {
-  document.getElementById('loginScreen').classList.remove('on');
-  document.getElementById('hdrName').textContent = session.name;
-  loadSheet();
+// ── Helpers ──────────────────────────────────────────
+function slugify(s) {
+  return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-zA-Z0-9]/g,'_').replace(/_+/g,'_').toLowerCase();
 }
 
-function signIn() {
-  const name = document.getElementById('pinName').value.trim();
-  const pin  = document.getElementById('pinCode').value.trim();
-  if (!name) { showLoginErr('Add meg a neved!'); return; }
-  if (pin !== CFG.PIN) { showLoginErr('Hibás PIN-kód!'); return; }
-  session = { name };
-  localStorage.setItem('hz_session_5a', JSON.stringify(session));
-  document.getElementById('loginErr').style.display = 'none';
-  showApp();
-}
-
-function showLoginErr(m) { const e=document.getElementById('loginErr'); e.textContent=m; e.style.display='block'; }
-
-function logout() {
-  if (!confirm('Kijelentkezel?')) return;
-  session = null;
-  localStorage.removeItem('hz_session_5a');
-  homeworks = [];
-  document.getElementById('loginScreen').classList.add('on');
-  document.getElementById('pinCode').value = '';
-}
-
-// ── Sheets ──
-async function loadSheet() {
-  showToast('⏳ Betöltés…', 99999);
-  try {
-    const url = `https://docs.google.com/spreadsheets/d/${CFG.SHEET_ID}/gviz/tq?tqx=out:csv&range=A2:I&t=${Date.now()}`;
-    const r = await fetch(url);
-    const csv = await r.text();
-    homeworks = parseCSV(csv);
-    localStorage.setItem('hz_hw_5a', JSON.stringify(homeworks));
-  } catch {
-    homeworks = JSON.parse(localStorage.getItem('hz_hw_5a') || '[]');
-    showToast('⚠️ Offline – helyi adatok');
-  }
-  hideToast(); renderAll();
-}
-
-function parseCSV(csv) {
-  if (!csv.trim()) return [];
-  return csv.trim().split('\n').filter(l=>l.trim()).map(line => {
-    const cols=[]; let cur='', inQ=false;
-    for (let i=0;i<line.length;i++) {
-      if(line[i]==='"'){inQ=!inQ;}
-      else if(line[i]===','&&!inQ){cols.push(cur.trim());cur='';}
-      else cur+=line[i];
-    }
-    cols.push(cur.trim());
-    return { id:cols[0]||'', subject:cols[1]||'', desc:cols[2]||'', due:cols[3]||'',
-             note:cols[4]||'', uploader:cols[5]||'', uploaded:cols[6]||'',
-             images:safeJSON(cols[7]), cloudFolder:cols[8]||'' };
-  }).filter(h=>h.id);
-}
-function safeJSON(s){try{return JSON.parse(s||'[]');}catch{return [];}}
-
-async function appendToSheet(hw) {
-  // Use Google Apps Script Web App for unauthenticated write
-  const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzzRiUqePXcUAMeRSc5pmsbdfJMGWZ3KNjxfGsNQ-WmozY35REzTqvOJMoeay7_biOb/exec';
-  if (!WEB_APP_URL) throw new Error('no_script');
-  const r = await fetch(WEB_APP_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action:'append', sheetId: CFG.SHEET_ID, row:[
-      hw.id, hw.subject, hw.desc, hw.due, hw.note,
-      hw.uploader, hw.uploaded, JSON.stringify(hw.images||[]), hw.cloudFolder||''
-    ]})
-  });
-  if (!r.ok) throw new Error('Sheet hiba');
-}
-
-// ── Cloudinary ──
-async function uploadToCloudinary(file, subject, dateStr) {
-  const folder = `${CFG.CLOUD_FOLDER}/${subject.replace(/[^a-zA-Z0-9]/g,'_')}_${dateStr}`;
-  const fd = new FormData();
-  fd.append('file', file);
-  fd.append('upload_preset', CFG.UPLOAD_PRESET);
-  fd.append('folder', folder);
-  const r = await fetch(`https://api.cloudinary.com/v1_1/${CFG.CLOUD_NAME}/image/upload`, { method:'POST', body:fd });
-  if (!r.ok) throw new Error('Cloudinary hiba');
-  const j = await r.json();
-  return { url: j.secure_url, folder: `https://cloudinary.com/console/media_library/folders/${encodeURIComponent(folder)}` };
-}
-
-// ── Image handling ──
-function handleImgs(e) {
-  Array.from(e.target.files).forEach(f => {
-    const fr = new FileReader();
-    fr.onload = ev => { pendingImgs.push({file:f, dataUrl:ev.target.result}); renderPreviews(); };
-    fr.readAsDataURL(f);
-  });
-  e.target.value='';
-}
-function renderPreviews() {
-  document.getElementById('prevGrid').innerHTML = pendingImgs.map((img,i)=>
-    `<div class="prev-wrap"><img src="${img.dataUrl}"><button class="prev-rm" onclick="removeImg(${i})">×</button></div>`
-  ).join('');
-  document.getElementById('uploadStatus').textContent = pendingImgs.length ? `${pendingImgs.length} kép kiválasztva` : '';
-}
-function removeImg(i){pendingImgs.splice(i,1);renderPreviews();}
-
-// ── Save ──
-async function saveHW() {
-  const subject = document.getElementById('newSubject').value;
-  const desc    = document.getElementById('newDesc').value.trim();
-  const due     = document.getElementById('newDue').value;
-  const note    = document.getElementById('newNote').value.trim();
-  if (!desc) { showToast('⚠️ Írd le a feladatot!'); return; }
-  if (!due)  { showToast('⚠️ Add meg a határidőt!'); return; }
-
-  const btn = document.getElementById('saveBtn');
-  btn.innerHTML='<span class="spin"></span> Mentés…'; btn.disabled=true;
-  const pw=document.getElementById('progressWrap');
-  const pf=document.getElementById('progressFill');
-  pw.style.display='block'; pf.style.width='0%';
-
-  const imageUrls=[]; let cloudFolder='';
-  for(let i=0;i<pendingImgs.length;i++){
-    try{
-      document.getElementById('uploadStatus').textContent=`Kép feltöltése ${i+1}/${pendingImgs.length}…`;
-      pf.style.width=`${Math.round((i/pendingImgs.length)*80)}%`;
-      const res = await uploadToCloudinary(pendingImgs[i].file, subject, due);
-      imageUrls.push(res.url);
-      cloudFolder = res.folder;
-    } catch { showToast('⚠️ Egy kép nem töltődött fel'); }
-  }
-  pf.style.width='90%';
-
-  const hw = {
-    id: Date.now().toString(), subject, desc, due, note,
-    uploader: session.name, uploaded: new Date().toISOString(),
-    images: imageUrls, cloudFolder
-  };
-
-  homeworks.push(hw);
-  localStorage.setItem('hz_hw_5a', JSON.stringify(homeworks));
-
-  try {
-    await appendToSheet(hw);
-    pf.style.width='100%';
-    showToast('✅ Feltöltve!');
-  } catch {
-    showToast('✅ Helyben mentve! (szinkron később)');
-  }
-
-  pendingImgs=[]; renderPreviews();
-  document.getElementById('uploadStatus').textContent='';
-  pw.style.display='none';
-  btn.innerHTML='Mentés ✓'; btn.disabled=false;
-  closeSheet('addSheet'); renderAll();
-}
-
-// ── Render ──
-function renderAll(){renderFilters();renderList();renderNotifyList();renderHistory();}
-
-function renderFilters(){
-  const subs=[...new Set(homeworks.map(h=>h.subject))];
-  const bar=document.getElementById('filterBar');
-  bar.innerHTML=`<div class="chip on" onclick="setFilter('all')">Összes</div>`+
-    subs.map(s=>`<div class="chip" onclick="setFilter(\`${s}\`)">${s}</div>`).join('');
-  bar.querySelectorAll('.chip').forEach(c=>c.classList.toggle('on',c.textContent===(activeFilter==='all'?'Összes':activeFilter)));
-}
-function setFilter(f){activeFilter=f;renderAll();}
-
+function safeJSON(s){try{return JSON.parse(s||'[]');}catch{return[];}}
 function today0(){const d=new Date();d.setHours(0,0,0,0);return d;}
 function dueInfo(ds){
   const d=new Date(ds);d.setHours(0,0,0,0);
@@ -382,20 +241,360 @@ function dueInfo(ds){
 function fmtDate(s){return new Date(s).toLocaleDateString('hu-HU',{month:'short',day:'numeric',weekday:'short'});}
 function fmtDT(s){return new Date(s).toLocaleString('hu-HU',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});}
 
+let _tt;
+function showToast(msg,dur=2700){
+  clearTimeout(_tt);const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('on');
+  if(dur<99999)_tt=setTimeout(()=>t.classList.remove('on'),dur);
+}
+function hideToast(){document.getElementById('toast').classList.remove('on');}
+function openSheet(id){document.getElementById(id).classList.add('on');}
+function closeSheet(id){document.getElementById(id).classList.remove('on');}
+
+// ── Init ─────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  // Login
+  document.getElementById('loginBtn').onclick = signIn;
+  document.getElementById('pinCode').addEventListener('keydown', e => { if(e.key==='Enter') signIn(); });
+  document.getElementById('logoutBtn').onclick = logout;
+  document.getElementById('fabBtn').onclick = () => openAddSheet(null);
+  document.getElementById('cancelAddBtn').onclick = () => closeSheet('addSheet');
+  document.getElementById('saveBtn').onclick = saveHW;
+  document.getElementById('camBtn').onclick = () => document.getElementById('camInput').click();
+  document.getElementById('galleryBtn').onclick = () => document.getElementById('galleryInput').click();
+  document.getElementById('camInput').onchange = handleImgs;
+  document.getElementById('galleryInput').onchange = handleImgs;
+  document.getElementById('copyBtn').onclick = copyNotify;
+  document.getElementById('closeNotifyBtn').onclick = () => closeSheet('notifySheet');
+  document.getElementById('imgViewer').onclick = () => closeSheet('imgViewer');
+  document.getElementById('addSheet').onclick = e => { if(e.target===e.currentTarget.firstElementChild?.parentElement||e.target===document.getElementById('addSheet')) closeSheet('addSheet'); };
+  document.getElementById('detailSheet').onclick = e => { if(e.target===document.getElementById('detailSheet')) closeSheet('detailSheet'); };
+  document.getElementById('notifySheet').onclick = e => { if(e.target===document.getElementById('notifySheet')) closeSheet('notifySheet'); };
+
+  // Tabs
+  ['list','notify','history','trash'].forEach((name,i) => {
+    document.getElementById('tab-'+name).onclick = () => { switchTab(name); if(name==='trash') loadTrash(); };
+  });
+
+  // Restore session
+  const s = localStorage.getItem('hz_s_5a');
+  if(s){ session=JSON.parse(s); showApp(); }
+});
+
+// ── Auth ─────────────────────────────────────────────
+function signIn(){
+  const name = document.getElementById('pinName').value.trim();
+  const pin  = document.getElementById('pinCode').value.trim();
+  const err  = document.getElementById('loginErr');
+  if(!name){err.textContent='Add meg a neved!';err.style.display='block';return;}
+  if(pin!==CFG.PIN){err.textContent='Hibás PIN-kód!';err.style.display='block';return;}
+  session={name};
+  localStorage.setItem('hz_s_5a',JSON.stringify(session));
+  err.style.display='none';
+  showApp();
+}
+
+function showApp(){
+  document.getElementById('loginScreen').classList.remove('on');
+  document.getElementById('hdrName').textContent=session.name;
+  loadSheet();
+  loadTrash();
+}
+
+function logout(){
+  if(!confirm('Kijelentkezel?'))return;
+  session=null;
+  localStorage.removeItem('hz_s_5a');
+  homeworks=[];
+  document.getElementById('loginScreen').classList.add('on');
+  document.getElementById('pinCode').value='';
+}
+
+// ── Sheets ───────────────────────────────────────────
+async function loadSheet(){
+  showToast('⏳ Betöltés…',99999);
+  try{
+    const url=`https://docs.google.com/spreadsheets/d/${CFG.SHEET_ID}/gviz/tq?tqx=out:csv&range=A2:I&t=${Date.now()}`;
+    const r=await fetch(url);
+    const csv=await r.text();
+    homeworks=parseCSV(csv);
+    localStorage.setItem('hz_hw_5a',JSON.stringify(homeworks));
+  }catch{
+    homeworks=JSON.parse(localStorage.getItem('hz_hw_5a')||'[]');
+    showToast('⚠️ Offline – helyi adatok');
+  }
+  hideToast();renderAll();
+}
+
+function parseCSV(csv){
+  if(!csv.trim())return[];
+  return csv.trim().split('\n').filter(l=>l.trim()).map(line=>{
+    const cols=[];let cur='',inQ=false;
+    for(let i=0;i<line.length;i++){
+      if(line[i]==='"'){inQ=!inQ;}
+      else if(line[i]===','&&!inQ){cols.push(cur.trim());cur='';}
+      else cur+=line[i];
+    }
+    cols.push(cur.trim());
+    return{id:cols[0]||'',subject:cols[1]||'',desc:cols[2]||'',due:cols[3]||'',
+           note:cols[4]||'',uploader:cols[5]||'',uploaded:cols[6]||'',
+           images:safeJSON(cols[7]),cloudFolder:cols[8]||''};
+  }).filter(h=>h.id);
+}
+
+async function sheetRequest(payload){
+  const r=await fetch(CFG.SCRIPT_URL,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({...payload,sheetId:CFG.SHEET_ID})
+  });
+  if(!r.ok)throw new Error('Script hiba');
+  return r.json();
+}
+
+// ── Cloudinary ───────────────────────────────────────
+async function uploadToCloudinary(file, subject, dateStr){
+  const folder=`${CFG.CLOUD_FOLDER}/${slugify(subject)}_${dateStr}`;
+  const fd=new FormData();
+  fd.append('file',file);
+  fd.append('upload_preset',CFG.UPLOAD_PRESET);
+  fd.append('folder',folder);
+  const r=await fetch(`https://api.cloudinary.com/v1_1/${CFG.CLOUD_NAME}/image/upload`,{method:'POST',body:fd});
+  if(!r.ok)throw new Error('Cloudinary hiba');
+  const j=await r.json();
+  return{url:j.secure_url, publicId:j.public_id, folder};
+}
+
+async function deleteFromCloudinary(publicId){
+  // Note: Cloudinary unsigned delete not supported – images stay in cloud
+  // but we remove from our data. For full delete, signed API needed.
+  console.log('Cloudinary delete skipped (unsigned):', publicId);
+}
+
+// ── Image handling ────────────────────────────────────
+function handleImgs(e){
+  Array.from(e.target.files).forEach(f=>{
+    const fr=new FileReader();
+    fr.onload=ev=>{pendingImgs.push({file:f,dataUrl:ev.target.result});renderNewPreviews();};
+    fr.readAsDataURL(f);
+  });
+  e.target.value='';
+}
+function renderNewPreviews(){
+  document.getElementById('prevGrid').innerHTML=pendingImgs.map((img,i)=>
+    `<div class="prev-wrap"><img src="${img.dataUrl}"><button class="prev-rm" data-i="${i}">×</button></div>`
+  ).join('');
+  document.getElementById('prevGrid').querySelectorAll('.prev-rm').forEach(btn=>{
+    btn.onclick=()=>{pendingImgs.splice(+btn.dataset.i,1);renderNewPreviews();};
+  });
+  document.getElementById('uploadStatus').textContent=pendingImgs.length?`${pendingImgs.length} új kép kiválasztva`:'';
+}
+
+function renderExistingPreviews(){
+  const el=document.getElementById('existingGrid');
+  const wrap=document.getElementById('existingImgs');
+  if(!keepImgs.length){wrap.style.display='none';return;}
+  wrap.style.display='block';
+  el.innerHTML=keepImgs.map((url,i)=>
+    `<div class="prev-wrap"><img src="${url}"><button class="prev-rm" data-i="${i}">×</button></div>`
+  ).join('');
+  el.querySelectorAll('.prev-rm').forEach(btn=>{
+    btn.onclick=()=>{
+      const i=+btn.dataset.i;
+      removedImgs.push(keepImgs[i]);
+      keepImgs.splice(i,1);
+      renderExistingPreviews();
+    };
+  });
+}
+
+// ── Save / Update ─────────────────────────────────────
+async function saveHW(){
+  const subject=document.getElementById('newSubject').value;
+  const desc=document.getElementById('newDesc').value.trim();
+  const due=document.getElementById('newDue').value;
+  const note=document.getElementById('newNote').value.trim();
+  if(!desc){showToast('⚠️ Írd le a feladatot!');return;}
+  if(!due){showToast('⚠️ Add meg a határidőt!');return;}
+
+  const btn=document.getElementById('saveBtn');
+  btn.innerHTML='<span class="spin"></span> Mentés…';btn.disabled=true;
+  const pw=document.getElementById('progressWrap');
+  const pf=document.getElementById('progressFill');
+  pw.style.display='block';pf.style.width='0%';
+
+  // Upload new images
+  const newUrls=[];let cloudFolder='';
+  for(let i=0;i<pendingImgs.length;i++){
+    try{
+      document.getElementById('uploadStatus').textContent=`Kép feltöltése ${i+1}/${pendingImgs.length}…`;
+      pf.style.width=`${Math.round((i/pendingImgs.length)*80)}%`;
+      const res=await uploadToCloudinary(pendingImgs[i].file,subject,due);
+      newUrls.push(res.url);
+      cloudFolder=`https://console.cloudinary.com/console/media_library/search?q=folder:${encodeURIComponent(res.folder)}`;
+    }catch{showToast('⚠️ Egy kép nem töltődött fel');}
+  }
+  pf.style.width='90%';
+
+  const allImages=[...keepImgs,...newUrls];
+
+  if(editingId){
+    // Update existing
+    const hw=homeworks.find(h=>h.id===editingId);
+    hw.subject=subject;hw.desc=desc;hw.due=due;hw.note=note;
+    hw.images=allImages;
+    if(cloudFolder)hw.cloudFolder=cloudFolder;
+    try{
+      await sheetRequest({action:'update',id:editingId,row:[
+        hw.id,hw.subject,hw.desc,hw.due,hw.note,hw.uploader,hw.uploaded,
+        JSON.stringify(hw.images),hw.cloudFolder||''
+      ]});
+      showToast('✅ Frissítve!');
+    }catch{showToast('✅ Helyben frissítve (szinkron később)');}
+  } else {
+    // New
+    const hw={
+      id:Date.now().toString(),subject,desc,due,note,
+      uploader:session.name,uploaded:new Date().toISOString(),
+      images:allImages,cloudFolder
+    };
+    homeworks.push(hw);
+    try{
+      await sheetRequest({action:'append',row:[
+        hw.id,hw.subject,hw.desc,hw.due,hw.note,hw.uploader,hw.uploaded,
+        JSON.stringify(hw.images),hw.cloudFolder||''
+      ]});
+      showToast('✅ Feltöltve!');
+    }catch{showToast('✅ Helyben mentve (szinkron később)');}
+  }
+
+  localStorage.setItem('hz_hw_5a',JSON.stringify(homeworks));
+  pf.style.width='100%';
+  pendingImgs=[];keepImgs=[];removedImgs=[];
+  renderNewPreviews();
+  pw.style.display='none';
+  document.getElementById('uploadStatus').textContent='';
+  btn.innerHTML='Mentés ✓';btn.disabled=false;
+  closeSheet('addSheet');renderAll();
+}
+
+// ── Delete ────────────────────────────────────────────
+async function deleteHW(id){
+  if(!confirm('Biztosan törlöd? A Kukából visszaállítható lesz.'))return;
+  homeworks=homeworks.filter(h=>h.id!==id);
+  localStorage.setItem('hz_hw_5a',JSON.stringify(homeworks));
+  try{
+    await sheetRequest({action:'delete',id,deletedBy:session.name});
+    showToast('🗑️ Törölve – Kukából visszaállítható');
+  }catch{showToast('🗑️ Helyben törölve.');}
+  closeSheet('detailSheet');renderAll();
+  loadTrash();
+}
+
+// ── Trash / Restore ──────────────────────────────────
+let trashItems = [];
+
+async function loadTrash(){
+  try{
+    const r=await sheetRequest({action:'loadTrash'});
+    trashItems=r.data||[];
+  }catch{trashItems=[];}
+  renderTrash();
+}
+
+function renderTrash(){
+  const el=document.getElementById('trashList');
+  if(!trashItems.length){
+    el.innerHTML='<div class="empty"><div class="ico">🗑️</div><p>A Kuka üres.</p></div>';
+    return;
+  }
+  el.innerHTML='<div class="sec-label">Törölt feladatok – felhőből visszaállíthatók</div>'+
+    trashItems.map(h=>`
+      <div class="trash-card">
+        <div class="card-head">
+          <div class="subj">${h.subject}</div>
+          <div class="badge past">Törölve</div>
+        </div>
+        <div class="desc">${h.desc}</div>
+        <div class="trash-meta">
+          📅 Határidő: ${fmtDate(h.due)}<br>
+          ⬆️ Feltöltötte: ${h.uploader}<br>
+          🗑️ Törölte: <b>${h.deletedBy}</b> · ${fmtDT(h.deletedAt)}
+          ${safeJSON(h.images).length?`<br>🖼️ ${safeJSON(h.images).length} kép`:''}
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button class="tbtn tbtn-restore" onclick="restoreHW('${h.id}')">↩️ Visszaállítás</button>
+          <button class="tbtn tbtn-perm" onclick="permDeleteHW('${h.id}')">🗑️ Végleges törlés</button>
+        </div>
+      </div>`).join('');
+}
+
+async function restoreHW(id){
+  if(!confirm('Visszaállítod ezt a feladatot?'))return;
+  showToast('⏳ Visszaállítás…',99999);
+  try{
+    const r=await sheetRequest({action:'restore',id});
+    await loadSheet();
+    await loadTrash();
+    hideToast();
+    showToast('✅ Visszaállítva!');
+  }catch{
+    hideToast();
+    showToast('⚠️ Hiba a visszaállításnál.');
+  }
+}
+
+async function permDeleteHW(id){
+  if(!confirm('Véglegesen törlöd? Ez nem vonható vissza!'))return;
+  try{
+    await sheetRequest({action:'permDelete',id});
+    await loadTrash();
+    showToast('🗑️ Véglegesen törölve.');
+  }catch{showToast('⚠️ Hiba a törlésnél.');}
+}
+
+// ── Render ────────────────────────────────────────────
+function renderAll(){renderFilters();renderList();renderNotifyList();renderHistory();}
+
+function renderFilters(){
+  const subs=[...new Set(homeworks.map(h=>h.subject))];
+  const bar=document.getElementById('filterBar');
+  bar.innerHTML='';
+  const all=document.createElement('div');
+  all.className='chip'+(activeFilter==='all'?' on':'');
+  all.textContent='Összes';
+  all.onclick=()=>setFilter('all');
+  bar.appendChild(all);
+  subs.forEach(s=>{
+    const c=document.createElement('div');
+    c.className='chip'+(activeFilter===s?' on':'');
+    c.textContent=s;
+    c.onclick=()=>setFilter(s);
+    bar.appendChild(c);
+  });
+}
+function setFilter(f){activeFilter=f;renderAll();}
+
 function cardHTML(h){
   const{text,cls}=dueInfo(h.due);
   const imgs=(h.images||[]).slice(0,3);
   const extra=(h.images||[]).length-3;
-  return `<div class="card" onclick="openDetail('${h.id}')">
+  return `<div class="card" data-id="${h.id}">
     <div class="card-head"><div class="subj">${h.subject}</div><div class="badge ${cls}">${text}</div></div>
     <div class="desc">${h.desc}</div>
     ${imgs.length?`<div class="thumbs">${imgs.map(u=>`<img class="thumb" src="${u}">`).join('')}${extra>0?`<div class="thumb-more">+${extra}</div>`:''}</div>`:''}
     <div class="meta">
       ${h.note?`<span class="tag">📌 ${h.note}</span>`:''}
-      ${h.cloudFolder?`<span class="tag">📁 Képek Drive-on</span>`:''}
+      ${(h.images||[]).length?`<span class="tag">🖼️ ${h.images.length} kép</span>`:''}
       <span class="who">⬆️ ${h.uploader} · ${fmtDT(h.uploaded)}</span>
     </div>
   </div>`;
+}
+
+function attachCardClicks(containerId){
+  document.getElementById(containerId).querySelectorAll('.card').forEach(card=>{
+    card.onclick=()=>openDetail(card.dataset.id);
+  });
 }
 
 function activeHW(){return homeworks.filter(h=>{const d=new Date(h.due);d.setHours(0,0,0,0);return d>=today0();});}
@@ -404,32 +603,39 @@ function renderList(){
   let items=activeHW();
   if(activeFilter!=='all')items=items.filter(h=>h.subject===activeFilter);
   items.sort((a,b)=>new Date(a.due)-new Date(b.due));
-  document.getElementById('hwList').innerHTML=items.length?items.map(cardHTML).join(''):`<div class="empty"><div class="ico">🎉</div><p>Nincs aktív házi feladat!</p></div>`;
+  const el=document.getElementById('hwList');
+  el.innerHTML=items.length?items.map(cardHTML).join(''):`<div class="empty"><div class="ico">🎉</div><p>Nincs aktív házi feladat!</p></div>`;
+  attachCardClicks('hwList');
 }
 
 function renderNotifyList(){
   const items=activeHW().sort((a,b)=>new Date(a.due)-new Date(b.due));
-  document.getElementById('notifyList').innerHTML=items.length
-    ?items.map(h=>{const{text,cls}=dueInfo(h.due);return`<div class="card" onclick="openNotify('${h.id}')">
+  const el=document.getElementById('notifyList');
+  el.innerHTML=items.length?items.map(h=>{
+    const{text,cls}=dueInfo(h.due);
+    return`<div class="card" data-id="${h.id}">
       <div class="card-head"><div class="subj">${h.subject}</div><div class="badge ${cls}">${text}</div></div>
       <div class="desc">${h.desc}</div>
       <div style="margin-top:8px;font-size:13px;color:var(--blue);font-weight:700;">💬 Értesítő generálása →</div>
-    </div>`;}).join('')
-    :`<div class="empty"><div class="ico">💬</div><p>Nincs aktív feladat.</p></div>`;
+    </div>`;
+  }).join(''):`<div class="empty"><div class="ico">💬</div><p>Nincs aktív feladat.</p></div>`;
+  el.querySelectorAll('.card').forEach(c=>c.onclick=()=>openNotify(c.dataset.id));
 }
 
 function renderHistory(){
   const items=homeworks.filter(h=>{const d=new Date(h.due);d.setHours(0,0,0,0);return d<today0();}).sort((a,b)=>new Date(b.due)-new Date(a.due));
-  document.getElementById('historyList').innerHTML=items.length
-    ?'<div class="sec-label">Lejárt feladatok</div>'+items.map(cardHTML).join('')
-    :`<div class="empty"><div class="ico">📂</div><p>Még nincs archivált feladat.</p></div>`;
+  const el=document.getElementById('historyList');
+  el.innerHTML=items.length?'<div class="sec-label">Lejárt feladatok</div>'+items.map(cardHTML).join(''):`<div class="empty"><div class="ico">📂</div><p>Még nincs archivált feladat.</p></div>`;
+  attachCardClicks('historyList');
 }
 
+// ── Detail ────────────────────────────────────────────
 function openDetail(id){
   const h=homeworks.find(x=>x.id===id);if(!h)return;
   const{text,cls}=dueInfo(h.due);
   const imgs=h.images||[];
-  document.getElementById('detailContent').innerHTML=`
+  const dc=document.getElementById('detailContent');
+  dc.innerHTML=`
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:11px">
       <div style="font-size:20px;font-weight:900">${h.subject}</div>
       <div class="badge ${cls}" style="font-size:13px">${text}</div>
@@ -437,17 +643,69 @@ function openDetail(id){
     <div style="font-size:15px;line-height:1.6;margin-bottom:7px">${h.desc}</div>
     ${h.note?`<div class="info-row">📌 ${h.note}</div>`:''}
     <div class="info-row">⬆️ <b>${h.uploader}</b> · ${fmtDT(h.uploaded)}</div>
-    ${h.cloudFolder?`<a href="${h.cloudFolder}" target="_blank" style="display:flex;align-items:center;gap:8px;background:#f0f7f4;border:1.5px solid #34a853;border-radius:10px;padding:10px 13px;margin-top:8px;text-decoration:none;color:#1a7a3e;font-size:13px;font-weight:700">📁 Képek megtekintése</a>`:''}
-    ${imgs.length?`<div class="gallery">${imgs.map(u=>`<img src="${u}" onclick="viewImg('${u}')">`).join('')}</div>`:''}
+    ${imgs.length?`<div class="gallery">${imgs.map(u=>`<div class="gallery-wrap"><img src="${u}" data-url="${u}"><button class="gallery-rm" data-url="${u}">×</button></div>`).join('')}</div>`:''}
     <div class="detail-actions">
-      <button class="btn btn-primary btn-full" onclick="openNotify('${id}');closeSheet('detailSheet')">💬 Értesítő generálása</button>
-      <button class="btn btn-secondary btn-full" onclick="openRequestNotify('${id}')">🙋 Feltöltést kér üzenet</button>
+      <button class="btn btn-primary btn-full" id="detNotifyBtn">💬 Értesítő generálása</button>
+      <button class="btn btn-secondary btn-full" id="detRequestBtn">🙋 Feltöltést kér üzenet</button>
+      <button class="btn btn-secondary btn-full" id="detEditBtn">✏️ Szerkesztés</button>
+      <button class="btn btn-danger btn-full" id="detDeleteBtn">🗑️ Törlés</button>
     </div>`;
+
+  dc.querySelectorAll('.gallery-wrap img').forEach(img=>img.onclick=()=>{document.getElementById('viewerImg').src=img.dataset.url;openSheet('imgViewer');});
+  dc.querySelectorAll('.gallery-rm').forEach(btn=>btn.onclick=e=>{e.stopPropagation();deleteImageFromHW(id,btn.dataset.url);});
+  dc.getElementById=undefined;
+  document.getElementById('detNotifyBtn').onclick=()=>{openNotify(id);closeSheet('detailSheet');};
+  document.getElementById('detRequestBtn').onclick=()=>openRequestNotify(id);
+  document.getElementById('detEditBtn').onclick=()=>{closeSheet('detailSheet');openAddSheet(id);};
+  document.getElementById('detDeleteBtn').onclick=()=>deleteHW(id);
   openSheet('detailSheet');
 }
 
-function viewImg(url){document.getElementById('viewerImg').src=url;openSheet('imgViewer');}
+async function deleteImageFromHW(hwId, url){
+  if(!confirm('Törlöd ezt a képet?'))return;
+  const h=homeworks.find(x=>x.id===hwId);if(!h)return;
+  h.images=h.images.filter(u=>u!==url);
+  localStorage.setItem('hz_hw_5a',JSON.stringify(homeworks));
+  try{
+    await sheetRequest({action:'update',id:hwId,row:[
+      h.id,h.subject,h.desc,h.due,h.note,h.uploader,h.uploaded,
+      JSON.stringify(h.images),h.cloudFolder||''
+    ]});
+    showToast('🗑️ Kép törölve.');
+  }catch{showToast('🗑️ Kép helyben törölve.');}
+  closeSheet('detailSheet');
+  openDetail(hwId);
+}
 
+// ── Add / Edit sheet ──────────────────────────────────
+function openAddSheet(id){
+  editingId=id;
+  pendingImgs=[];keepImgs=[];removedImgs=[];
+  renderNewPreviews();
+  document.getElementById('progressWrap').style.display='none';
+  document.getElementById('uploadStatus').textContent='';
+
+  if(id){
+    const h=homeworks.find(x=>x.id===id);
+    document.getElementById('addSheetTitle').textContent='Feladat szerkesztése';
+    document.getElementById('newSubject').value=h.subject;
+    document.getElementById('newDesc').value=h.desc;
+    document.getElementById('newDue').value=h.due;
+    document.getElementById('newNote').value=h.note||'';
+    keepImgs=[...(h.images||[])];
+    renderExistingPreviews();
+  } else {
+    document.getElementById('addSheetTitle').textContent='Új házi feladat';
+    document.getElementById('newDesc').value='';
+    document.getElementById('newNote').value='';
+    document.getElementById('existingImgs').style.display='none';
+    const t=new Date();t.setDate(t.getDate()+1);
+    document.getElementById('newDue').value=t.toISOString().split('T')[0];
+  }
+  openSheet('addSheet');
+}
+
+// ── Notify ────────────────────────────────────────────
 function openNotify(id){
   const h=homeworks.find(x=>x.id===id);if(!h)return;
   let msg=`📚 Házi feladat – ${CFG.CNAME}\n\n`;
@@ -455,8 +713,7 @@ function openNotify(id){
   msg+=`✏️ Feladat: ${h.desc}\n`;
   msg+=`📅 Határidő: ${fmtDate(h.due)}\n`;
   if(h.note)msg+=`📌 Megjegyzés: ${h.note}\n`;
-  if(h.cloudFolder)msg+=`\n📁 Képek: ${h.cloudFolder}\n`;
-  else if((h.images||[]).length)msg+=`🖼️ ${h.images.length} kép az appban\n`;
+  if((h.images||[]).length)msg+=`\n🖼️ ${h.images.length} kép elérhető az appban\n`;
   msg+=`\n✅ Feltöltötte: ${h.uploader}`;
   document.getElementById('notifyText').textContent=msg;
   openSheet('notifySheet');
@@ -476,33 +733,13 @@ function copyNotify(){
   });
 }
 
+// ── Tab switch ────────────────────────────────────────
 function switchTab(name){
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
-  document.querySelectorAll('.view').forEach(v=>v.classList.remove('on'));
-  ['list','notify','history'].forEach((n,i)=>{if(n===name){document.querySelectorAll('.tab')[i].classList.add('on');document.getElementById('view-'+n).classList.add('on');}});
+  ['list','notify','history','trash'].forEach(n=>{
+    document.getElementById('tab-'+n).classList.toggle('on',n===name);
+    document.getElementById('view-'+n).classList.toggle('on',n===name);
+  });
 }
-
-function openAddSheet(){
-  pendingImgs=[];renderPreviews();
-  document.getElementById('newDesc').value='';
-  document.getElementById('newNote').value='';
-  document.getElementById('uploadStatus').textContent='';
-  document.getElementById('progressWrap').style.display='none';
-  const t=new Date();t.setDate(t.getDate()+1);
-  document.getElementById('newDue').value=t.toISOString().split('T')[0];
-  openSheet('addSheet');
-}
-
-function openSheet(id){document.getElementById(id).classList.add('on');}
-function closeSheet(id){document.getElementById(id).classList.remove('on');}
-
-let _tt;
-function showToast(msg,dur=2700){
-  clearTimeout(_tt);const t=document.getElementById('toast');
-  t.textContent=msg;t.classList.add('on');
-  if(dur<99999)_tt=setTimeout(()=>t.classList.remove('on'),dur);
-}
-function hideToast(){document.getElementById('toast').classList.remove('on');}
 </script>
 </body>
 </html>
