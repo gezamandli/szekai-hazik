@@ -300,7 +300,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v6.0</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v6.2</span><span id="scriptVersion"></span></div>
 
 <script>
 const CFG = {
@@ -725,7 +725,7 @@ function cardHTML(h,selMode=false){
   return`<div class="card" data-id="${h.id}" style="${isPast?'opacity:.65;':''}${h.type==='temaзaro'?'border-left:4px solid #f59e0b;':''}${h.type==='dolgozat'?'border-left:4px solid #7c3aed;':''}">
     <div class="card-head">
       ${chk}<div class="subj">${h.subject}${typeLabel}</div>
-      <div class="badge ${cls}">${text}</div>
+      <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">${isFav(h.id)?'<span style="font-size:14px;line-height:1">❤️</span>':''}<div class="badge ${cls}">${text}</div></div>
     </div>
     <div class="desc">${h.desc}</div>
     ${imgs.length?`<div class="thumbs">${imgs.map(u=>`<img class="thumb" src="${u}" loading="lazy" onerror="this.style.display='none'">`).join('')}${extra>0?`<div class="thumb-more">+${extra}</div>`:''}</div>`:''}
@@ -775,7 +775,8 @@ function renderNotifyList(){
   const items=activeHW().sort((a,b)=>{if(!a.due)return 1;if(!b.due)return -1;return new Date(a.due)-new Date(b.due);});
   const el=document.getElementById('notifyList');
   el.innerHTML=items.length?items.map(h=>{const{text,cls}=dueInfo(h.due);return`<div class="card" data-id="${h.id}">
-    <div class="card-head"><div class="subj">${h.subject}</div><div class="badge ${cls}">${text}</div></div>
+    <div class="card-head"><div class="subj">${h.subject}</div>
+      <div style="display:flex;align-items:center;gap:5px;flex-shrink:0">${isFav(h.id)?'<span style="font-size:15px">❤️</span>':''}<div class="badge ${cls}">${text}</div></div>
     <div class="desc">${h.desc}</div>
     <div style="margin-top:8px;font-size:13px;color:var(--blue);font-weight:700;">💬 Értesítő generálása →</div>
   </div>`;}).join(''):`<div class="empty"><div class="ico">💬</div><p>Nincs aktív feladat.</p></div>`;
@@ -960,18 +961,6 @@ let reqMode = 'day'; // 'day' | 'week' | 'subjects' | 'all'
 function renderRequestTab(){
   const el = document.getElementById('requestContent');
 
-  // Build week days (Mon-Fri from today)
-  const days = [];
-  const now = new Date();
-  // Show next 7 days
-  for(let i=0;i<7;i++){
-    const d = new Date(now);
-    d.setDate(now.getDate()+i);
-    const dow = d.getDay();
-    if(dow===0||dow===6) continue; // skip weekends
-    days.push(d);
-    if(days.length>=5) break;
-  }
 
   const allSubjects = [...new Set(homeworks.map(h=>h.subject))];
   // Use CFG subjects from select options
@@ -996,12 +985,18 @@ function renderRequestTab(){
 
     <div class="req-section" id="reqDaySection" style="${reqMode==='day'?'':'display:none'}">
       <h3>Melyik napra?</h3>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
+        <input type="date" id="reqDatePicker" style="padding:8px 12px;border:2px solid var(--line);border-radius:10px;font-size:14px;font-family:inherit;color:var(--ink);background:#fff;cursor:pointer" onchange="addReqDate(this.value)">
+        <button onclick="addReqDateToday()" style="padding:8px 12px;border:2px solid var(--line);border-radius:10px;font-size:13px;font-weight:700;background:#fff;color:var(--ink2);cursor:pointer">Ma</button>
+        <button onclick="addReqDateTomorrow()" style="padding:8px 12px;border:2px solid var(--line);border-radius:10px;font-size:13px;font-weight:700;background:#fff;color:var(--ink2);cursor:pointer">Holnap</button>
+      </div>
       <div class="req-chips" id="reqDayChips">
-        ${days.map(d=>{
-          const ds=d.toISOString().split('T')[0];
+        ${reqDays.map(ds=>{
+          const d=new Date(ds);
           const label=d.toLocaleDateString('hu-HU',{weekday:'short',month:'short',day:'numeric'});
-          return `<div class="req-chip ${reqDays.includes(ds)?'on':''}" onclick="toggleReqDay('${ds}')" data-ds="${ds}">${label}</div>`;
+          return '<div class="req-chip on" style="display:flex;align-items:center;gap:4px">'+label+'<span onclick="toggleReqDay(''+ds+'')" style="cursor:pointer;font-size:12px;opacity:.7;margin-left:2px">✕</span></div>';
         }).join('')}
+        ${reqDays.length===0?'<span style="font-size:13px;color:var(--ink2)">Válassz dátumot fentebb</span>':''}
       </div>
     </div>
 
@@ -1031,11 +1026,18 @@ function setReqMode(mode){
 
 function toggleReqDay(ds){
   const i=reqDays.indexOf(ds);
-  if(i>=0) reqDays.splice(i,1); else reqDays.push(ds);
-  // Update chip
-  document.querySelectorAll('#reqDayChips .req-chip').forEach(c=>{
-    if(c.dataset.ds===ds) c.classList.toggle('on', reqDays.includes(ds));
-  });
+  if(i>=0) reqDays.splice(i,1);
+  else reqDays.push(ds);
+  reqDays.sort();
+  // Refresh chips
+  const chips=document.getElementById('reqDayChips');
+  if(chips){
+    chips.innerHTML=reqDays.map(d=>{
+      const label=new Date(d).toLocaleDateString('hu-HU',{weekday:'short',month:'short',day:'numeric'});
+      return '<div class="req-chip on" style="display:flex;align-items:center;gap:4px">'+label
+        +'<span onclick="toggleReqDay(''+d+'')" style="cursor:pointer;font-size:12px;opacity:.7;margin-left:2px">✕</span></div>';
+    }).join('')||'<span style="font-size:13px;color:var(--ink2)">Válassz dátumot</span>';
+  }
   updateReqPreview();
 }
 
@@ -1567,6 +1569,34 @@ function exportSelectedExcel(){
   a.download="hazik_"+new Date().toISOString().slice(0,10)+".csv";
   a.click();
   showToast("Exportalva!");
+}
+
+
+function addReqDate(ds){
+  if(!ds) return;
+  if(!reqDays.includes(ds)) reqDays.push(ds);
+  reqDays.sort();
+  updateReqPreview();
+  // Re-render day section chips only
+  const chips = document.getElementById('reqDayChips');
+  if(chips){
+    chips.innerHTML = reqDays.map(d=>{
+      const label=new Date(d).toLocaleDateString('hu-HU',{weekday:'short',month:'short',day:'numeric'});
+      return '<div class="req-chip on" style="display:flex;align-items:center;gap:4px">'+label
+        +'<span onclick="toggleReqDay(''+d+'')" style="cursor:pointer;font-size:12px;opacity:.7;margin-left:2px">✕</span></div>';
+    }).join('') || '<span style="font-size:13px;color:var(--ink2)">Válassz dátumot</span>';
+  }
+}
+
+function addReqDateToday(){
+  const d=new Date();
+  addReqDate(d.toISOString().split('T')[0]);
+}
+
+function addReqDateTomorrow(){
+  const d=new Date();
+  d.setDate(d.getDate()+1);
+  addReqDate(d.toISOString().split('T')[0]);
 }
 
 </script>
