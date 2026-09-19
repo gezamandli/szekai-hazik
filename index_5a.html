@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Házi Feladat – 5.a osztály</title>
+<style>
+:root{--ink:#1a1d27;--ink2:#4b5063;--bg:#f7f8fc;--card:#fff;--line:#e4e7f0;--blue:#2f6de1;--blue-bg:#eef3fd;--green:#1a9e5c;--amber:#c47f00;--red:#d93025;--r:13px;--sh:0 2px 10px rgba(0,0,0,.07)}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh}
+.hdr{background:var(--blue);color:#fff;padding:14px 16px 11px;position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 12px rgba(47,109,225,.3)}
+.hdr h1{font-size:17px;font-weight:800;letter-spacing:-.2px}.hdr .sub{font-size:11px;opacity:.75;margin-top:1px}
+.hdr-btn{background:rgba(255,255,255,.18);border:none;color:#fff;border-radius:8px;padding:7px 11px;font-size:15px;cursor:pointer}
+.tabs{display:flex;background:#fff;border-bottom:2px solid var(--line);position:sticky;top:64px;z-index:99}
+.tab{flex:1;padding:11px 4px;text-align:center;font-size:12px;font-weight:700;color:var(--ink2);cursor:pointer;border-bottom:3px solid transparent}
+.tab.on{color:var(--blue);border-bottom-color:var(--blue)}
+.view{display:none;padding:14px 14px 96px}.view.on{display:block}
+.chips{display:flex;gap:7px;overflow-x:auto;padding-bottom:3px;margin-bottom:13px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{white-space:nowrap;padding:5px 13px;border-radius:20px;font-size:12px;font-weight:700;border:2px solid var(--line);background:#fff;color:var(--ink2);cursor:pointer}
+.chip.on{background:var(--blue);border-color:var(--blue);color:#fff}
+.card{background:var(--card);border-radius:var(--r);padding:13px 14px;margin-bottom:9px;border:1px solid var(--line);box-shadow:var(--sh);cursor:pointer}
+.card:active{outline:2px solid var(--blue)}
+.card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.subj{font-weight:800;font-size:15px}
+.badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap;flex-shrink:0}
+.ok{background:#d1fae5;color:var(--green)}.soon{background:#fef3c7;color:var(--amber)}.past{background:#fee2e2;color:var(--red)}
+.desc{font-size:14px;color:#374151;margin-top:6px;line-height:1.45}
+.meta{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;align-items:center}
+.tag{font-size:11px;background:var(--blue-bg);color:var(--blue);padding:2px 8px;border-radius:10px;font-weight:600}
+.who{font-size:11px;color:var(--ink2);margin-left:auto}
+.thumbs{display:flex;gap:5px;margin-top:8px;flex-wrap:wrap}
+.thumb{width:58px;height:58px;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
+.thumb-more{width:58px;height:58px;border-radius:8px;background:var(--blue-bg);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--blue);border:1px solid var(--line)}
+.fab{position:fixed;bottom:22px;right:18px;width:56px;height:56px;border-radius:50%;background:#e55a10;color:#fff;font-size:28px;border:none;cursor:pointer;box-shadow:0 4px 18px rgba(229,90,16,.45);display:flex;align-items:center;justify-content:center;z-index:200}
+.fab:active{transform:scale(.93)}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.48);z-index:300;align-items:flex-end;justify-content:center}
+.overlay.on{display:flex}
+.sheet{background:#fff;border-radius:20px 20px 0 0;padding:16px 16px 44px;width:100%;max-width:560px;max-height:93vh;overflow-y:auto;animation:up .22s ease}
+@keyframes up{from{transform:translateY(100%)}}
+.handle{width:36px;height:4px;background:var(--line);border-radius:2px;margin:0 auto 14px}
+.sheet-title{font-size:18px;font-weight:900;margin-bottom:14px}
+.login-screen{display:none;position:fixed;inset:0;background:var(--blue);z-index:500;flex-direction:column;align-items:center;justify-content:center;padding:24px}
+.login-screen.on{display:flex}
+.login-box{background:#fff;border-radius:20px;padding:28px 22px;width:100%;max-width:400px}
+.login-logo{font-size:52px;text-align:center;margin-bottom:8px}
+.login-title{font-size:22px;font-weight:900;text-align:center;margin-bottom:4px}
+.login-sub{font-size:14px;color:var(--ink2);text-align:center;margin-bottom:22px;line-height:1.5}
+.field{margin-bottom:13px}
+.field label{display:block;font-size:11px;font-weight:800;color:var(--ink2);margin-bottom:5px;letter-spacing:.4px;text-transform:uppercase}
+.field input,.field textarea,.field select{width:100%;padding:11px 13px;border:2px solid var(--line);border-radius:10px;font-size:15px;font-family:inherit;color:var(--ink);background:#fff;-webkit-appearance:none;appearance:none;transition:border-color .15s}
+.field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--blue)}
+.field textarea{resize:vertical;min-height:72px}
+.pick-btns{display:flex;gap:9px;margin-bottom:10px}
+.pick-btn{flex:1;padding:13px 8px;border-radius:11px;border:2px dashed var(--line);background:var(--bg);color:var(--ink2);font-size:13px;font-weight:700;cursor:pointer;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px}
+.pick-btn:active{border-color:var(--blue);color:var(--blue)}
+.pick-btn .ico{font-size:24px}
+.prev-grid{display:grid;grid-template-columns:repeat(auto-fill,78px);gap:8px;margin-top:2px}
+.prev-wrap{position:relative}
+.prev-wrap img{width:78px;height:78px;object-fit:cover;border-radius:9px;border:1px solid var(--line);display:block}
+.prev-rm{position:absolute;top:-6px;right:-6px;background:var(--red);color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.progress{height:5px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:9px;display:none}
+.progress-fill{height:100%;background:var(--blue);width:0;transition:width .3s}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:12px 18px;border-radius:11px;font-size:14px;font-weight:800;border:none;cursor:pointer;transition:transform .1s}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:var(--blue);color:#fff}.btn-secondary{background:#fff;color:var(--blue);border:2px solid var(--blue)}
+.btn-danger{background:var(--red);color:#fff}.btn-full{width:100%}.btn-row{display:flex;gap:9px;margin-top:12px}
+.msg-box{background:#f0f2f5;border-radius:11px;padding:14px;font-size:14px;line-height:1.65;white-space:pre-wrap;word-break:break-word;color:#1c1e21;margin-bottom:12px;border:1px solid #dde0e4}
+.fb-copy{width:100%;padding:13px;background:#1877f2;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:800;cursor:pointer;margin-bottom:9px;display:flex;align-items:center;justify-content:center;gap:8px}
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;margin-top:11px}
+.gallery img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:9px;cursor:pointer}
+.toast{position:fixed;bottom:86px;left:50%;transform:translateX(-50%) translateY(14px);background:#111827;color:#fff;padding:10px 20px;border-radius:24px;font-size:14px;font-weight:600;opacity:0;transition:all .25s;z-index:600;white-space:nowrap;pointer-events:none}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.spin{display:inline-block;width:17px;height:17px;border:3px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:rot .7s linear infinite}
+@keyframes rot{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:48px 20px;color:var(--ink2)}.empty .ico{font-size:42px;margin-bottom:10px}
+.sec-label{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--ink2);margin-bottom:9px}
+.detail-actions{display:flex;flex-direction:column;gap:8px;margin-top:16px}
+.info-row{font-size:12px;color:var(--ink2);margin-bottom:6px}
+.upload-status{font-size:13px;color:var(--ink2);margin-top:6px;min-height:18px}
+</style>
+</head>
+<body>
+
+<div class="login-screen on" id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">📚</div>
+    <div class="login-title">5.a osztály</div>
+    <div class="login-sub">Írd be a neved és a csoport PIN-kódját</div>
+    <div class="field"><label>Neved</label><input type="text" id="pinName" placeholder="Pl. Kiss Éva" autocomplete="name"></div>
+    <div class="field"><label>PIN-kód</label><input type="password" id="pinCode" placeholder="••••" inputmode="numeric" onkeydown="if(event.key==='Enter')signIn()"></div>
+    <button class="btn btn-primary btn-full" onclick="signIn()">Belépés</button>
+    <p id="loginErr" style="color:var(--red);font-size:13px;margin-top:10px;text-align:center;display:none"></p>
+  </div>
+</div>
+
+<header class="hdr">
+  <div><h1>📚 Házi Feladatok</h1><div class="sub">5.a osztály</div></div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <span id="hdrName" style="font-size:12px;opacity:.85"></span>
+    <button class="hdr-btn" onclick="logout()">↩</button>
+  </div>
+</header>
+
+<nav class="tabs">
+  <div class="tab on" onclick="switchTab('list')">📋 Feladatok</div>
+  <div class="tab"    onclick="switchTab('notify')">💬 Értesítő</div>
+  <div class="tab"    onclick="switchTab('history')">🕐 Archívum</div>
+</nav>
+
+<div id="view-list" class="view on"><div class="chips" id="filterBar"></div><div id="hwList"></div></div>
+<div id="view-notify" class="view"><p style="font-size:14px;color:var(--ink2);margin-bottom:14px;">Válassz feladatot – elkészül a Messenger üzenet.</p><div id="notifyList"></div></div>
+<div id="view-history" class="view"><div id="historyList"></div></div>
+
+<button class="fab" onclick="openAddSheet()">＋</button>
+
+<div class="overlay" id="addSheet" onclick="closeSheet('addSheet')">
+<div class="sheet" onclick="event.stopPropagation()">
+  <div class="handle"></div>
+  <div class="sheet-title">Új házi feladat</div>
+  <div class="field"><label>Tantárgy</label><select id="newSubject">      <option>Magyar irodalom</option>
+      <option>Magyar nyelv</option>
+      <option>Matematika</option>
+      <option>Természettudomány</option>
+      <option>Angol</option>
+      <option>Német</option>
+      <option>Hittan – katolikus</option>
+      <option>Hittan – református</option>
+      <option>Hittan – evangélikus</option>
+      <option>Történelem</option>
+      <option>Digitális kultúra</option>
+      <option>Testnevelés</option>
+      <option>Ének-zene</option>
+      <option>Vizuális kultúra</option>
+      <option>Technika és tervezés</option>
+      <option>Közösségi nevelés</option>
+      <option>Egyéb</option></select></div>
+  <div class="field"><label>Feladat leírása</label><textarea id="newDesc" placeholder="Pl. Munkafüzet 34. oldal, 2–5. feladat"></textarea></div>
+  <div class="field"><label>Határidő</label><input type="date" id="newDue"></div>
+  <div class="field"><label>Megjegyzés (opcionális)</label><input type="text" id="newNote" placeholder="Pl. kell a füzet is"></div>
+  <div class="field">
+    <label>Képek (opcionális)</label>
+    <div class="pick-btns">
+      <div class="pick-btn" onclick="document.getElementById('camInput').click()"><span class="ico">📷</span><span>Fénykép<br>készítése</span></div>
+      <div class="pick-btn" onclick="document.getElementById('galleryInput').click()"><span class="ico">🖼️</span><span>Meglévő<br>kép</span></div>
+    </div>
+    <input type="file" id="camInput" accept="image/*" capture="environment" style="display:none" onchange="handleImgs(event)">
+    <input type="file" id="galleryInput" accept="image/*" multiple style="display:none" onchange="handleImgs(event)">
+    <div class="prev-grid" id="prevGrid"></div>
+    <div class="upload-status" id="uploadStatus"></div>
+    <div class="progress" id="progressWrap"><div class="progress-fill" id="progressFill"></div></div>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-secondary" style="flex:1" onclick="closeSheet('addSheet')">Mégse</button>
+    <button class="btn btn-primary" style="flex:2" id="saveBtn" onclick="saveHW()">Mentés ✓</button>
+  </div>
+</div>
+</div>
+
+<div class="overlay" id="detailSheet" onclick="closeSheet('detailSheet')">
+<div class="sheet" onclick="event.stopPropagation()"><div class="handle"></div><div id="detailContent"></div></div>
+</div>
+
+<div class="overlay" id="notifySheet" onclick="closeSheet('notifySheet')">
+<div class="sheet" onclick="event.stopPropagation()">
+  <div class="handle"></div>
+  <div class="sheet-title">💬 Messenger üzenet</div>
+  <p style="font-size:13px;color:var(--ink2);margin-bottom:11px;">Másold ki és illeszd be a csoportba:</p>
+  <div class="msg-box" id="notifyText"></div>
+  <button class="fb-copy" onclick="copyNotify()">📋 Másolás vágólapra</button>
+  <button class="btn btn-secondary btn-full" onclick="closeSheet('notifySheet')">Bezárás</button>
+</div>
+</div>
+
+<div class="overlay" id="imgViewer" onclick="closeSheet('imgViewer')">
+<div style="width:100%;max-width:560px;padding:14px" onclick="event.stopPropagation()">
+  <img id="viewerImg" src="" style="width:100%;border-radius:13px;max-height:82vh;object-fit:contain">
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const CFG = {
+  5.a osztály:    '5.a osztály',
+  PIN:           '2026',
+  SHEET_ID:      '1KopuaNCn1nUn8JHDBYEjEqKp3EXaLErX8qvkeOu8ndk',
+  CLOUD_NAME:    'g8tinasd',
+  UPLOAD_PRESET: 'szekai_hazik',
+  CLOUD_FOLDER:  'hazik_5a',
+};
+
+let session = null;
+let homeworks = [];
+let pendingImgs = [];
+let activeFilter = 'all';
+
+window.onload = () => {
+  const s = localStorage.getItem('hz_session_5a');
+  if (s) { session = JSON.parse(s); showApp(); }
+};
+
+function showApp() {
+  document.getElementById('loginScreen').classList.remove('on');
+  document.getElementById('hdrName').textContent = session.name;
+  loadSheet();
+}
+
+function signIn() {
+  const name = document.getElementById('pinName').value.trim();
+  const pin  = document.getElementById('pinCode').value.trim();
+  if (!name) { showLoginErr('Add meg a neved!'); return; }
+  if (pin !== CFG.PIN) { showLoginErr('Hibás PIN-kód!'); return; }
+  session = { name };
+  localStorage.setItem('hz_session_5a', JSON.stringify(session));
+  document.getElementById('loginErr').style.display = 'none';
+  showApp();
+}
+
+function showLoginErr(m) { const e=document.getElementById('loginErr'); e.textContent=m; e.style.display='block'; }
+
+function logout() {
+  if (!confirm('Kijelentkezel?')) return;
+  session = null;
+  localStorage.removeItem('hz_session_5a');
+  homeworks = [];
+  document.getElementById('loginScreen').classList.add('on');
+  document.getElementById('pinCode').value = '';
+}
+
+// ── Sheets ──
+async function loadSheet() {
+  showToast('⏳ Betöltés…', 99999);
+  try {
+    const url = `https://docs.google.com/spreadsheets/d/${CFG.SHEET_ID}/gviz/tq?tqx=out:csv&range=A2:I&t=${Date.now()}`;
+    const r = await fetch(url);
+    const csv = await r.text();
+    homeworks = parseCSV(csv);
+    localStorage.setItem('hz_hw_5a', JSON.stringify(homeworks));
+  } catch {
+    homeworks = JSON.parse(localStorage.getItem('hz_hw_5a') || '[]');
+    showToast('⚠️ Offline – helyi adatok');
+  }
+  hideToast(); renderAll();
+}
+
+function parseCSV(csv) {
+  if (!csv.trim()) return [];
+  return csv.trim().split('\n').filter(l=>l.trim()).map(line => {
+    const cols=[]; let cur='', inQ=false;
+    for (let i=0;i<line.length;i++) {
+      if(line[i]==='"'){inQ=!inQ;}
+      else if(line[i]===','&&!inQ){cols.push(cur.trim());cur='';}
+      else cur+=line[i];
+    }
+    cols.push(cur.trim());
+    return { id:cols[0]||'', subject:cols[1]||'', desc:cols[2]||'', due:cols[3]||'',
+             note:cols[4]||'', uploader:cols[5]||'', uploaded:cols[6]||'',
+             images:safeJSON(cols[7]), cloudFolder:cols[8]||'' };
+  }).filter(h=>h.id);
+}
+function safeJSON(s){try{return JSON.parse(s||'[]');}catch{return [];}}
+
+async function appendToSheet(hw) {
+  // Use Google Apps Script Web App for unauthenticated write
+  const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzzRiUqePXcUAMeRSc5pmsbdfJMGWZ3KNjxfGsNQ-WmozY35REzTqvOJMoeay7_biOb/exec'; if(!WEB_APP_URL){throw new Error('no_script');}
+  if (!WEB_APP_URL) throw new Error('no_script');
+  const r = await fetch(WEB_APP_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action:'append', sheetId: CFG.SHEET_ID, row:[
+      hw.id, hw.subject, hw.desc, hw.due, hw.note,
+      hw.uploader, hw.uploaded, JSON.stringify(hw.images||[]), hw.cloudFolder||''
+    ]})
+  });
+  if (!r.ok) throw new Error('Sheet hiba');
+}
+
+// ── Cloudinary ──
+async function uploadToCloudinary(file, subject, dateStr) {
+  const folder = `${CFG.CLOUD_FOLDER}/${subject.replace(/[^a-zA-Z0-9]/g,'_')}_${dateStr}`;
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('upload_preset', CFG.UPLOAD_PRESET);
+  fd.append('folder', folder);
+  const r = await fetch(`https://api.cloudinary.com/v1_1/${CFG.CLOUD_NAME}/image/upload`, { method:'POST', body:fd });
+  if (!r.ok) throw new Error('Cloudinary hiba');
+  const j = await r.json();
+  return { url: j.secure_url, folder: `https://cloudinary.com/console/media_library/folders/${encodeURIComponent(folder)}` };
+}
+
+// ── Image handling ──
+function handleImgs(e) {
+  Array.from(e.target.files).forEach(f => {
+    const fr = new FileReader();
+    fr.onload = ev => { pendingImgs.push({file:f, dataUrl:ev.target.result}); renderPreviews(); };
+    fr.readAsDataURL(f);
+  });
+  e.target.value='';
+}
+function renderPreviews() {
+  document.getElementById('prevGrid').innerHTML = pendingImgs.map((img,i)=>
+    `<div class="prev-wrap"><img src="${img.dataUrl}"><button class="prev-rm" onclick="removeImg(${i})">×</button></div>`
+  ).join('');
+  document.getElementById('uploadStatus').textContent = pendingImgs.length ? `${pendingImgs.length} kép kiválasztva` : '';
+}
+function removeImg(i){pendingImgs.splice(i,1);renderPreviews();}
+
+// ── Save ──
+async function saveHW() {
+  const subject = document.getElementById('newSubject').value;
+  const desc    = document.getElementById('newDesc').value.trim();
+  const due     = document.getElementById('newDue').value;
+  const note    = document.getElementById('newNote').value.trim();
+  if (!desc) { showToast('⚠️ Írd le a feladatot!'); return; }
+  if (!due)  { showToast('⚠️ Add meg a határidőt!'); return; }
+
+  const btn = document.getElementById('saveBtn');
+  btn.innerHTML='<span class="spin"></span> Mentés…'; btn.disabled=true;
+  const pw=document.getElementById('progressWrap');
+  const pf=document.getElementById('progressFill');
+  pw.style.display='block'; pf.style.width='0%';
+
+  const imageUrls=[]; let cloudFolder='';
+  for(let i=0;i<pendingImgs.length;i++){
+    try{
+      document.getElementById('uploadStatus').textContent=`Kép feltöltése ${i+1}/${pendingImgs.length}…`;
+      pf.style.width=`${Math.round((i/pendingImgs.length)*80)}%`;
+      const res = await uploadToCloudinary(pendingImgs[i].file, subject, due);
+      imageUrls.push(res.url);
+      cloudFolder = res.folder;
+    } catch { showToast('⚠️ Egy kép nem töltődött fel'); }
+  }
+  pf.style.width='90%';
+
+  const hw = {
+    id: Date.now().toString(), subject, desc, due, note,
+    uploader: session.name, uploaded: new Date().toISOString(),
+    images: imageUrls, cloudFolder
+  };
+
+  homeworks.push(hw);
+  localStorage.setItem('hz_hw_5a', JSON.stringify(homeworks));
+
+  try {
+    await appendToSheet(hw);
+    pf.style.width='100%';
+    showToast('✅ Feltöltve!');
+  } catch {
+    showToast('✅ Helyben mentve! (szinkron később)');
+  }
+
+  pendingImgs=[]; renderPreviews();
+  document.getElementById('uploadStatus').textContent='';
+  pw.style.display='none';
+  btn.innerHTML='Mentés ✓'; btn.disabled=false;
+  closeSheet('addSheet'); renderAll();
+}
+
+// ── Render ──
+function renderAll(){renderFilters();renderList();renderNotifyList();renderHistory();}
+
+function renderFilters(){
+  const subs=[...new Set(homeworks.map(h=>h.subject))];
+  const bar=document.getElementById('filterBar');
+  bar.innerHTML=`<div class="chip on" onclick="setFilter('all')">Összes</div>`+
+    subs.map(s=>`<div class="chip" onclick="setFilter(\`${s}\`)">${s}</div>`).join('');
+  bar.querySelectorAll('.chip').forEach(c=>c.classList.toggle('on',c.textContent===(activeFilter==='all'?'Összes':activeFilter)));
+}
+function setFilter(f){activeFilter=f;renderAll();}
+
+function today0(){const d=new Date();d.setHours(0,0,0,0);return d;}
+function dueInfo(ds){
+  const d=new Date(ds);d.setHours(0,0,0,0);
+  const diff=Math.round((d-today0())/864e5);
+  if(diff<0)return{text:'Lejárt',cls:'past'};
+  if(diff===0)return{text:'Ma!',cls:'soon'};
+  if(diff===1)return{text:'Holnap',cls:'soon'};
+  if(diff<=3)return{text:diff+' nap',cls:'soon'};
+  return{text:fmtDate(ds),cls:'ok'};
+}
+function fmtDate(s){return new Date(s).toLocaleDateString('hu-HU',{month:'short',day:'numeric',weekday:'short'});}
+function fmtDT(s){return new Date(s).toLocaleString('hu-HU',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});}
+
+function cardHTML(h){
+  const{text,cls}=dueInfo(h.due);
+  const imgs=(h.images||[]).slice(0,3);
+  const extra=(h.images||[]).length-3;
+  return `<div class="card" onclick="openDetail('${h.id}')">
+    <div class="card-head"><div class="subj">${h.subject}</div><div class="badge ${cls}">${text}</div></div>
+    <div class="desc">${h.desc}</div>
+    ${imgs.length?`<div class="thumbs">${imgs.map(u=>`<img class="thumb" src="${u}">`).join('')}${extra>0?`<div class="thumb-more">+${extra}</div>`:''}</div>`:''}
+    <div class="meta">
+      ${h.note?`<span class="tag">📌 ${h.note}</span>`:''}
+      ${h.cloudFolder?`<span class="tag">📁 Képek Drive-on</span>`:''}
+      <span class="who">⬆️ ${h.uploader} · ${fmtDT(h.uploaded)}</span>
+    </div>
+  </div>`;
+}
+
+function activeHW(){return homeworks.filter(h=>{const d=new Date(h.due);d.setHours(0,0,0,0);return d>=today0();});}
+
+function renderList(){
+  let items=activeHW();
+  if(activeFilter!=='all')items=items.filter(h=>h.subject===activeFilter);
+  items.sort((a,b)=>new Date(a.due)-new Date(b.due));
+  document.getElementById('hwList').innerHTML=items.length?items.map(cardHTML).join(''):`<div class="empty"><div class="ico">🎉</div><p>Nincs aktív házi feladat!</p></div>`;
+}
+
+function renderNotifyList(){
+  const items=activeHW().sort((a,b)=>new Date(a.due)-new Date(b.due));
+  document.getElementById('notifyList').innerHTML=items.length
+    ?items.map(h=>{const{text,cls}=dueInfo(h.due);return`<div class="card" onclick="openNotify('${h.id}')">
+      <div class="card-head"><div class="subj">${h.subject}</div><div class="badge ${cls}">${text}</div></div>
+      <div class="desc">${h.desc}</div>
+      <div style="margin-top:8px;font-size:13px;color:var(--blue);font-weight:700;">💬 Értesítő generálása →</div>
+    </div>`;}).join('')
+    :`<div class="empty"><div class="ico">💬</div><p>Nincs aktív feladat.</p></div>`;
+}
+
+function renderHistory(){
+  const items=homeworks.filter(h=>{const d=new Date(h.due);d.setHours(0,0,0,0);return d<today0();}).sort((a,b)=>new Date(b.due)-new Date(a.due));
+  document.getElementById('historyList').innerHTML=items.length
+    ?'<div class="sec-label">Lejárt feladatok</div>'+items.map(cardHTML).join('')
+    :`<div class="empty"><div class="ico">📂</div><p>Még nincs archivált feladat.</p></div>`;
+}
+
+function openDetail(id){
+  const h=homeworks.find(x=>x.id===id);if(!h)return;
+  const{text,cls}=dueInfo(h.due);
+  const imgs=h.images||[];
+  document.getElementById('detailContent').innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:11px">
+      <div style="font-size:20px;font-weight:900">${h.subject}</div>
+      <div class="badge ${cls}" style="font-size:13px">${text}</div>
+    </div>
+    <div style="font-size:15px;line-height:1.6;margin-bottom:7px">${h.desc}</div>
+    ${h.note?`<div class="info-row">📌 ${h.note}</div>`:''}
+    <div class="info-row">⬆️ <b>${h.uploader}</b> · ${fmtDT(h.uploaded)}</div>
+    ${h.cloudFolder?`<a href="${h.cloudFolder}" target="_blank" style="display:flex;align-items:center;gap:8px;background:#f0f7f4;border:1.5px solid #34a853;border-radius:10px;padding:10px 13px;margin-top:8px;text-decoration:none;color:#1a7a3e;font-size:13px;font-weight:700">📁 Képek megtekintése</a>`:''}
+    ${imgs.length?`<div class="gallery">${imgs.map(u=>`<img src="${u}" onclick="viewImg('${u}')">`).join('')}</div>`:''}
+    <div class="detail-actions">
+      <button class="btn btn-primary btn-full" onclick="openNotify('${id}');closeSheet('detailSheet')">💬 Értesítő generálása</button>
+      <button class="btn btn-secondary btn-full" onclick="openRequestNotify('${id}')">🙋 Feltöltést kér üzenet</button>
+    </div>`;
+  openSheet('detailSheet');
+}
+
+function viewImg(url){document.getElementById('viewerImg').src=url;openSheet('imgViewer');}
+
+function openNotify(id){
+  const h=homeworks.find(x=>x.id===id);if(!h)return;
+  let msg=`📚 Házi feladat – ${CFG.5.a osztály}\n\n`;
+  msg+=`📖 Tantárgy: ${h.subject}\n`;
+  msg+=`✏️ Feladat: ${h.desc}\n`;
+  msg+=`📅 Határidő: ${fmtDate(h.due)}\n`;
+  if(h.note)msg+=`📌 Megjegyzés: ${h.note}\n`;
+  if(h.cloudFolder)msg+=`\n📁 Képek: ${h.cloudFolder}\n`;
+  else if((h.images||[]).length)msg+=`🖼️ ${h.images.length} kép az appban\n`;
+  msg+=`\n✅ Feltöltötte: ${h.uploader}`;
+  document.getElementById('notifyText').textContent=msg;
+  openSheet('notifySheet');
+}
+
+function openRequestNotify(id){
+  const h=homeworks.find(x=>x.id===id);if(!h)return;
+  let msg=`🙏 Sziasztok!\n\nMég nem tudjuk a ${h.subject} házi feladatot (${fmtDate(h.due)}).\n\nValaki fel tudná tölteni? Köszönöm! 🙂`;
+  document.getElementById('notifyText').textContent=msg;
+  closeSheet('detailSheet');openSheet('notifySheet');
+}
+
+function copyNotify(){
+  const t=document.getElementById('notifyText').textContent;
+  navigator.clipboard.writeText(t).then(()=>showToast('✅ Másolva! Illeszd be Messengerbe.')).catch(()=>{
+    const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);showToast('✅ Másolva!');
+  });
+}
+
+function switchTab(name){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('on'));
+  ['list','notify','history'].forEach((n,i)=>{if(n===name){document.querySelectorAll('.tab')[i].classList.add('on');document.getElementById('view-'+n).classList.add('on');}});
+}
+
+function openAddSheet(){
+  pendingImgs=[];renderPreviews();
+  document.getElementById('newDesc').value='';
+  document.getElementById('newNote').value='';
+  document.getElementById('uploadStatus').textContent='';
+  document.getElementById('progressWrap').style.display='none';
+  const t=new Date();t.setDate(t.getDate()+1);
+  document.getElementById('newDue').value=t.toISOString().split('T')[0];
+  openSheet('addSheet');
+}
+
+function openSheet(id){document.getElementById(id).classList.add('on');}
+function closeSheet(id){document.getElementById(id).classList.remove('on');}
+
+let _tt;
+function showToast(msg,dur=2700){
+  clearTimeout(_tt);const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('on');
+  if(dur<99999)_tt=setTimeout(()=>t.classList.remove('on'),dur);
+}
+function hideToast(){document.getElementById('toast').classList.remove('on');}
+</script>
+</body>
+</html>
