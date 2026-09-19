@@ -185,7 +185,8 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
       <div class="cnt" id="selectCount">0 kijelölve</div>
       <div style="display:flex;gap:8px">
         <button class="sb-btn" onclick="selectAll()">☑️ Mind</button>
-        <button class="sb-btn" onclick="cancelSelect()">✕ Mégsem</button>
+        <button class="sb-btn" onclick="selectNone()">☐ Semmi</button>
+        <button class="sb-btn" onclick="cancelSelect()">✕ Kész</button>
       </div>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap" id="selectActions">
@@ -300,7 +301,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div id="appVersion" style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none">App v5.4</div>
+<div id="appVersion" style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none">App v5.5</div>
 
 <script>
 const CFG = {
@@ -1222,7 +1223,7 @@ function toggleSelectMode(){
   // Show bar immediately in select mode (with 0 selected)
   document.getElementById('selectBar').classList.toggle('on', selectMode);
   document.getElementById('selectCount').textContent='0 kijelölve – kattints a kártyákra';
-  if(selectMode)showToast('☑️ Kattints a kártyákra a kijelöléshez – vagy tartsd nyomva', 3500);
+  if(selectMode)showToast('☑️ Kattints a kártyákra a kijelöléshez', 2500);
   const sh=document.getElementById('selectHint');if(sh)sh.style.display=selectMode?'block':'none';
   renderList();
 }
@@ -1234,20 +1235,28 @@ function cancelSelect(){
   renderList();
 }
 function toggleSelect(id,e){
-  e.stopPropagation();
+  if(e && e.stopPropagation) e.stopPropagation();
   if(selectedIds.has(id))selectedIds.delete(id);else selectedIds.add(id);
   const cnt=selectedIds.size;
-  document.getElementById('selectCount').textContent=cnt ? cnt+' kijelölve' : '0 kijelölve – válassz feladatot';
-  // Re-render to update checkboxes
+  document.getElementById('selectCount').textContent=cnt ? cnt+' kijelölve' : '0 kijelölve – kattints a kártyákra';
+  document.getElementById('selectBar').classList.toggle('on', selectMode);
+  renderList(); // re-render all checkboxes
+}
+function selectNone(){
+  selectedIds.clear();
+  document.getElementById('selectCount').textContent='0 kijelölve – kattints a kártyákra';
   renderList();
 }
+
 function selectAll(){
+  // Select all currently visible cards
   document.querySelectorAll('#hwList .card[data-id]').forEach(c=>{
-    selectedIds.add(c.dataset.id);c.classList.add('selected');
+    selectedIds.add(c.dataset.id);
   });
   const cnt=selectedIds.size;
   document.getElementById('selectCount').textContent=cnt+' kijelölve';
   document.getElementById('selectBar').classList.toggle('on',cnt>0);
+  renderList(); // re-render to show checkboxes on ALL cards
 }
 function buildMultiMsg(){
   const items=[...selectedIds].map(id=>homeworks.find(h=>h.id===id)).filter(Boolean);
