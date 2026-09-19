@@ -993,8 +993,7 @@ function renderRequestTab(){
   updateDayChips();
 }
 
-function setReqMode(mode){ return; // deprecated
-function _setReqMode(mode){
+function setReqMode(mode){
   reqMode=mode;
   if(mode!=='day') reqDays=[];
   if(mode!=='subjects') reqSubjects=[];
