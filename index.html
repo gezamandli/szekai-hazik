@@ -3,765 +3,787 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Házi Feladat Nyilvántartó</title>
+<title>Házi Feladat</title>
 <style>
+/* ── Tokens ── */
 :root {
-  --bg: #f5f6fa;
-  --card: #ffffff;
-  --accent: #2563eb;
-  --accent-light: #eff6ff;
-  --accent2: #ea580c;
-  --text: #111827;
-  --muted: #6b7280;
-  --border: #e5e7eb;
-  --green: #16a34a;
-  --yellow: #d97706;
-  --red: #dc2626;
-  --radius: 14px;
+  --ink:      #1a1d27;
+  --ink2:     #4b5063;
+  --surface:  #f7f8fc;
+  --card:     #ffffff;
+  --line:     #e4e7f0;
+  --blue:     #2f6de1;
+  --blue-bg:  #eef3fd;
+  --green:    #1a9e5c;
+  --amber:    #c47f00;
+  --red:      #d93025;
+  --radius:   13px;
+  --shadow:   0 2px 10px rgba(0,0,0,.07);
 }
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-body { font-family: -apple-system, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 16px; }
+body { font-family: -apple-system,'Segoe UI',Roboto,sans-serif; background: var(--surface); color: var(--ink); min-height: 100vh; }
 
 /* ── Header ── */
-header {
-  background: var(--accent);
-  color: white;
-  padding: 14px 16px 10px;
+.app-header {
+  background: var(--blue);
+  color: #fff;
+  padding: 14px 16px 11px;
   position: sticky; top: 0; z-index: 100;
   display: flex; align-items: center; justify-content: space-between;
-  box-shadow: 0 2px 12px rgba(37,99,235,.35);
+  box-shadow: 0 2px 12px rgba(47,109,225,.3);
 }
-header h1 { font-size: 17px; font-weight: 800; letter-spacing: -.3px; }
-header .sub { font-size: 11px; opacity: .75; margin-top: 2px; }
-.icon-btn { background: rgba(255,255,255,.2); border: none; color: white; border-radius: 9px; padding: 7px 11px; font-size: 16px; cursor: pointer; }
+.app-header h1 { font-size: 17px; font-weight: 800; letter-spacing: -.2px; }
+.app-header .sub { font-size: 11px; opacity: .75; margin-top: 1px; }
+.hdr-btn { background: rgba(255,255,255,.18); border: none; color: #fff; border-radius: 8px; padding: 7px 11px; font-size: 15px; cursor: pointer; }
 
 /* ── Tabs ── */
-.tab-bar { display: flex; background: white; border-bottom: 2px solid var(--border); position: sticky; top: 65px; z-index: 99; }
-.tab { flex: 1; padding: 11px 4px; text-align: center; font-size: 12px; font-weight: 700; color: var(--muted); cursor: pointer; border-bottom: 3px solid transparent; transition: all .15s; }
-.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.tabs { display: flex; background: #fff; border-bottom: 2px solid var(--line); position: sticky; top: 64px; z-index: 99; }
+.tab  { flex: 1; padding: 11px 4px; text-align: center; font-size: 12px; font-weight: 700; color: var(--ink2); cursor: pointer; border-bottom: 3px solid transparent; }
+.tab.on { color: var(--blue); border-bottom-color: var(--blue); }
 
 /* ── Views ── */
-.view { display: none; padding: 14px; padding-bottom: 90px; }
-.view.active { display: block; }
+.view { display: none; padding: 14px 14px 96px; }
+.view.on { display: block; }
 
-/* ── Cards ── */
-.hw-card { background: var(--card); border-radius: var(--radius); padding: 14px; margin-bottom: 10px; border: 1px solid var(--border); box-shadow: 0 1px 4px rgba(0,0,0,.05); cursor: pointer; }
-.hw-card:active { box-shadow: 0 0 0 2px var(--accent); }
-.hw-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
-.hw-subject { font-weight: 800; font-size: 15px; }
-.hw-badge { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 20px; white-space: nowrap; }
-.due-ok { background: #dcfce7; color: var(--green); }
-.due-soon { background: #fef3c7; color: var(--yellow); }
-.due-past { background: #fee2e2; color: var(--red); }
-.hw-desc { font-size: 14px; color: #374151; margin-top: 6px; line-height: 1.45; }
-.hw-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; align-items: center; }
-.hw-tag { font-size: 11px; background: var(--accent-light); color: var(--accent); padding: 2px 8px; border-radius: 10px; font-weight: 600; }
-.hw-who { font-size: 11px; color: var(--muted); margin-left: auto; }
-.thumb-row { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
-.thumb { width: 60px; height: 60px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); }
-.thumb-count { width: 60px; height: 60px; border-radius: 8px; background: var(--accent-light); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: var(--accent); border: 1px solid var(--border); }
+/* ── Filter chips ── */
+.chips { display: flex; gap: 7px; overflow-x: auto; padding-bottom: 3px; margin-bottom: 13px; scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+.chip { white-space: nowrap; padding: 5px 13px; border-radius: 20px; font-size: 12px; font-weight: 700; border: 2px solid var(--line); background: #fff; color: var(--ink2); cursor: pointer; }
+.chip.on { background: var(--blue); border-color: var(--blue); color: #fff; }
 
-/* ── Filter ── */
-.filter-bar { display: flex; gap: 7px; margin-bottom: 12px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
-.filter-bar::-webkit-scrollbar { display: none; }
-.chip { white-space: nowrap; padding: 6px 13px; border-radius: 20px; font-size: 12px; font-weight: 700; border: 2px solid var(--border); background: white; color: var(--muted); cursor: pointer; }
-.chip.active { background: var(--accent); border-color: var(--accent); color: white; }
+/* ── HW Card ── */
+.card { background: var(--card); border-radius: var(--radius); padding: 13px 14px; margin-bottom: 9px; border: 1px solid var(--line); box-shadow: var(--shadow); cursor: pointer; }
+.card:active { outline: 2px solid var(--blue); }
+.card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.subj { font-weight: 800; font-size: 15px; }
+.badge { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 20px; white-space: nowrap; flex-shrink: 0; }
+.ok   { background: #d1fae5; color: var(--green); }
+.soon { background: #fef3c7; color: var(--amber); }
+.past { background: #fee2e2; color: var(--red); }
+.desc { font-size: 14px; color: #374151; margin-top: 6px; line-height: 1.45; }
+.meta { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; align-items: center; }
+.tag  { font-size: 11px; background: var(--blue-bg); color: var(--blue); padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+.who  { font-size: 11px; color: var(--ink2); margin-left: auto; }
+.thumbs { display: flex; gap: 5px; margin-top: 8px; flex-wrap: wrap; }
+.thumb { width: 58px; height: 58px; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); }
+.thumb-more { width: 58px; height: 58px; border-radius: 8px; background: var(--blue-bg); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; color: var(--blue); border: 1px solid var(--line); }
 
 /* ── FAB ── */
-.fab { position: fixed; bottom: 24px; right: 18px; width: 58px; height: 58px; border-radius: 50%; background: var(--accent2); color: white; font-size: 30px; border: none; cursor: pointer; box-shadow: 0 4px 18px rgba(234,88,12,.45); display: flex; align-items: center; justify-content: center; z-index: 200; }
+.fab { position: fixed; bottom: 22px; right: 18px; width: 56px; height: 56px; border-radius: 50%; background: #e55a10; color: #fff; font-size: 28px; border: none; cursor: pointer; box-shadow: 0 4px 18px rgba(229,90,16,.45); display: flex; align-items: center; justify-content: center; z-index: 200; }
 .fab:active { transform: scale(.93); }
 
-/* ── Modal ── */
-.overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 300; align-items: flex-end; justify-content: center; }
-.overlay.open { display: flex; }
-.modal { background: white; border-radius: 20px 20px 0 0; padding: 18px 18px 44px; width: 100%; max-width: 560px; max-height: 92vh; overflow-y: auto; animation: up .22s ease; }
-@keyframes up { from { transform: translateY(100%); } to { transform: translateY(0); } }
-.handle { width: 38px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 14px; }
-.modal-title { font-size: 19px; font-weight: 800; margin-bottom: 14px; }
+/* ── Overlay / Modal ── */
+.overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.48); z-index: 300; align-items: flex-end; justify-content: center; }
+.overlay.on { display: flex; }
+.sheet { background: #fff; border-radius: 20px 20px 0 0; padding: 16px 16px 44px; width: 100%; max-width: 560px; max-height: 93vh; overflow-y: auto; animation: up .22s ease; }
+@keyframes up { from { transform: translateY(100%); } }
+.handle { width: 36px; height: 4px; background: var(--line); border-radius: 2px; margin: 0 auto 14px; }
+.sheet-title { font-size: 18px; font-weight: 900; margin-bottom: 14px; }
 
 /* ── Form ── */
 .field { margin-bottom: 13px; }
-.field label { display: block; font-size: 12px; font-weight: 700; color: var(--muted); margin-bottom: 5px; text-transform: uppercase; letter-spacing: .5px; }
+.field label { display: block; font-size: 11px; font-weight: 800; color: var(--ink2); margin-bottom: 5px; letter-spacing: .4px; text-transform: uppercase; }
 .field input, .field textarea, .field select {
-  width: 100%; padding: 12px 13px; border: 2px solid var(--border); border-radius: 10px;
-  font-size: 15px; font-family: inherit; color: var(--text); background: white;
-  transition: border-color .15s; -webkit-appearance: none; appearance: none;
+  width: 100%; padding: 11px 13px; border: 2px solid var(--line); border-radius: 10px;
+  font-size: 15px; font-family: inherit; color: var(--ink); background: #fff;
+  -webkit-appearance: none; appearance: none; transition: border-color .15s;
 }
-.field input:focus, .field textarea:focus, .field select:focus { outline: none; border-color: var(--accent); }
-.field textarea { resize: vertical; min-height: 75px; }
+.field input:focus, .field textarea:focus, .field select:focus { outline: none; border-color: var(--blue); }
+.field textarea { resize: vertical; min-height: 72px; }
 
 /* ── Image picker ── */
-.img-picker-area {
-  border: 2px dashed var(--border); border-radius: 12px; padding: 18px;
-  text-align: center; color: var(--muted); cursor: pointer; transition: border-color .15s; background: var(--bg);
-}
-.img-picker-area:hover { border-color: var(--accent); }
-.img-picker-area .icon { font-size: 32px; margin-bottom: 6px; }
-.img-picker-area p { font-size: 14px; font-weight: 600; }
-.img-picker-area small { font-size: 12px; }
-.preview-grid { display: grid; grid-template-columns: repeat(auto-fill, 80px); gap: 8px; margin-top: 10px; }
-.preview-wrap { position: relative; }
-.preview-wrap img { width: 80px; height: 80px; object-fit: cover; border-radius: 9px; border: 1px solid var(--border); display: block; }
-.preview-wrap .rm { position: absolute; top: -6px; right: -6px; background: var(--red); color: white; border: none; border-radius: 50%; width: 22px; height: 22px; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.pick-btns { display: flex; gap: 9px; margin-bottom: 10px; }
+.pick-btn { flex: 1; padding: 13px 8px; border-radius: 11px; border: 2px dashed var(--line); background: var(--surface); color: var(--ink2); font-size: 13px; font-weight: 700; cursor: pointer; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.pick-btn:active { border-color: var(--blue); color: var(--blue); }
+.pick-btn .ico { font-size: 24px; }
+.prev-grid { display: grid; grid-template-columns: repeat(auto-fill, 78px); gap: 8px; margin-top: 2px; }
+.prev-wrap { position: relative; }
+.prev-wrap img { width: 78px; height: 78px; object-fit: cover; border-radius: 9px; border: 1px solid var(--line); display: block; }
+.prev-rm { position: absolute; top: -6px; right: -6px; background: var(--red); color: #fff; border: none; border-radius: 50%; width: 22px; height: 22px; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.progress { height: 5px; background: var(--line); border-radius: 3px; overflow: hidden; margin-top: 9px; display: none; }
+.progress-fill { height: 100%; background: var(--blue); width: 0; transition: width .3s; }
 
 /* ── Buttons ── */
-.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 12px 18px; border-radius: 11px; font-size: 14px; font-weight: 700; border: none; cursor: pointer; transition: opacity .15s, transform .1s; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 12px 18px; border-radius: 11px; font-size: 14px; font-weight: 800; border: none; cursor: pointer; transition: transform .1s; }
 .btn:active { transform: scale(.97); }
-.btn-primary { background: var(--accent); color: white; }
-.btn-secondary { background: white; color: var(--accent); border: 2px solid var(--accent); }
-.btn-danger { background: var(--red); color: white; }
-.btn-green { background: var(--green); color: white; }
+.btn-primary   { background: var(--blue); color: #fff; }
+.btn-secondary { background: #fff; color: var(--blue); border: 2px solid var(--blue); }
+.btn-danger    { background: var(--red); color: #fff; }
 .btn-full { width: 100%; }
-.btn-row { display: flex; gap: 9px; margin-top: 10px; }
+.btn-row { display: flex; gap: 9px; margin-top: 12px; }
 
-/* ── Messenger box ── */
+/* ── Google sign-in ── */
+.g-signin { width: 100%; padding: 13px; background: #fff; border: 2px solid var(--line); border-radius: 11px; font-size: 15px; font-weight: 700; color: var(--ink); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 10px; box-shadow: var(--shadow); }
+.g-icon { width: 20px; height: 20px; }
+
+/* ── Messenger ── */
 .msg-box { background: #f0f2f5; border-radius: 11px; padding: 14px; font-size: 14px; line-height: 1.65; white-space: pre-wrap; word-break: break-word; color: #1c1e21; margin-bottom: 12px; border: 1px solid #dde0e4; }
-.fb-btn { width: 100%; padding: 13px; background: #1877f2; color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 800; cursor: pointer; margin-bottom: 9px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.fb-copy { width: 100%; padding: 13px; background: #1877f2; color: #fff; border: none; border-radius: 10px; font-size: 15px; font-weight: 800; cursor: pointer; margin-bottom: 9px; display: flex; align-items: center; justify-content: center; gap: 8px; }
 
-/* ── Setup screen ── */
-.setup-screen { display: none; position: fixed; inset: 0; background: var(--accent); z-index: 500; flex-direction: column; align-items: center; justify-content: center; padding: 28px; }
-.setup-screen.show { display: flex; }
-.setup-box { background: white; border-radius: 20px; padding: 26px 22px; width: 100%; max-width: 420px; }
-.setup-logo { font-size: 48px; text-align: center; margin-bottom: 10px; }
-.setup-title { font-size: 22px; font-weight: 900; text-align: center; margin-bottom: 4px; }
-.setup-sub { font-size: 14px; color: var(--muted); text-align: center; margin-bottom: 20px; line-height: 1.5; }
-.setup-steps { font-size: 13px; color: var(--muted); margin-bottom: 16px; background: var(--bg); border-radius: 10px; padding: 12px 14px; line-height: 1.8; }
-.setup-steps a { color: var(--accent); }
+/* ── Auth banner ── */
+.auth-banner { background: var(--blue-bg); border: 1.5px solid var(--blue); border-radius: 11px; padding: 13px 14px; margin-bottom: 13px; display: flex; align-items: center; gap: 10px; }
+.auth-banner .av { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; }
+.auth-banner .name { font-weight: 700; font-size: 14px; }
+.auth-banner .email { font-size: 12px; color: var(--ink2); }
+
+/* ── Gallery ── */
+.gallery { display: grid; grid-template-columns: repeat(auto-fill,minmax(90px,1fr)); gap: 8px; margin-top: 11px; }
+.gallery img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 9px; cursor: pointer; }
 
 /* ── Toast ── */
-.toast { position: fixed; bottom: 88px; left: 50%; transform: translateX(-50%) translateY(16px); background: #111827; color: white; padding: 10px 20px; border-radius: 24px; font-size: 14px; font-weight: 600; opacity: 0; transition: all .28s; z-index: 600; white-space: nowrap; pointer-events: none; }
-.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast { position: fixed; bottom: 86px; left: 50%; transform: translateX(-50%) translateY(14px); background: #111827; color: #fff; padding: 10px 20px; border-radius: 24px; font-size: 14px; font-weight: 600; opacity: 0; transition: all .25s; z-index: 600; white-space: nowrap; pointer-events: none; }
+.toast.on { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-/* ── Upload progress ── */
-.progress-bar { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; margin-top: 8px; }
-.progress-fill { height: 100%; background: var(--accent); width: 0; transition: width .3s; }
+/* ── Spinner ── */
+.spin { display: inline-block; width: 17px; height: 17px; border: 3px solid rgba(255,255,255,.35); border-top-color: #fff; border-radius: 50%; animation: rot .7s linear infinite; }
+@keyframes rot { to { transform: rotate(360deg); } }
 
-.section-label { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .7px; color: var(--muted); margin-bottom: 9px; margin-top: 2px; }
-.empty { text-align: center; padding: 44px 20px; color: var(--muted); }
-.empty .ico { font-size: 44px; margin-bottom: 10px; }
+.empty { text-align: center; padding: 48px 20px; color: var(--ink2); }
+.empty .ico { font-size: 42px; margin-bottom: 10px; }
+.sec-label { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .6px; color: var(--ink2); margin-bottom: 9px; }
 
-/* Detail image gallery */
-.gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; margin-top: 12px; }
-.gallery img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 10px; cursor: pointer; }
-
-.spinner { display: inline-block; width: 18px; height: 18px; border: 3px solid rgba(255,255,255,.4); border-top-color: white; border-radius: 50%; animation: spin .7s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
+/* ── Detail actions ── */
+.detail-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
 </style>
 </head>
 <body>
 
-<!-- ══ SETUP SCREEN ══════════════════════════════════════════════════════ -->
-<div class="setup-screen" id="setupScreen">
-  <div class="setup-box">
-    <div class="setup-logo">📚</div>
-    <div class="setup-title">Házi Feladat App</div>
-    <div class="setup-sub">Egy beállítás kell, és mindig automatikus lesz.</div>
-    <div class="setup-steps">
-      <b>GitHub Token létrehozása:</b><br>
-      1. Menj: <a href="https://github.com/settings/tokens/new" target="_blank">github.com/settings/tokens/new</a><br>
-      2. Note: <b>hazik-app</b><br>
-      3. Expiration: <b>No expiration</b><br>
-      4. Pipáld be: <b>repo</b> (teljes)<br>
-      5. Kattints: <b>Generate token</b><br>
-      6. Másold be ide ↓
-    </div>
-    <div class="field">
-      <label>GitHub Personal Access Token</label>
-      <input type="password" id="setupToken" placeholder="ghp_xxxxxxxxxxxx">
-    </div>
-    <div class="field">
-      <label>GitHub felhasználónév</label>
-      <input type="text" id="setupUser" placeholder="gezamandli">
-    </div>
-    <div class="field">
-      <label>Repository neve</label>
-      <input type="text" id="setupRepo" placeholder="szekai-hazik">
-    </div>
-    <div class="field">
-      <label>A te neved (feltöltőként)</label>
-      <input type="text" id="setupName" placeholder="Pl. Kiss Éva">
-    </div>
-    <div class="field">
-      <label>Osztály neve</label>
-      <input type="text" id="setupClass" placeholder="Pl. 4.b osztály">
-    </div>
-    <button class="btn btn-primary btn-full" id="setupSaveBtn" onclick="saveSetup()">Belépés és mentés</button>
-    <p id="setupError" style="color:var(--red);font-size:13px;margin-top:10px;text-align:center;display:none;"></p>
-  </div>
-</div>
-
-<!-- ══ MAIN APP ══════════════════════════════════════════════════════════ -->
-<header>
+<!-- ══ HEADER ══ -->
+<header class="app-header">
   <div>
     <h1>📚 Házi Feladatok</h1>
-    <div class="sub" id="classLabel"></div>
+    <div class="sub" id="classLabel">Betöltés…</div>
   </div>
-  <button class="icon-btn" onclick="openModal('settingsModal')">⚙️</button>
+  <button class="hdr-btn" onclick="openSheet('settingsSheet')">⚙️</button>
 </header>
 
-<div class="tab-bar">
-  <div class="tab active" onclick="switchTab('list')">📋 Feladatok</div>
-  <div class="tab" onclick="switchTab('notify')">💬 Értesítő</div>
-  <div class="tab" onclick="switchTab('history')">🕐 Archívum</div>
-</div>
+<!-- ══ TABS ══ -->
+<nav class="tabs">
+  <div class="tab on"  onclick="switchTab('list')">📋 Feladatok</div>
+  <div class="tab"     onclick="switchTab('notify')">💬 Értesítő</div>
+  <div class="tab"     onclick="switchTab('history')">🕐 Archívum</div>
+</nav>
 
-<div id="view-list" class="view active">
-  <div class="filter-bar" id="filterBar"></div>
+<!-- ══ VIEWS ══ -->
+<div id="view-list" class="view on">
+  <div class="chips" id="filterBar"></div>
   <div id="hwList"></div>
 </div>
-
 <div id="view-notify" class="view">
-  <p style="font-size:14px;color:var(--muted);margin-bottom:14px;">Válassz egy feladatot – automatikusan elkészül a Messenger üzenet.</p>
+  <p style="font-size:14px;color:var(--ink2);margin-bottom:14px;">Válassz feladatot – elkészül a Messenger üzenet.</p>
   <div id="notifyList"></div>
 </div>
-
 <div id="view-history" class="view">
   <div id="historyList"></div>
 </div>
 
-<button class="fab" onclick="openAddModal()">＋</button>
+<button class="fab" onclick="openAddSheet()">＋</button>
 
-<!-- ══ ADD MODAL ══════════════════════════════════════════════════════════ -->
-<div class="overlay" id="addModal" onclick="closeModal('addModal')">
-<div class="modal" onclick="event.stopPropagation()">
+<!-- ══ ADD SHEET ══ -->
+<div class="overlay" id="addSheet" onclick="closeSheet('addSheet')">
+<div class="sheet" onclick="event.stopPropagation()">
   <div class="handle"></div>
-  <div class="modal-title">Új házi feladat</div>
+  <div class="sheet-title">Új házi feladat</div>
+
+  <!-- Auth banner inside sheet -->
+  <div id="sheetAuthBanner"></div>
 
   <div class="field">
     <label>Tantárgy</label>
     <select id="newSubject">
-      <option>Magyar</option>
-      <option>Matek</option>
-      <option>Olvasás</option>
-      <option>Írás</option>
-      <option>Környezet</option>
-      <option>Angol</option>
-      <option>Német</option>
-      <option>Hittan – katolikus</option>
-      <option>Hittan – református</option>
-      <option>Hittan – evangélikus</option>
-      <option>Digitális kultúra</option>
-      <option>Rajz</option>
-      <option>Ének</option>
-      <option>Testnevelés</option>
-      <option>Egyéb</option>
+      <option>Magyar</option><option>Matek</option><option>Olvasás</option>
+      <option>Írás</option><option>Környezet</option><option>Angol</option>
+      <option>Német</option><option>Hittan – katolikus</option>
+      <option>Hittan – református</option><option>Hittan – evangélikus</option>
+      <option>Digitális kultúra</option><option>Rajz</option>
+      <option>Ének</option><option>Testnevelés</option><option>Egyéb</option>
     </select>
   </div>
-
   <div class="field">
-    <label>Leírás / Feladat</label>
+    <label>Feladat leírása</label>
     <textarea id="newDesc" placeholder="Pl. Munkafüzet 34. oldal, 2–5. feladat"></textarea>
   </div>
-
   <div class="field">
-    <label>Határidő (mikor kell elkészíteni?)</label>
+    <label>Határidő</label>
     <input type="date" id="newDue">
   </div>
-
   <div class="field">
     <label>Megjegyzés (opcionális)</label>
     <input type="text" id="newNote" placeholder="Pl. kell az olvasókönyv is">
   </div>
 
   <div class="field">
-    <label>Képek (házi fotó, tábla, füzet…)</label>
-    <div class="img-picker-area" onclick="document.getElementById('imgInput').click()">
-      <div class="icon">📷</div>
-      <p>Fotó készítése vagy kiválasztása</p>
-      <small>Kamera · Galéria · Fájl</small>
+    <label>Képek</label>
+    <div class="pick-btns">
+      <div class="pick-btn" onclick="triggerCamera()">
+        <span class="ico">📷</span>
+        <span>Fénykép<br>készítése</span>
+      </div>
+      <div class="pick-btn" onclick="triggerGallery()">
+        <span class="ico">🖼️</span>
+        <span>Meglévő<br>kép</span>
+      </div>
     </div>
-    <input type="file" id="imgInput" accept="image/*" multiple capture="environment" style="display:none" onchange="handleImages(event)">
-    <div class="preview-grid" id="previewGrid"></div>
-    <div class="progress-bar" id="progressBar" style="display:none"><div class="progress-fill" id="progressFill"></div></div>
+    <input type="file" id="camInput"     accept="image/*" capture="environment" style="display:none" onchange="handleImgs(event)">
+    <input type="file" id="galleryInput" accept="image/*" multiple            style="display:none" onchange="handleImgs(event)">
+    <div class="prev-grid" id="prevGrid"></div>
+    <div class="progress" id="progressWrap"><div class="progress-fill" id="progressFill"></div></div>
   </div>
 
   <div class="btn-row">
-    <button class="btn btn-secondary" style="flex:1" onclick="closeModal('addModal')">Mégse</button>
+    <button class="btn btn-secondary" style="flex:1" onclick="closeSheet('addSheet')">Mégse</button>
     <button class="btn btn-primary" style="flex:2" id="saveBtn" onclick="saveHW()">Mentés ✓</button>
   </div>
 </div>
 </div>
 
-<!-- ══ DETAIL MODAL ═══════════════════════════════════════════════════════ -->
-<div class="overlay" id="detailModal" onclick="closeModal('detailModal')">
-<div class="modal" onclick="event.stopPropagation()">
+<!-- ══ DETAIL SHEET ══ -->
+<div class="overlay" id="detailSheet" onclick="closeSheet('detailSheet')">
+<div class="sheet" onclick="event.stopPropagation()">
   <div class="handle"></div>
   <div id="detailContent"></div>
 </div>
 </div>
 
-<!-- ══ NOTIFY MODAL ═══════════════════════════════════════════════════════ -->
-<div class="overlay" id="notifyModal" onclick="closeModal('notifyModal')">
-<div class="modal" onclick="event.stopPropagation()">
+<!-- ══ NOTIFY SHEET ══ -->
+<div class="overlay" id="notifySheet" onclick="closeSheet('notifySheet')">
+<div class="sheet" onclick="event.stopPropagation()">
   <div class="handle"></div>
-  <div class="modal-title">💬 Messenger üzenet</div>
-  <p style="font-size:13px;color:var(--muted);margin-bottom:11px;">Másold ki és illeszd be a csoportba:</p>
+  <div class="sheet-title">💬 Messenger üzenet</div>
+  <p style="font-size:13px;color:var(--ink2);margin-bottom:11px;">Másold ki és illeszd be a csoportba:</p>
   <div class="msg-box" id="notifyText"></div>
-  <button class="fb-btn" onclick="copyNotify()">📋 Másolás vágólapra</button>
-  <button class="btn btn-secondary btn-full" onclick="closeModal('notifyModal')">Bezárás</button>
+  <button class="fb-copy" onclick="copyNotify()">📋 Másolás vágólapra</button>
+  <button class="btn btn-secondary btn-full" onclick="closeSheet('notifySheet')">Bezárás</button>
 </div>
 </div>
 
-<!-- ══ SETTINGS MODAL ════════════════════════════════════════════════════ -->
-<div class="overlay" id="settingsModal" onclick="closeModal('settingsModal')">
-<div class="modal" onclick="event.stopPropagation()">
+<!-- ══ SETTINGS SHEET ══ -->
+<div class="overlay" id="settingsSheet" onclick="closeSheet('settingsSheet')">
+<div class="sheet" onclick="event.stopPropagation()">
   <div class="handle"></div>
-  <div class="modal-title">⚙️ Beállítások</div>
-  <div class="field"><label>Osztály neve</label><input type="text" id="sClass" placeholder="4.b osztály"></div>
+  <div class="sheet-title">⚙️ Beállítások</div>
+  <div id="settingsAuthArea"></div>
   <div class="field"><label>A te neved</label><input type="text" id="sName" placeholder="Kiss Éva"></div>
-  <div class="field"><label>GitHub Token</label><input type="password" id="sToken" placeholder="ghp_..."></div>
-  <div class="field"><label>GitHub felhasználónév</label><input type="text" id="sUser"></div>
-  <div class="field"><label>Repository neve</label><input type="text" id="sRepo"></div>
   <div class="btn-row">
-    <button class="btn btn-secondary" style="flex:1" onclick="closeModal('settingsModal')">Mégse</button>
+    <button class="btn btn-secondary" style="flex:1" onclick="closeSheet('settingsSheet')">Mégse</button>
     <button class="btn btn-primary" style="flex:2" onclick="saveSettings()">Mentés ✓</button>
   </div>
-  <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">
-    <button class="btn btn-danger btn-full" onclick="logout()">Kijelentkezés / Token törlése</button>
-  </div>
 </div>
 </div>
 
-<!-- ══ IMAGE VIEWER ═══════════════════════════════════════════════════════ -->
-<div class="overlay" id="imgViewer" onclick="closeModal('imgViewer')">
-<div style="width:100%;max-width:560px;padding:16px;" onclick="event.stopPropagation()">
-  <img id="viewerImg" src="" style="width:100%;border-radius:14px;max-height:80vh;object-fit:contain;">
+<!-- ══ IMAGE VIEWER ══ -->
+<div class="overlay" id="imgViewer" onclick="closeSheet('imgViewer')">
+<div style="width:100%;max-width:560px;padding:14px;" onclick="event.stopPropagation()">
+  <img id="viewerImg" src="" style="width:100%;border-radius:13px;max-height:82vh;object-fit:contain;">
 </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
-// ══════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════
+// CONFIG – developer fills these in
+// ══════════════════════════════════════════════════════
+const APP_CONFIG = {
+  CLIENT_ID:  '411958324738-l9e7qu7uh0jmjhfj0tl8ihs79it88nam.apps.googleusercontent.com',
+  FOLDER_ID:  '10iYZ9_5nChhKhxmUOlC4OYNoGfWqcNtN',
+  SHEET_ID:   '1XzvvQFt8CpwiXep8BeZb8M59s6R5lBZQEF0DZU2EyGk',
+  CLASS_NAME: '7.a osztály',
+};
+
+// ══════════════════════════════════════════════════════
 // STATE
-// ══════════════════════════════════════════════════════════════════
-let cfg = JSON.parse(localStorage.getItem('hazik_cfg') || 'null');
-let homeworks = JSON.parse(localStorage.getItem('hazik_hw') || '[]');
-let pendingImgs = []; // {file, dataUrl}
+// ══════════════════════════════════════════════════════
+let gUser   = null;   // { name, email, picture, accessToken }
+let homeworks = [];
+let pendingImgs = [];  // { file, dataUrl }
 let activeFilter = 'all';
 
-const SUBJECTS = ['Magyar','Matek','Olvasás','Írás','Környezet','Angol','Német',
-  'Hittan – katolikus','Hittan – református','Hittan – evangélikus',
-  'Digitális kultúra','Rajz','Ének','Testnevelés','Egyéb'];
+const SCOPES = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/spreadsheets';
 
-// ══════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════
 // INIT
-// ══════════════════════════════════════════════════════════════════
-function init() {
-  if (!cfg) { document.getElementById('setupScreen').classList.add('show'); return; }
-  document.getElementById('classLabel').textContent = cfg.class;
-  loadFromGitHub();
-}
+// ══════════════════════════════════════════════════════
+window.onload = () => {
+  document.getElementById('classLabel').textContent = APP_CONFIG.CLASS_NAME;
 
-// ══════════════════════════════════════════════════════════════════
-// SETUP
-// ══════════════════════════════════════════════════════════════════
-async function saveSetup() {
-  const token = document.getElementById('setupToken').value.trim();
-  const user  = document.getElementById('setupUser').value.trim();
-  const repo  = document.getElementById('setupRepo').value.trim();
-  const name  = document.getElementById('setupName').value.trim();
-  const cls   = document.getElementById('setupClass').value.trim();
-  if (!token||!user||!repo||!name||!cls) { showSetupError('Kérlek töltsd ki az összes mezőt!'); return; }
+  // Restore saved name
+  const saved = localStorage.getItem('hz_name');
+  if (saved) document.getElementById('sName').value = saved;
 
-  const btn = document.getElementById('setupSaveBtn');
-  btn.innerHTML = '<span class="spinner"></span> Ellenőrzés...';
-  btn.disabled = true;
+  // Try silent token restore
+  const tok = localStorage.getItem('hz_token');
+  const usr = localStorage.getItem('hz_user');
+  if (tok && usr) {
+    gUser = { ...JSON.parse(usr), accessToken: tok };
+    renderAuthBanners();
+  }
 
-  // Verify token
-  const r = await fetch(`https://api.github.com/repos/${user}/${repo}`, {
-    headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github.v3+json' }
+  loadSheet();
+};
+
+// ══════════════════════════════════════════════════════
+// GOOGLE SIGN-IN  (GIS – popup flow)
+// ══════════════════════════════════════════════════════
+function loadGIS() {
+  return new Promise(res => {
+    if (window.google?.accounts) { res(); return; }
+    const s = document.createElement('script');
+    s.src = 'https://accounts.google.com/gsi/client';
+    s.onload = res;
+    document.head.appendChild(s);
   });
-  if (!r.ok) { showSetupError('Érvénytelen token vagy repo nem létezik. Ellenőrizd az adatokat!'); btn.innerHTML='Belépés és mentés'; btn.disabled=false; return; }
-
-  cfg = { token, user, repo, name, class: cls };
-  localStorage.setItem('hazik_cfg', JSON.stringify(cfg));
-  document.getElementById('setupScreen').classList.remove('show');
-  document.getElementById('classLabel').textContent = cls;
-  loadFromGitHub();
 }
 
-function showSetupError(msg) {
-  const e = document.getElementById('setupError');
-  e.textContent = msg; e.style.display = 'block';
-  const btn = document.getElementById('setupSaveBtn');
-  btn.innerHTML = 'Belépés és mentés'; btn.disabled = false;
-}
-
-function logout() {
-  if (!confirm('Biztosan kijelentkezel? A token törlődik.')) return;
-  localStorage.removeItem('hazik_cfg');
-  location.reload();
-}
-
-// ══════════════════════════════════════════════════════════════════
-// GITHUB API
-// ══════════════════════════════════════════════════════════════════
-function ghHeaders() {
-  return { Authorization: `token ${cfg.token}`, Accept: 'application/vnd.github.v3+json', 'Content-Type': 'application/json' };
-}
-function apiBase() { return `https://api.github.com/repos/${cfg.user}/${cfg.repo}`; }
-
-// Load index.json from repo (our database)
-async function loadFromGitHub() {
-  showToast('⏳ Betöltés...', 99999);
-  try {
-    const r = await fetch(`${apiBase()}/contents/hazik-data/index.json?t=${Date.now()}`, { headers: ghHeaders() });
-    if (r.status === 404) { homeworks = []; }
-    else {
-      const j = await r.json();
-      homeworks = JSON.parse(atob(j.content.replace(/\n/g,'')));
+async function signIn() {
+  await loadGIS();
+  const client = google.accounts.oauth2.initTokenClient({
+    client_id: APP_CONFIG.CLIENT_ID,
+    scope: SCOPES,
+    callback: async (resp) => {
+      if (resp.error) { showToast('⚠️ Bejelentkezés sikertelen'); return; }
+      // Fetch user info
+      const ui = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: `Bearer ${resp.access_token}` }
+      }).then(r => r.json());
+      gUser = { name: ui.name, email: ui.email, picture: ui.picture, accessToken: resp.access_token };
+      localStorage.setItem('hz_token', resp.access_token);
+      localStorage.setItem('hz_user', JSON.stringify({ name: ui.name, email: ui.email, picture: ui.picture }));
+      // Pre-fill name
+      if (!localStorage.getItem('hz_name')) {
+        localStorage.setItem('hz_name', ui.name.split(' ').pop());
+        document.getElementById('sName').value = localStorage.getItem('hz_name');
+      }
+      renderAuthBanners();
+      showToast('✅ Bejelentkezve: ' + ui.name);
     }
-    localStorage.setItem('hazik_hw', JSON.stringify(homeworks));
-  } catch(e) {
-    homeworks = JSON.parse(localStorage.getItem('hazik_hw') || '[]');
-    showToast('⚠️ Offline – helyi adatok betöltve');
+  });
+  client.requestAccessToken();
+}
+
+function signOut() {
+  gUser = null;
+  localStorage.removeItem('hz_token');
+  localStorage.removeItem('hz_user');
+  renderAuthBanners();
+  showToast('👋 Kijelentkezve');
+}
+
+function renderAuthBanners() {
+  const banner = gUser
+    ? `<div class="auth-banner">
+        <img class="av" src="${gUser.picture}" onerror="this.src='data:image/svg+xml,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 40 40\'><circle cx=\'20\' cy=\'20\' r=\'20\' fill=\'%232f6de1\'/><text x=\'20\' y=\'26\' text-anchor=\'middle\' fill=\'white\' font-size=\'18\'>${gUser.name[0]}</text></svg>'">
+        <div><div class="name">${gUser.name}</div><div class="email">${gUser.email}</div></div>
+       </div>`
+    : `<button class="g-signin" onclick="signIn()">
+        <svg class="g-icon" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.7 12.3c0-.8-.1-1.6-.2-2.3H12v4.4h6.6c-.3 1.5-1.1 2.7-2.4 3.6v3h3.9c2.3-2.1 3.6-5.2 3.6-8.7z"/><path fill="#34A853" d="M12 24c3.3 0 6.1-1.1 8.1-3l-3.9-3c-1.1.7-2.5 1.2-4.2 1.2-3.2 0-6-2.2-7-5.1H1v3.1C3 21.3 7.3 24 12 24z"/><path fill="#FBBC05" d="M5 14.1c-.3-.7-.4-1.4-.4-2.1s.1-1.4.4-2.1V6.8H1C.4 8 0 9.9 0 12s.4 4 1 5.2l4-3.1z"/><path fill="#EA4335" d="M12 4.8c1.8 0 3.4.6 4.6 1.8l3.4-3.4C18.1 1.2 15.3 0 12 0 7.3 0 3 2.7 1 6.8l4 3.1c1-2.9 3.8-5.1 7-5.1z"/></svg>
+        Bejelentkezés Google-fiókkal
+       </button>`;
+
+  const settingsArea = gUser
+    ? banner + `<button class="btn btn-danger btn-full" style="margin-bottom:13px" onclick="signOut()">Kijelentkezés</button>`
+    : banner;
+
+  document.getElementById('sheetAuthBanner').innerHTML = banner;
+  document.getElementById('settingsAuthArea').innerHTML = settingsArea;
+}
+
+// ══════════════════════════════════════════════════════
+// GOOGLE SHEETS  (házi feladatok adatbázisa)
+// ══════════════════════════════════════════════════════
+// Sheet columns: id | subject | desc | due | note | uploader | uploaded | images(JSON)
+const SHEET_RANGE = 'Sheet1!A:H';
+
+async function loadSheet() {
+  showToast('⏳ Betöltés…', 99999);
+  try {
+    // Public read via API key-less export (CSV)
+    const url = `https://docs.google.com/spreadsheets/d/${APP_CONFIG.SHEET_ID}/gviz/tq?tqx=out:csv&range=A2:H`;
+    const r = await fetch(url);
+    if (!r.ok) throw new Error();
+    const csv = await r.text();
+    homeworks = parseCSV(csv);
+    localStorage.setItem('hz_hw', JSON.stringify(homeworks));
+  } catch {
+    homeworks = JSON.parse(localStorage.getItem('hz_hw') || '[]');
+    showToast('⚠️ Offline – helyi adatok');
   }
   hideToast();
   renderAll();
 }
 
-async function saveIndexToGitHub() {
-  const content = btoa(unescape(encodeURIComponent(JSON.stringify(homeworks, null, 2))));
-  // Get current SHA if exists
-  let sha = null;
-  try {
-    const r = await fetch(`${apiBase()}/contents/hazik-data/index.json`, { headers: ghHeaders() });
-    if (r.ok) { const j = await r.json(); sha = j.sha; }
-  } catch {}
-
-  const body = { message: `Házi frissítve – ${new Date().toLocaleString('hu-HU')}`, content };
-  if (sha) body.sha = sha;
-  await fetch(`${apiBase()}/contents/hazik-data/index.json`, { method: 'PUT', headers: ghHeaders(), body: JSON.stringify(body) });
-}
-
-// Upload image to GitHub, returns raw URL
-async function uploadImageToGitHub(file, subject, dateStr) {
-  const safeSub = subject.replace(/[^a-zA-Z0-9áéíóöőúüűÁÉÍÓÖŐÚÜŰ]/g,'_');
-  const folder = `hazik-data/kepek/${safeSub}_${dateStr}`;
-  const ts = Date.now();
-  const ext = file.name.split('.').pop() || 'jpg';
-  const path = `${folder}/${ts}.${ext}`;
-
-  // Check if file already exists (get SHA)
-  let sha = null;
-  try {
-    const chk = await fetch(`${apiBase()}/contents/${path}`, { headers: ghHeaders() });
-    if (chk.ok) { const j = await chk.ok; sha = j.sha; }
-  } catch {}
-
-  const b64 = await fileToBase64(file);
-  const body = { message: `Kép feltöltve: ${subject} ${dateStr}`, content: b64 };
-  if (sha) body.sha = sha;
-
-  const r = await fetch(`${apiBase()}/contents/${path}`, { method: 'PUT', headers: ghHeaders(), body: JSON.stringify(body) });
-  if (!r.ok) throw new Error('Feltöltés sikertelen');
-  const j = await r.json();
-  return j.content.download_url;
-}
-
-function fileToBase64(file) {
-  return new Promise((res, rej) => {
-    const fr = new FileReader();
-    fr.onload = () => res(fr.result.split(',')[1]);
-    fr.onerror = rej;
-    fr.readAsDataURL(file);
-  });
-}
-
-// ══════════════════════════════════════════════════════════════════
-// IMAGE HANDLING
-// ══════════════════════════════════════════════════════════════════
-function handleImages(e) {
-  const files = Array.from(e.target.files);
-  files.forEach(f => {
-    const reader = new FileReader();
-    reader.onload = ev => {
-      pendingImgs.push({ file: f, dataUrl: ev.target.result });
-      renderPreviews();
+function parseCSV(csv) {
+  if (!csv.trim()) return [];
+  return csv.trim().split('\n').filter(l => l.trim()).map(line => {
+    const cols = line.match(/(".*?"|[^,]+|(?<=,)(?=,)|^(?=,))/g) || [];
+    const clean = cols.map(c => c.replace(/^"|"$/g,'').replace(/""/g,'"').trim());
+    return {
+      id: clean[0]||'', subject: clean[1]||'', desc: clean[2]||'',
+      due: clean[3]||'', note: clean[4]||'', uploader: clean[5]||'',
+      uploaded: clean[6]||'', images: safeJSON(clean[7])
     };
-    reader.readAsDataURL(f);
+  }).filter(h => h.id);
+}
+
+function safeJSON(s) { try { return JSON.parse(s||'[]'); } catch { return []; } }
+
+async function appendToSheet(hw) {
+  if (!gUser) throw new Error('no_auth');
+  const row = [[hw.id, hw.subject, hw.desc, hw.due, hw.note, hw.uploader, hw.uploaded, JSON.stringify(hw.images||[])]];
+  const r = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${APP_CONFIG.SHEET_ID}/values/${encodeURIComponent('Sheet1!A:H')}:append?valueInputOption=RAW`,
+    { method: 'POST', headers: { Authorization: `Bearer ${gUser.accessToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ values: row }) }
+  );
+  if (!r.ok) { const e=await r.json(); throw new Error(e.error?.message||'Sheet hiba'); }
+}
+
+async function deleteFromSheet(id) {
+  if (!gUser) throw new Error('no_auth');
+  // Find row index first
+  const r = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${APP_CONFIG.SHEET_ID}/values/${encodeURIComponent('Sheet1!A:A')}`,
+    { headers: { Authorization: `Bearer ${gUser.accessToken}` } }
+  );
+  const j = await r.json();
+  const rows = j.values || [];
+  const idx = rows.findIndex(r => r[0] === id);
+  if (idx < 0) return;
+
+  // Get spreadsheet metadata for sheetId
+  const meta = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${APP_CONFIG.SHEET_ID}`,
+    { headers: { Authorization: `Bearer ${gUser.accessToken}` } }
+  ).then(r => r.json());
+  const sheetId = meta.sheets?.[0]?.properties?.sheetId ?? 0;
+
+  await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${APP_CONFIG.SHEET_ID}:batchUpdate`,
+    { method: 'POST', headers: { Authorization: `Bearer ${gUser.accessToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requests: [{ deleteDimension: { range: { sheetId, dimension: 'ROWS', startIndex: idx, endIndex: idx+1 } } }] }) }
+  );
+}
+
+// ══════════════════════════════════════════════════════
+// GOOGLE DRIVE  (képfeltöltés)
+// ══════════════════════════════════════════════════════
+async function uploadToDrive(file, subject, dateStr) {
+  if (!gUser) throw new Error('no_auth');
+  const safeSub = subject.replace(/[–\s]/g,'_');
+  const folderName = `${safeSub}_${dateStr}`;
+
+  // 1. Find or create subfolder
+  let folderId = await findOrCreateFolder(folderName);
+
+  // 2. Upload file
+  const meta = JSON.stringify({ name: `${Date.now()}_${file.name}`, parents: [folderId] });
+  const form = new FormData();
+  form.append('metadata', new Blob([meta], { type: 'application/json' }));
+  form.append('file', file);
+
+  const r = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webContentLink,webViewLink', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${gUser.accessToken}` },
+    body: form
+  });
+  if (!r.ok) throw new Error('Drive feltöltés sikertelen');
+  const j = await r.json();
+
+  // 3. Make public
+  await fetch(`https://www.googleapis.com/drive/v3/files/${j.id}/permissions`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${gUser.accessToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ role: 'reader', type: 'anyone' })
+  });
+
+  return `https://drive.google.com/thumbnail?id=${j.id}&sz=w400`;
+}
+
+async function findOrCreateFolder(name) {
+  // Search inside parent folder
+  const q = encodeURIComponent(`name='${name}' and '${APP_CONFIG.FOLDER_ID}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`);
+  const r = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id)`, {
+    headers: { Authorization: `Bearer ${gUser.accessToken}` }
+  });
+  const j = await r.json();
+  if (j.files?.length) return j.files[0].id;
+
+  // Create
+  const cr = await fetch('https://www.googleapis.com/drive/v3/files', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${gUser.accessToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, mimeType: 'application/vnd.google-apps.folder', parents: [APP_CONFIG.FOLDER_ID] })
+  });
+  const cj = await cr.json();
+  return cj.id;
+}
+
+// ══════════════════════════════════════════════════════
+// IMAGE HANDLING
+// ══════════════════════════════════════════════════════
+function triggerCamera()  { document.getElementById('camInput').click(); }
+function triggerGallery() { document.getElementById('galleryInput').click(); }
+
+function handleImgs(e) {
+  Array.from(e.target.files).forEach(f => {
+    const fr = new FileReader();
+    fr.onload = ev => { pendingImgs.push({ file: f, dataUrl: ev.target.result }); renderPreviews(); };
+    fr.readAsDataURL(f);
   });
   e.target.value = '';
 }
 
 function renderPreviews() {
-  const grid = document.getElementById('previewGrid');
-  grid.innerHTML = pendingImgs.map((img, i) => `
-    <div class="preview-wrap">
-      <img src="${img.dataUrl}">
-      <button class="rm" onclick="removeImg(${i})">×</button>
-    </div>`).join('');
+  document.getElementById('prevGrid').innerHTML = pendingImgs.map((img, i) =>
+    `<div class="prev-wrap"><img src="${img.dataUrl}"><button class="prev-rm" onclick="removeImg(${i})">×</button></div>`
+  ).join('');
 }
-
 function removeImg(i) { pendingImgs.splice(i,1); renderPreviews(); }
 
-// ══════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════
 // SAVE HOMEWORK
-// ══════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════
 async function saveHW() {
-  const subject  = document.getElementById('newSubject').value;
-  const desc     = document.getElementById('newDesc').value.trim();
-  const due      = document.getElementById('newDue').value;
-  const note     = document.getElementById('newNote').value.trim();
+  if (!gUser) { showToast('⚠️ Előbb jelentkezz be Google-fiókkal!'); return; }
+  const subject = document.getElementById('newSubject').value;
+  const desc    = document.getElementById('newDesc').value.trim();
+  const due     = document.getElementById('newDue').value;
+  const note    = document.getElementById('newNote').value.trim();
+  const name    = localStorage.getItem('hz_name') || gUser.name;
   if (!desc) { showToast('⚠️ Írd le a feladatot!'); return; }
   if (!due)  { showToast('⚠️ Add meg a határidőt!'); return; }
 
   const btn = document.getElementById('saveBtn');
-  btn.innerHTML = '<span class="spinner"></span> Mentés...';
-  btn.disabled = true;
-
-  const pb = document.getElementById('progressBar');
+  btn.innerHTML = '<span class="spin"></span> Mentés…'; btn.disabled = true;
+  const pw = document.getElementById('progressWrap');
   const pf = document.getElementById('progressFill');
-  pb.style.display = 'block'; pf.style.width = '0%';
+  pw.style.display = 'block'; pf.style.width = '0%';
 
   const imageUrls = [];
-  for (let i=0; i<pendingImgs.length; i++) {
+  for (let i = 0; i < pendingImgs.length; i++) {
     try {
-      pf.style.width = `${Math.round((i/pendingImgs.length)*80)}%`;
-      const url = await uploadImageToGitHub(pendingImgs[i].file, subject, due);
+      pf.style.width = `${Math.round((i / pendingImgs.length) * 80)}%`;
+      const url = await uploadToDrive(pendingImgs[i].file, subject, due);
       imageUrls.push(url);
-    } catch(e) { showToast('⚠️ Egy kép nem töltődött fel'); }
+    } catch { showToast('⚠️ Egy kép nem töltődött fel'); }
   }
   pf.style.width = '90%';
 
-  const hw = {
-    id: Date.now().toString(),
-    subject, desc, due, note,
-    uploader: cfg.name,
-    uploaded: new Date().toISOString(),
-    images: imageUrls
-  };
-  homeworks.push(hw);
-  localStorage.setItem('hazik_hw', JSON.stringify(homeworks));
+  const hw = { id: Date.now().toString(), subject, desc, due, note, uploader: name, uploaded: new Date().toISOString(), images: imageUrls };
 
   try {
-    await saveIndexToGitHub();
+    await appendToSheet(hw);
+    homeworks.push(hw);
+    localStorage.setItem('hz_hw', JSON.stringify(homeworks));
     pf.style.width = '100%';
-    showToast('✅ Sikeresen feltöltve GitHub-ra!');
+    showToast('✅ Feltöltve!');
   } catch(e) {
-    showToast('⚠️ Mentés sikertelen, próbáld újra!');
+    if (e.message === 'no_auth') showToast('⚠️ Bejelentkezés szükséges!');
+    else showToast('⚠️ Mentés sikertelen: ' + e.message);
   }
 
-  pendingImgs = [];
-  renderPreviews();
-  pb.style.display = 'none';
+  pendingImgs = []; renderPreviews();
+  pw.style.display = 'none';
   btn.innerHTML = 'Mentés ✓'; btn.disabled = false;
-  closeModal('addModal');
+  closeSheet('addSheet');
   renderAll();
 }
 
-// ══════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════
 // RENDER
-// ══════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════
 function renderAll() { renderFilters(); renderList(); renderNotifyList(); renderHistory(); }
 
 function renderFilters() {
-  const bar = document.getElementById('filterBar');
-  const subs = [...new Set(homeworks.map(h=>h.subject))];
-  bar.innerHTML = `<div class="chip ${activeFilter==='all'?'active':''}" onclick="setFilter('all')">Összes</div>`;
-  subs.forEach(s => bar.innerHTML += `<div class="chip ${activeFilter===s?'active':''}" onclick="setFilter('${s.replace(/'/g,"\\'")}'">${s}</div>`);
+  const subs = [...new Set(homeworks.map(h => h.subject))];
+  document.getElementById('filterBar').innerHTML =
+    `<div class="chip on" onclick="setFilter('all')">Összes</div>` +
+    subs.map(s => `<div class="chip" onclick="setFilter(\`${s}\`)">${s}</div>`).join('');
+  document.querySelectorAll('#filterBar .chip').forEach(c => {
+    c.classList.toggle('on', c.textContent === (activeFilter === 'all' ? 'Összes' : activeFilter));
+  });
 }
-function setFilter(f) { activeFilter=f; renderAll(); }
+function setFilter(f) { activeFilter = f; renderAll(); }
 
-function today0() { const d=new Date(); d.setHours(0,0,0,0); return d; }
-
+function today0() { const d = new Date(); d.setHours(0,0,0,0); return d; }
 function dueInfo(ds) {
-  const d=new Date(ds); d.setHours(0,0,0,0);
-  const diff = Math.round((d-today0())/(864e5));
-  if (diff<0) return {text:'Lejárt', cls:'due-past'};
-  if (diff===0) return {text:'Ma!', cls:'due-soon'};
-  if (diff===1) return {text:'Holnap', cls:'due-soon'};
-  if (diff<=3)  return {text:diff+' nap', cls:'due-soon'};
-  return {text:fmtDate(ds), cls:'due-ok'};
+  const d = new Date(ds); d.setHours(0,0,0,0);
+  const diff = Math.round((d - today0()) / 864e5);
+  if (diff < 0) return { text: 'Lejárt', cls: 'past' };
+  if (diff === 0) return { text: 'Ma!', cls: 'soon' };
+  if (diff === 1) return { text: 'Holnap', cls: 'soon' };
+  if (diff <= 3)  return { text: diff + ' nap', cls: 'soon' };
+  return { text: fmtDate(ds), cls: 'ok' };
 }
-
-function fmtDate(s) {
-  return new Date(s).toLocaleDateString('hu-HU',{month:'short',day:'numeric',weekday:'short'});
-}
-function fmtDateTime(s) {
-  return new Date(s).toLocaleString('hu-HU',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
-}
+function fmtDate(s)     { return new Date(s).toLocaleDateString('hu-HU', { month:'short', day:'numeric', weekday:'short' }); }
+function fmtDT(s)       { return new Date(s).toLocaleString('hu-HU', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }); }
 
 function cardHTML(h) {
-  const {text,cls} = dueInfo(h.due);
-  const imgs = (h.images||[]).slice(0,3);
-  const extra = (h.images||[]).length - 3;
-  return `<div class="hw-card" onclick="openDetail('${h.id}')">
-    <div class="hw-head">
-      <div class="hw-subject">${h.subject}</div>
-      <div class="hw-badge ${cls}">${text}</div>
+  const { text, cls } = dueInfo(h.due);
+  const imgs = (h.images || []).slice(0, 3);
+  const extra = (h.images || []).length - 3;
+  return `<div class="card" onclick="openDetail('${h.id}')">
+    <div class="card-head">
+      <div class="subj">${h.subject}</div>
+      <div class="badge ${cls}">${text}</div>
     </div>
-    <div class="hw-desc">${h.desc}</div>
-    ${imgs.length ? `<div class="thumb-row">${imgs.map(u=>`<img class="thumb" src="${u}">`).join('')}${extra>0?`<div class="thumb-count">+${extra}</div>`:''}</div>` : ''}
-    <div class="hw-meta">
-      ${h.note?`<span class="hw-tag">📌 ${h.note}</span>`:''}
-      <span class="hw-who">⬆️ ${h.uploader} · ${fmtDateTime(h.uploaded)}</span>
+    <div class="desc">${h.desc}</div>
+    ${imgs.length ? `<div class="thumbs">${imgs.map(u => `<img class="thumb" src="${u}">`).join('')}${extra > 0 ? `<div class="thumb-more">+${extra}</div>` : ''}</div>` : ''}
+    <div class="meta">
+      ${h.note ? `<span class="tag">📌 ${h.note}</span>` : ''}
+      <span class="who">⬆️ ${h.uploader} · ${fmtDT(h.uploaded)}</span>
     </div>
   </div>`;
 }
 
+function activeHW() {
+  return homeworks.filter(h => { const d = new Date(h.due); d.setHours(0,0,0,0); return d >= today0(); });
+}
+
 function renderList() {
-  const el = document.getElementById('hwList');
-  let items = homeworks.filter(h => { const d=new Date(h.due); d.setHours(0,0,0,0); return d>=today0(); });
-  if (activeFilter!=='all') items=items.filter(h=>h.subject===activeFilter);
-  items.sort((a,b)=>new Date(a.due)-new Date(b.due));
-  el.innerHTML = items.length ? items.map(cardHTML).join('') : `<div class="empty"><div class="ico">🎉</div><p>Nincs aktív házi feladat!</p></div>`;
+  let items = activeHW();
+  if (activeFilter !== 'all') items = items.filter(h => h.subject === activeFilter);
+  items.sort((a, b) => new Date(a.due) - new Date(b.due));
+  document.getElementById('hwList').innerHTML = items.length
+    ? items.map(cardHTML).join('')
+    : `<div class="empty"><div class="ico">🎉</div><p>Nincs aktív házi feladat!</p></div>`;
 }
 
 function renderNotifyList() {
-  const el = document.getElementById('notifyList');
-  let items = homeworks.filter(h => { const d=new Date(h.due); d.setHours(0,0,0,0); return d>=today0(); }).sort((a,b)=>new Date(a.due)-new Date(b.due));
-  if (!items.length) { el.innerHTML=`<div class="empty"><div class="ico">💬</div><p>Nincs aktív feladat.</p></div>`; return; }
-  el.innerHTML = items.map(h=>{
-    const {text,cls}=dueInfo(h.due);
-    return `<div class="hw-card" onclick="openNotify('${h.id}')">
-      <div class="hw-head"><div class="hw-subject">${h.subject}</div><div class="hw-badge ${cls}">${text}</div></div>
-      <div class="hw-desc">${h.desc}</div>
-      <div style="margin-top:8px;font-size:13px;color:var(--accent);font-weight:700;">💬 Értesítő generálása →</div>
-    </div>`;
-  }).join('');
+  const items = activeHW().sort((a, b) => new Date(a.due) - new Date(b.due));
+  document.getElementById('notifyList').innerHTML = items.length
+    ? items.map(h => {
+        const { text, cls } = dueInfo(h.due);
+        return `<div class="card" onclick="openNotify('${h.id}')">
+          <div class="card-head"><div class="subj">${h.subject}</div><div class="badge ${cls}">${text}</div></div>
+          <div class="desc">${h.desc}</div>
+          <div style="margin-top:8px;font-size:13px;color:var(--blue);font-weight:700;">💬 Értesítő generálása →</div>
+        </div>`;
+      }).join('')
+    : `<div class="empty"><div class="ico">💬</div><p>Nincs aktív feladat.</p></div>`;
 }
 
 function renderHistory() {
-  const el = document.getElementById('historyList');
-  let items = homeworks.filter(h => { const d=new Date(h.due); d.setHours(0,0,0,0); return d<today0(); }).sort((a,b)=>new Date(b.due)-new Date(a.due));
-  if (!items.length) { el.innerHTML=`<div class="empty"><div class="ico">📂</div><p>Még nincs archivált feladat.</p></div>`; return; }
-  el.innerHTML='<div class="section-label">Lejárt feladatok</div>'+items.map(cardHTML).join('');
+  const items = homeworks.filter(h => { const d = new Date(h.due); d.setHours(0,0,0,0); return d < today0(); })
+    .sort((a, b) => new Date(b.due) - new Date(a.due));
+  document.getElementById('historyList').innerHTML = items.length
+    ? '<div class="sec-label">Lejárt feladatok</div>' + items.map(cardHTML).join('')
+    : `<div class="empty"><div class="ico">📂</div><p>Még nincs archivált feladat.</p></div>`;
 }
 
-// ══════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════
 // DETAIL
-// ══════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════
 function openDetail(id) {
-  const h = homeworks.find(x=>x.id===id); if (!h) return;
-  const {text,cls} = dueInfo(h.due);
-  const imgs = h.images||[];
+  const h = homeworks.find(x => x.id === id); if (!h) return;
+  const { text, cls } = dueInfo(h.due);
+  const imgs = h.images || [];
   document.getElementById('detailContent').innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
-      <div style="font-size:21px;font-weight:900;">${h.subject}</div>
-      <div class="hw-badge ${cls}" style="font-size:13px;">${text}</div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:11px;">
+      <div style="font-size:20px;font-weight:900;">${h.subject}</div>
+      <div class="badge ${cls}" style="font-size:13px;">${text}</div>
     </div>
-    <div style="font-size:16px;line-height:1.6;margin-bottom:8px;">${h.desc}</div>
-    ${h.note?`<div style="font-size:14px;color:var(--muted);margin-bottom:6px;">📌 ${h.note}</div>`:''}
-    <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">Feltöltötte: <b>${h.uploader}</b> · ${fmtDateTime(h.uploaded)}</div>
-    ${imgs.length?`<div class="gallery">${imgs.map(u=>`<img src="${u}" onclick="viewImg('${u}')">`).join('')}</div>`:''}
-    <div style="display:flex;flex-direction:column;gap:8px;margin-top:16px;">
-      <button class="btn btn-primary btn-full" onclick="openNotify('${id}');closeModal('detailModal')">💬 Értesítő generálása</button>
+    <div style="font-size:15px;line-height:1.6;margin-bottom:7px;">${h.desc}</div>
+    ${h.note ? `<div style="font-size:14px;color:var(--ink2);margin-bottom:6px;">📌 ${h.note}</div>` : ''}
+    <div style="font-size:12px;color:var(--ink2);margin-bottom:11px;">Feltöltötte: <b>${h.uploader}</b> · ${fmtDT(h.uploaded)}</div>
+    ${imgs.length ? `<div class="gallery">${imgs.map(u => `<img src="${u}" onclick="viewImg('${u}')">`).join('')}</div>` : ''}
+    <div class="detail-actions">
+      <button class="btn btn-primary btn-full" onclick="openNotify('${id}');closeSheet('detailSheet')">💬 Értesítő generálása</button>
       <button class="btn btn-secondary btn-full" onclick="openRequestNotify('${id}')">🙋 Feltöltést kér üzenet</button>
-      <button class="btn btn-danger btn-full" onclick="deleteHW('${id}')">🗑️ Törlés</button>
+      ${gUser ? `<button class="btn btn-danger btn-full" onclick="deleteHW('${id}')">🗑️ Törlés</button>` : ''}
     </div>`;
-  openModal('detailModal');
+  openSheet('detailSheet');
 }
 
-function viewImg(url) {
-  document.getElementById('viewerImg').src = url;
-  openModal('imgViewer');
-}
+function viewImg(url) { document.getElementById('viewerImg').src = url; openSheet('imgViewer'); }
 
-// ══════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════
 // NOTIFY
-// ══════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════
 function openNotify(id) {
-  const h = homeworks.find(x=>x.id===id); if (!h) return;
-  let msg = `📚 Házi feladat – ${cfg.class}\n\n`;
+  const h = homeworks.find(x => x.id === id); if (!h) return;
+  let msg = `📚 Házi feladat – ${APP_CONFIG.CLASS_NAME}\n\n`;
   msg += `📖 Tantárgy: ${h.subject}\n`;
   msg += `✏️ Feladat: ${h.desc}\n`;
   msg += `📅 Határidő: ${fmtDate(h.due)}\n`;
   if (h.note) msg += `📌 Megjegyzés: ${h.note}\n`;
-  if ((h.images||[]).length) msg += `🖼️ Képek: ${h.images.length} db (az appban megtekinthető)\n`;
+  if ((h.images||[]).length) msg += `🖼️ ${h.images.length} kép csatolva (app-ban megtekinthető)\n`;
   msg += `\n✅ Feltöltötte: ${h.uploader}`;
   document.getElementById('notifyText').textContent = msg;
-  openModal('notifyModal');
+  openSheet('notifySheet');
 }
 
 function openRequestNotify(id) {
-  const h = homeworks.find(x=>x.id===id); if (!h) return;
+  const h = homeworks.find(x => x.id === id); if (!h) return;
   let msg = `🙏 Sziasztok!\n\nMég nem tudjuk a ${h.subject} házi feladatot (${fmtDate(h.due)}).\n\nValaki fel tudná tölteni? Köszönöm! 🙂`;
   document.getElementById('notifyText').textContent = msg;
-  closeModal('detailModal'); openModal('notifyModal');
+  closeSheet('detailSheet'); openSheet('notifySheet');
 }
 
 function copyNotify() {
   const t = document.getElementById('notifyText').textContent;
-  navigator.clipboard.writeText(t).then(()=>showToast('✅ Másolva! Illeszd be Messengerbe.')).catch(()=>{
-    const ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
-    showToast('✅ Másolva!');
-  });
+  navigator.clipboard.writeText(t)
+    .then(() => showToast('✅ Másolva! Illeszd be Messengerbe.'))
+    .catch(() => { const ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); showToast('✅ Másolva!'); });
 }
 
-// ══════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════
 // DELETE
-// ══════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════
 async function deleteHW(id) {
   if (!confirm('Biztosan törlöd?')) return;
-  homeworks = homeworks.filter(h=>h.id!==id);
-  localStorage.setItem('hazik_hw', JSON.stringify(homeworks));
-  try { await saveIndexToGitHub(); showToast('🗑️ Törölve.'); } catch { showToast('⚠️ Helyi törlés ok, GitHub szinkron sikertelen.'); }
-  closeModal('detailModal'); renderAll();
+  try {
+    await deleteFromSheet(id);
+    homeworks = homeworks.filter(h => h.id !== id);
+    localStorage.setItem('hz_hw', JSON.stringify(homeworks));
+    showToast('🗑️ Törölve.');
+  } catch { showToast('⚠️ Törlés sikertelen.'); }
+  closeSheet('detailSheet'); renderAll();
 }
 
-// ══════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════
 // SETTINGS
-// ══════════════════════════════════════════════════════════════════
-function openSettingsModal() {
-  document.getElementById('sClass').value = cfg.class;
-  document.getElementById('sName').value  = cfg.name;
-  document.getElementById('sToken').value = cfg.token;
-  document.getElementById('sUser').value  = cfg.user;
-  document.getElementById('sRepo').value  = cfg.repo;
-  openModal('settingsModal');
-}
+// ══════════════════════════════════════════════════════
 function saveSettings() {
-  cfg.class = document.getElementById('sClass').value || cfg.class;
-  cfg.name  = document.getElementById('sName').value  || cfg.name;
-  cfg.token = document.getElementById('sToken').value || cfg.token;
-  cfg.user  = document.getElementById('sUser').value  || cfg.user;
-  cfg.repo  = document.getElementById('sRepo').value  || cfg.repo;
-  localStorage.setItem('hazik_cfg', JSON.stringify(cfg));
-  document.getElementById('classLabel').textContent = cfg.class;
-  closeModal('settingsModal');
-  showToast('✅ Beállítások mentve!');
+  const n = document.getElementById('sName').value.trim();
+  if (n) localStorage.setItem('hz_name', n);
+  closeSheet('settingsSheet');
+  showToast('✅ Mentve!');
 }
 
-// ══════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════
 // UI HELPERS
-// ══════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════
 function switchTab(name) {
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
-  const tabs=['list','notify','history'];
-  document.querySelectorAll('.tab')[tabs.indexOf(name)].classList.add('active');
-  document.getElementById('view-'+name).classList.add('active');
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('on'));
+  const names = ['list','notify','history'];
+  document.querySelectorAll('.tab')[names.indexOf(name)].classList.add('on');
+  document.getElementById('view-' + name).classList.add('on');
 }
 
-function openAddModal() {
-  pendingImgs=[];
-  document.getElementById('newDesc').value='';
-  document.getElementById('newNote').value='';
-  document.getElementById('previewGrid').innerHTML='';
-  document.getElementById('progressBar').style.display='none';
-  const t=new Date(); t.setDate(t.getDate()+1);
-  document.getElementById('newDue').value=t.toISOString().split('T')[0];
-  openModal('addModal');
+function openAddSheet() {
+  pendingImgs = []; renderPreviews();
+  document.getElementById('newDesc').value = '';
+  document.getElementById('newNote').value = '';
+  document.getElementById('progressWrap').style.display = 'none';
+  const t = new Date(); t.setDate(t.getDate() + 1);
+  document.getElementById('newDue').value = t.toISOString().split('T')[0];
+  renderAuthBanners();
+  openSheet('addSheet');
 }
 
-function openModal(id) { document.getElementById(id).classList.add('open'); }
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function openSheet(id) { document.getElementById(id).classList.add('on'); }
+function closeSheet(id) { document.getElementById(id).classList.remove('on'); }
 
-let toastTimer;
-function showToast(msg, dur=2600) {
-  clearTimeout(toastTimer);
-  const t=document.getElementById('toast');
-  t.textContent=msg; t.classList.add('show');
-  if (dur<99999) toastTimer=setTimeout(()=>t.classList.remove('show'), dur);
+let _toastTimer;
+function showToast(msg, dur = 2700) {
+  clearTimeout(_toastTimer);
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('on');
+  if (dur < 99999) _toastTimer = setTimeout(() => t.classList.remove('on'), dur);
 }
-function hideToast() { document.getElementById('toast').classList.remove('show'); }
-
-// Override settings button to pre-fill
-document.querySelector('[onclick="openModal(\'settingsModal\')"]').onclick = openSettingsModal;
-
-init();
+function hideToast() { document.getElementById('toast').classList.remove('on'); }
 </script>
 </body>
 </html>
