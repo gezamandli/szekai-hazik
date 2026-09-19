@@ -1506,22 +1506,21 @@ function renderHelpTab(){
 
 
 function exportSelectedExcel(){
-  if(!selectedIds.size){showToast('⚠️ Jelölj ki legalább egy feladatot!');return;}
+  if(!selectedIds.size){showToast("Jelolj ki feladatot!");return;}
   const items=[...selectedIds].map(id=>homeworks.find(h=>h.id===id)).filter(Boolean);
   items.sort((a,b)=>new Date(a.due||0)-new Date(b.due||0));
-  let csv='Tantárgy,Feladat,Határidő,Megjegyzés,Feltöltötte,Feltöltve,Képek\n';
+  let csv="Tantargy,Feladat,Hatarido,Megjegyzes,Feltoltotte,Feltoltve,Kepek\n";
   items.forEach(h=>{
-    const row=[h.subject,h.desc,h.due||'',h.note||'',h.uploader,fmtDT(h.uploaded),(h.images||[]).length]
+    const row=[h.subject,h.desc,h.due||"",h.note||"",h.uploader,fmtDT(h.uploaded),(h.images||[]).length]
       .map(v=>'"'+String(v).replace(/"/g,'""')+'"');
-    csv+=row.join(',')+'
-';
+    csv+=row.join(",")+String.fromCharCode(10);
   });
-  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
-  const a=document.createElement('a');
+  const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
+  const a=document.createElement("a");
   a.href=URL.createObjectURL(blob);
-  a.download=`hazik_kivalasztott_${new Date().toISOString().slice(0,10)}.csv`;
+  a.download="hazik_"+new Date().toISOString().slice(0,10)+".csv";
   a.click();
-  showToast('📥 Exportálva!');
+  showToast("Exportalva!");
 }
 
 </script>
