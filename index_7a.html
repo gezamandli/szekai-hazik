@@ -142,7 +142,6 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 <nav class="tabs">
   <div class="tab on" id="tab-list">📋 Feladatok</div>
   <div class="tab" id="tab-all">📦 Összes</div>
-  <div class="tab" id="tab-notify">💬 Értesítő</div>
   <div class="tab" id="tab-request">🙋 Kérés</div>
   <div class="tab" id="tab-trash">🗑️ Kuka</div>
 </nav>
@@ -161,10 +160,6 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
   <div id="hwListAll"></div>
 </div>
 
-<div id="view-notify" class="view">
-  <p style="font-size:14px;color:var(--ink2);margin-bottom:14px;">Válassz feladatot – elkészül a Messenger üzenet.</p>
-  <div id="notifyList"></div>
-</div>
 
 <div id="view-request" class="view"><div id="requestContent"></div></div>
 <div id="view-trash" class="view"><div id="trashList"></div></div>
@@ -320,7 +315,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('addSheet').onclick=e=>{if(e.target===document.getElementById('addSheet'))closeSheet('addSheet');};
   document.getElementById('detailSheet').onclick=e=>{if(e.target===document.getElementById('detailSheet'))closeSheet('detailSheet');};
   document.getElementById('notifySheet').onclick=e=>{if(e.target===document.getElementById('notifySheet'))closeSheet('notifySheet');};
-  ['list','all','notify','request','trash'].forEach(name=>{
+  ['list','all','request','trash'].forEach(name=>{
     document.getElementById('tab-'+name).onclick=()=>{switchTab(name);if(name==='trash')loadTrash();if(name==='request')renderRequestTab();renderAll();};
   });
   const s=localStorage.getItem('hz_s_7a');
@@ -578,7 +573,7 @@ function exportExcel(mode){
 }
 
 // ── Render ────────────────────────────────────────────
-function renderAll(){renderFilters();renderList();renderAll2();renderNotifyList();}
+function renderAll(){renderFilters();renderList();renderAll2();}
 
 function renderFilters(){
   const subs=[...new Set(homeworks.map(h=>h.subject))];
@@ -685,8 +680,8 @@ function openDetail(id){
         <button class="dl-btn" data-url="${u}" data-idx="${i+1}" style="position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,.55);color:#fff;border:none;border-radius:6px;padding:3px 6px;font-size:11px;cursor:pointer">⬇️</button>
       </div>`).join('')}</div>`:''}
     <div class="detail-actions">
-      <button class="btn btn-primary btn-full" id="detNotifyBtn">💬 Értesítő generálása</button>
-      <button class="btn btn-secondary btn-full" id="detRequestBtn">🙋 Feltöltést kér üzenet</button>
+      <button class="btn btn-primary btn-full" id="detNotifyBtn" style="background:#0084ff">💬 Értesítő küldése Messengerben</button>
+      <button class="btn btn-secondary btn-full" id="detCopyBtn">📋 Értesítő másolása</button>
       <button class="btn btn-secondary btn-full" id="detEditBtn">✏️ Szerkesztés</button>
       <button class="btn btn-danger btn-full" id="detDeleteBtn">🗑️ Törlés</button>
     </div>`;
@@ -695,8 +690,9 @@ function openDetail(id){
   document.querySelectorAll('.dl-btn').forEach(btn=>btn.onclick=e=>{e.stopPropagation();downloadImg(btn.dataset.url,+btn.dataset.idx);});
   const dlAll=document.getElementById('dlAllBtn');
   if(dlAll)dlAll.onclick=()=>downloadAll(imgs);
-  document.getElementById('detNotifyBtn').onclick=()=>{openNotify(id);closeSheet('detailSheet');};
-  document.getElementById('detRequestBtn').onclick=()=>openRequestNotify(id);
+  document.getElementById('detNotifyBtn').onclick=()=>{sendToMessenger(buildNotifyMsg(id));};
+  document.getElementById('detCopyBtn').onclick=()=>{copyNotifyMsg(id);};
+  document.getElementById('detRequestBtn') && (document.getElementById('detRequestBtn').onclick=()=>{closeSheet('detailSheet');switchTab('request');renderRequestTab();});
   document.getElementById('detEditBtn').onclick=()=>{closeSheet('detailSheet');openAddSheet(id);};
   document.getElementById('detDeleteBtn').onclick=()=>deleteHW(id);
   openSheet('detailSheet');
@@ -728,8 +724,8 @@ function openAddSheet(id){
 }
 
 // ── Notify ────────────────────────────────────────────
-function openNotify(id){
-  const h=homeworks.find(x=>x.id===id);if(!h)return;
+function buildNotifyMsg(id){
+  const h=homeworks.find(x=>x.id===id);if(!h)return'';
   let msg=`📚 Házi feladat – ${CFG.CNAME}\n\n`;
   msg+=`📖 Tantárgy: ${h.subject}\n`;
   msg+=`✏️ Feladat: ${h.desc}\n`;
@@ -737,15 +733,23 @@ function openNotify(id){
   if(h.note)msg+=`📌 Megjegyzés: ${h.note}\n`;
   const imgs=h.images||[];
   if(imgs.length===1){
-    msg+=`\n🖼️ Kép:\n${imgs[0]}\n`;
+    msg+=`\n🖼️ Kép: ${imgs[0]}\n`;
   } else if(imgs.length>1){
     msg+=`\n🖼️ Képek (${imgs.length} db):\n`;
     imgs.forEach((u,i)=>msg+=`${i+1}. ${u}\n`);
   }
   msg+=`\n✅ Feltöltötte: ${h.uploader}`;
-  document.getElementById('notifyText').textContent=msg;
-  openSheet('notifySheet');
+  return msg;
 }
+
+function copyNotifyMsg(id){
+  const t=buildNotifyMsg(id);
+  navigator.clipboard.writeText(t).then(()=>showToast('✅ Másolva!')).catch(()=>{
+    const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);showToast('✅ Másolva!');
+  });
+}
+
+function openNotify(id){ sendToMessenger(buildNotifyMsg(id)); }
 function openRequestNotify(id){
   const h=homeworks.find(x=>x.id===id);if(!h)return;
   let msg=`🙏 Sziasztok!\n\nMég nem tudjuk a ${h.subject} házi feladatot${h.due?' ('+fmtDate(h.due)+')':''}.\n\nValaki fel tudná tölteni? Köszönöm! 🙂`;
@@ -759,7 +763,7 @@ function copyNotify(){
 
 // ── Tab switch ────────────────────────────────────────
 function switchTab(name){
-  ['list','all','notify','request','trash'].forEach(n=>{
+  ['list','all','request','trash'].forEach(n=>{
     document.getElementById('tab-'+n).classList.toggle('on',n===name);
     document.getElementById('view-'+n).classList.toggle('on',n===name);
   });
