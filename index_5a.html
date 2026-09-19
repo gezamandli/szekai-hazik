@@ -342,23 +342,18 @@ function parseCSV(csv){
   }).filter(h=>h.id);
 }
 
-async function sheetRequest(payload){
-  const url = CFG.SCRIPT_URL + '?sheetId=' + encodeURIComponent(CFG.SHEET_ID);
-  // Use no-cors for write operations (fire and forget)
-  if(payload.action !== 'loadTrash'){
-    await fetch(url, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: {'Content-Type': 'text/plain'},
-      body: JSON.stringify({...payload, sheetId: CFG.SHEET_ID})
-    });
-    return {status:'ok'};
-  }
-  // For loadTrash use GET with callback (JSONP-style via url params)
-  const getUrl = CFG.SCRIPT_URL + '?action=loadTrash&sheetId=' + encodeURIComponent(CFG.SHEET_ID) + '&t=' + Date.now();
-  const r = await fetch(getUrl);
-  if(!r.ok) throw new Error('Load failed');
-  return r.json();
+async function sheetRequest(params){
+  const base = CFG.SCRIPT_URL + '?sheetId=' + encodeURIComponent(CFG.SHEET_ID);
+  const qs = Object.entries(params).map(([k,v])=>
+    encodeURIComponent(k)+'='+encodeURIComponent(typeof v==='object'?JSON.stringify(v):v)
+  ).join('&');
+  const url = base + '&' + qs + '&t=' + Date.now();
+  const r = await fetch(url);
+  if(!r.ok) throw new Error('Script hiba ' + r.status);
+  const j = await r.json();
+  // Show version in footer
+  if(j.version) document.getElementById('appVersion').textContent = 'v' + j.version + ' · Script OK';
+  return j;
 }
 
 // ── Cloudinary ───────────────────────────────────────
@@ -493,7 +488,7 @@ async function deleteHW(id){
   homeworks=homeworks.filter(h=>h.id!==id);
   localStorage.setItem('hz_hw_5a',JSON.stringify(homeworks));
   try{
-    await sheetRequest({action:'delete',id,deletedBy:session.name});
+    await sheetRequest({action:'delete',id:id,deletedBy:session.name});
     showToast('🗑️ Törölve – Kukából visszaállítható');
   }catch{showToast('🗑️ Helyben törölve.');}
   closeSheet('detailSheet');renderAll();
@@ -542,7 +537,7 @@ async function restoreHW(id){
   if(!confirm('Visszaállítod ezt a feladatot?'))return;
   showToast('⏳ Visszaállítás…',99999);
   try{
-    const r=await sheetRequest({action:'restore',id});
+    const r=await sheetRequest({action:'restore',id:id});
     await loadSheet();
     await loadTrash();
     hideToast();
@@ -556,7 +551,7 @@ async function restoreHW(id){
 async function permDeleteHW(id){
   if(!confirm('Véglegesen törlöd? Ez nem vonható vissza!'))return;
   try{
-    await sheetRequest({action:'permDelete',id});
+    await sheetRequest({action:'permDelete',id:id});
     await loadTrash();
     showToast('🗑️ Véglegesen törölve.');
   }catch{showToast('⚠️ Hiba a törlésnél.');}
@@ -750,5 +745,7 @@ function switchTab(name){
   });
 }
 </script>
+
+<div id="appVersion" style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none">App v2.1</div>
 </body>
 </html>
