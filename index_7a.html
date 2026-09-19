@@ -169,6 +169,12 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
   <div class="search-bar"><input type="search" id="searchList" placeholder="🔍 Keresés…" oninput="renderList()"></div>
   <div class="chips" id="filterBar"></div>
   <div class="date-filter-bar" id="dateFilterBar"></div>
+  <div id="dateRangePicker" style="display:none;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
+    <input type="date" id="dateFrom" style="padding:7px 10px;border:2px solid var(--line);border-radius:10px;font-size:13px;font-family:inherit;color:var(--ink)" onchange="applyDateRange()">
+    <span style="font-size:13px;color:var(--ink2)">–</span>
+    <input type="date" id="dateTo" style="padding:7px 10px;border:2px solid var(--line);border-radius:10px;font-size:13px;font-family:inherit;color:var(--ink)" onchange="applyDateRange()">
+    <button onclick="clearDateRange()" style="padding:7px 10px;border:2px solid var(--line);border-radius:10px;font-size:12px;font-weight:700;background:#fff;color:var(--ink2);cursor:pointer">✕ Törlés</button>
+  </div>
   <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
     <div>
     <button class="sel-btn" id="selectModeBtn" onclick="toggleSelectMode()">☑️ Kijelölés</button>
@@ -300,7 +306,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v6.4</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v6.5</span><span id="scriptVersion"></span></div>
 
 <script>
 const CFG = {
@@ -325,6 +331,8 @@ let trashItems = [];
 let selectMode = false;
 let selectedIds = new Set();
 let activeDateFilter = "all";
+let dateFrom = null;
+let dateTo = null;
 
 // ── Helpers ──────────────────────────────────────────
 function slugify(s){return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9]/g,'_').replace(/_+/g,'_').toLowerCase();}
@@ -1176,21 +1184,31 @@ function cardUrl(id){
 function renderDateFilters(){
   const bar=document.getElementById('dateFilterBar');if(!bar)return;
   const filters=[
-    {id:'all',label:'Bármikor'},{id:'today',label:'Ma'},
-    {id:'week',label:'Elmúlt hét'},{id:'month',label:'Elmúlt hónap'},
-    {id:'3month',label:'Elmúlt 3 hónap'}
+    {id:'all',label:'Bármikor'},
+    {id:'today',label:'Ma'},
+    {id:'week',label:'Elmúlt hét'},
+    {id:'range',label:'📅 Időszak'}
   ];
   bar.innerHTML=filters.map(f=>`<div class="chip ${activeDateFilter===f.id?'on':''}" onclick="setDateFilter('${f.id}')">${f.label}</div>`).join('');
 }
-function setDateFilter(f){activeDateFilter=f;renderList();renderDateFilters();}
+function setDateFilter(f){
+  activeDateFilter=f;
+  const picker=document.getElementById('dateRangePicker');
+  if(picker) picker.style.display=(f==='range')?'flex':'none';
+  if(f!=='range'){dateFrom=null;dateTo=null;}
+  renderList();
+  renderDateFilters();
+}
 function passesDateFilter(h){
   if(activeDateFilter==='all')return true;
   const up=new Date(h.uploaded),now=new Date();
   if(activeDateFilter==='today')return up.toDateString()===now.toDateString();
-  const diff=(now-up)/(864e5);
-  if(activeDateFilter==='week')return diff<=7;
-  if(activeDateFilter==='month')return diff<=30;
-  if(activeDateFilter==='3month')return diff<=90;
+  if(activeDateFilter==='week'){const diff=(now-up)/(864e5);return diff<=7;}
+  if(activeDateFilter==='range'){
+    if(dateFrom&&up<dateFrom)return false;
+    if(dateTo){const dt=new Date(dateTo);dt.setHours(23,59,59);if(up>dt)return false;}
+    return true;
+  }
   return true;
 }
 function toggleSelectMode(){
@@ -1585,6 +1603,21 @@ function updateDayChips(){
           +'<span onclick="toggleReqDay(\"'+d+'\")" style="cursor:pointer;font-size:12px;margin-left:4px;opacity:.7">✕</span></div>';
       }).join('')
     : '<span style="font-size:13px;color:var(--ink2)">Válassz dátumot fentebb</span>';
+}
+
+
+function applyDateRange(){
+  const f=document.getElementById('dateFrom').value;
+  const t=document.getElementById('dateTo').value;
+  dateFrom=f?new Date(f):null;
+  dateTo=t?new Date(t):null;
+  renderList();
+}
+function clearDateRange(){
+  dateFrom=null;dateTo=null;
+  document.getElementById('dateFrom').value='';
+  document.getElementById('dateTo').value='';
+  setDateFilter('all');
 }
 
 </script>
