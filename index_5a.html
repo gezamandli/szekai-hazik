@@ -302,7 +302,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v6.6</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v6.7</span><span id="scriptVersion"></span></div>
 
 <script>
 const CFG = {
@@ -1197,19 +1197,18 @@ function setDateFilter(f){
 }
 function passesDateFilter(h){
   if(activeDateFilter==='all')return true;
-  const up=new Date(h.uploaded);
+  // Compare using date strings only (YYYY-MM-DD) to avoid timezone issues
+  const upStr=h.uploaded?h.uploaded.slice(0,10):'';
   const now=new Date();
-  if(activeDateFilter==='today')return up.toDateString()===now.toDateString();
-  if(activeDateFilter==='week'){const diff=(now-up)/(864e5);return diff<=7;}
+  const todayStr=now.toISOString().slice(0,10);
+  if(activeDateFilter==='today')return upStr===todayStr;
+  if(activeDateFilter==='week'){
+    const weekAgo=new Date(now-7*864e5).toISOString().slice(0,10);
+    return upStr>=weekAgo;
+  }
   if(activeDateFilter==='range'){
-    if(dateFrom){
-      const from=new Date(dateFrom);from.setHours(0,0,0,0);
-      if(up<from)return false;
-    }
-    if(dateTo){
-      const to=new Date(dateTo);to.setHours(23,59,59,999);
-      if(up>to)return false;
-    }
+    if(dateFrom&&upStr<dateFrom)return false;
+    if(dateTo&&upStr>dateTo)return false;
     return true;
   }
   return true;
