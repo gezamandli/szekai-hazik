@@ -31,7 +31,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 .card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
 .subj{font-weight:800;font-size:15px}
 .badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap;flex-shrink:0}
-.ok{background:#d1fae5;color:var(--green)}.soon{background:#fef3c7;color:var(--amber)}.past{background:#fee2e2;color:var(--red)}.nodue{background:#f3f4f6;color:var(--ink2)}
+.ok{background:#d1fae5;color:var(--green)}.soon{background:#fef3c7;color:var(--amber)}.past{background:#fee2e2;color:var(--red)}.nodue{background:#f3f4f6;color:var(--ink2)}.type-temaзaro{background:#fef3c7;color:#92400e;border:1.5px solid #f59e0b}.type-dolgozat{background:#ede9fe;color:#5b21b6}.type-projekt{background:#d1fae5;color:#065f46}.type-anyag{background:#e0f2fe;color:#075985}
 .desc{font-size:14px;color:#374151;margin-top:6px;line-height:1.45}
 .meta{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;align-items:center}
 .tag{font-size:11px;background:var(--blue-bg);color:var(--blue);padding:2px 8px;border-radius:10px;font-weight:600}
@@ -141,7 +141,6 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 
 <nav class="tabs">
   <div class="tab on" id="tab-list">📋 Feladatok</div>
-  <div class="tab" id="tab-all">📦 Összes</div>
   <div class="tab" id="tab-request">🙋 Kérés</div>
   <div class="tab" id="tab-trash">🗑️ Kuka</div>
 </nav>
@@ -153,12 +152,6 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
   <div id="hwList"></div>
 </div>
 
-<div id="view-all" class="view">
-  <div class="search-bar"><input type="search" id="searchAll" placeholder="🔍 Keresés…" oninput="renderAll2()"></div>
-  <div class="chips" id="filterBarAll"></div>
-  <button class="export-btn" onclick="exportExcel('all')">📥 Export Excelbe</button>
-  <div id="hwListAll"></div>
-</div>
 
 
 <div id="view-request" class="view"><div id="requestContent"></div></div>
@@ -189,6 +182,15 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
       <option>Közösségi nevelés</option>
       <option>Egyéb</option></select></div>
   <div class="field"><label>Feladat leírása</label><textarea id="newDesc" placeholder="Pl. Munkafüzet 34. oldal, 2-5. feladat"></textarea></div>
+  <div class="field"><label>Típus</label>
+    <select id="newType">
+      <option value="">Házi feladat</option>
+      <option value="temaзaro">⚠️ Témazáró</option>
+      <option value="dolgozat">📝 Dolgozat</option>
+      <option value="projekt">🎯 Projekt</option>
+      <option value="anyag">📖 Tanulnivaló anyag</option>
+    </select>
+  </div>
   <div class="field"><label>Határidő (opcionális)</label><input type="date" id="newDue"></div>
   <div class="field"><label>Megjegyzés (opcionális)</label><input type="text" id="newNote" placeholder="Pl. kell a füzet is"></div>
   <div class="field">
@@ -311,7 +313,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('addSheet').onclick=e=>{if(e.target===document.getElementById('addSheet'))closeSheet('addSheet');};
   document.getElementById('detailSheet').onclick=e=>{if(e.target===document.getElementById('detailSheet'))closeSheet('detailSheet');};
   document.getElementById('notifySheet').onclick=e=>{if(e.target===document.getElementById('notifySheet'))closeSheet('notifySheet');};
-  ['list','all','request','trash'].forEach(name=>{
+  ['list','request','trash'].forEach(name=>{
     document.getElementById('tab-'+name).onclick=()=>{switchTab(name);if(name==='trash')loadTrash();if(name==='request')renderRequestTab();renderAll();};
   });
   const s=localStorage.getItem('hz_s_5a');
@@ -453,6 +455,7 @@ function renderExistingPreviews(){
 // ── Save ─────────────────────────────────────────────
 async function saveHW(){
   const subject=document.getElementById('newSubject').value;
+  const type=document.getElementById('newType')?document.getElementById('newType').value:'';
   const desc=document.getElementById('newDesc').value.trim();
   const due=document.getElementById('newDue').value;
   const note=document.getElementById('newNote').value.trim();
@@ -475,14 +478,14 @@ async function saveHW(){
   const allImages=[...keepImgs,...newUrls];
   if(editingId){
     const hw=homeworks.find(h=>h.id===editingId);
-    hw.subject=subject;hw.desc=desc;hw.due=due;hw.note=note;hw.images=allImages;
+    hw.subject=subject;hw.type=type;hw.desc=desc;hw.due=due;hw.note=note;hw.images=allImages;
     if(cloudFolder)hw.cloudFolder=cloudFolder;
     try{
       await sheetRequest({action:'update',id:editingId,row:JSON.stringify([hw.id,hw.subject,hw.desc,hw.due,hw.note,hw.uploader,hw.uploaded,JSON.stringify(hw.images),hw.cloudFolder||''])});
       showToast('✅ Frissítve!');
     }catch{showToast('✅ Helyben frissítve');}
   }else{
-    const hw={id:Date.now().toString(),subject,desc,due,note,uploader:session.name,uploaded:new Date().toISOString(),images:allImages,cloudFolder};
+    const hw={id:Date.now().toString(),subject,type,desc,due,note,uploader:session.name,uploaded:new Date().toISOString(),images:allImages,cloudFolder};
     homeworks.push(hw);
     try{
       await sheetRequest({action:'append',row:JSON.stringify([hw.id,hw.subject,hw.desc,hw.due,hw.note,hw.uploader,hw.uploaded,JSON.stringify(hw.images),hw.cloudFolder||''])});
@@ -569,26 +572,23 @@ function exportExcel(mode){
 }
 
 // ── Render ────────────────────────────────────────────
-function renderAll(){renderFilters();renderList();renderAll2();}
+function renderAll(){renderFilters();renderList();}
 
 function renderFilters(){
   const subs=[...new Set(homeworks.map(h=>h.subject))];
-  ['filterBar','filterBarAll'].forEach((barId,idx)=>{
-    const bar=document.getElementById(barId);
-    bar.innerHTML='';
-    const all=document.createElement('div');
-    all.className='chip on';all.textContent='Összes';
-    all.onclick=()=>{if(idx===0){activeFilter='all';}else{activeFilterAll='all';}renderAll();};
-    bar.appendChild(all);
-    subs.forEach(s=>{
-      const c=document.createElement('div');
-      c.className='chip';c.textContent=s;
-      c.onclick=()=>{if(idx===0){activeFilter=s;}else{activeFilterAll=s;}renderAll();};
-      bar.appendChild(c);
-    });
+  const bar=document.getElementById('filterBar');
+  bar.innerHTML='';
+  const all=document.createElement('div');
+  all.className='chip on';all.textContent='Összes';
+  all.onclick=()=>{activeFilter='all';renderAll();};
+  bar.appendChild(all);
+  subs.forEach(s=>{
+    const c=document.createElement('div');
+    c.className='chip';c.textContent=s;
+    c.onclick=()=>{activeFilter=s;renderAll();};
+    bar.appendChild(c);
   });
   document.querySelectorAll('#filterBar .chip').forEach(c=>c.classList.toggle('on',c.textContent===(activeFilter==='all'?'Összes':activeFilter)));
-  document.querySelectorAll('#filterBarAll .chip').forEach(c=>c.classList.toggle('on',c.textContent===(activeFilterAll==='all'?'Összes':activeFilterAll)));
 }
 
 function activeHW(){return homeworks.filter(h=>{if(!h.due)return true;const d=new Date(h.due);d.setHours(0,0,0,0);return d>=today0();});}
@@ -599,12 +599,19 @@ function filterSearch(items, searchId){
   return items.filter(h=>h.subject.toLowerCase().includes(q)||h.desc.toLowerCase().includes(q)||(h.note||'').toLowerCase().includes(q)||(h.uploader||'').toLowerCase().includes(q));
 }
 
+const TYPE_LABELS={'temaзaro':'⚠️ Témazáró','dolgozat':'📝 Dolgozat','projekt':'🎯 Projekt','anyag':'📖 Anyag'};
+
 function cardHTML(h){
   const{text,cls}=dueInfo(h.due);
   const imgs=Array.isArray(h.images)?h.images.slice(0,3):[];
   const extra=Array.isArray(h.images)?h.images.length-3:0;
-  return`<div class="card" data-id="${h.id}">
-    <div class="card-head"><div class="subj">${h.subject}</div><div class="badge ${cls}">${text}</div></div>
+  const isPast=h.due&&new Date(h.due)<today0();
+  const typeLabel=h.type&&TYPE_LABELS[h.type]?`<span class="badge type-${h.type}" style="margin-left:4px">${TYPE_LABELS[h.type]}</span>`:'';
+  return`<div class="card" data-id="${h.id}" style="${isPast?'opacity:.65;':''}${h.type==='temaзaro'?'border-left:4px solid #f59e0b;':''}${h.type==='dolgozat'?'border-left:4px solid #7c3aed;':''}">
+    <div class="card-head">
+      <div class="subj">${h.subject}${typeLabel}</div>
+      <div class="badge ${cls}">${text}</div>
+    </div>
     <div class="desc">${h.desc}</div>
     ${imgs.length?`<div class="thumbs">${imgs.map(u=>`<img class="thumb" src="${u}" loading="lazy" onerror="this.style.display='none'">`).join('')}${extra>0?`<div class="thumb-more">+${extra}</div>`:''}</div>`:''}
     <div class="meta">
@@ -620,12 +627,13 @@ function attachClicks(containerId){
 }
 
 function renderList(){
-  let items=activeHW();
+  let items=[...homeworks];
   if(activeFilter!=='all')items=items.filter(h=>h.subject===activeFilter);
   items=filterSearch(items,'searchList');
-  items.sort((a,b)=>{if(!a.due)return 1;if(!b.due)return -1;return new Date(a.due)-new Date(b.due);});
+  // Sort: newest upload first
+  items.sort((a,b)=>new Date(b.uploaded)-new Date(a.uploaded));
   const el=document.getElementById('hwList');
-  el.innerHTML=items.length?items.map(cardHTML).join(''):`<div class="empty"><div class="ico">🎉</div><p>Nincs aktív házi feladat!</p></div>`;
+  el.innerHTML=items.length?items.map(cardHTML).join(''):`<div class="empty"><div class="ico">🎉</div><p>Nincs feladat!</p></div>`;
   attachClicks('hwList');
   document.getElementById('tab-list').textContent='📋 Feladatok'+(items.length?' ('+items.length+')':'');
 }
@@ -707,6 +715,7 @@ function openAddSheet(id){
     document.getElementById('newDesc').value=h.desc;
     document.getElementById('newDue').value=h.due||'';
     document.getElementById('newNote').value=h.note||'';
+    if(document.getElementById('newType'))document.getElementById('newType').value=h.type||'';
     keepImgs=[...(Array.isArray(h.images)?h.images:[])];
     renderExistingPreviews();
   }else{
@@ -720,6 +729,11 @@ function openAddSheet(id){
 }
 
 // ── Notify ────────────────────────────────────────────
+function cloudShort(url){
+  // Convert to shorter Cloudinary URL - remove version number for cleaner link
+  return url.replace('/image/upload/v\d+/','/image/upload/');
+}
+
 function buildNotifyMsg(id){
   const h=homeworks.find(x=>x.id===id);if(!h)return'';
   let msg=`📚 Házi feladat – ${CFG.CNAME}\n\n`;
@@ -728,11 +742,9 @@ function buildNotifyMsg(id){
   if(h.due)msg+=`📅 Határidő: ${fmtDate(h.due)}\n`;
   if(h.note)msg+=`📌 Megjegyzés: ${h.note}\n`;
   const imgs=h.images||[];
-  if(imgs.length===1){
-    msg+=`\n🖼️ Kép: ${imgs[0]}\n`;
-  } else if(imgs.length>1){
-    msg+=`\n🖼️ Képek (${imgs.length} db):\n`;
-    imgs.forEach((u,i)=>msg+=`${i+1}. ${u}\n`);
+  if(imgs.length){
+    msg+=`\n🖼️ Kép${imgs.length>1?'ek ('+imgs.length+' db)':''}:\n`;
+    imgs.forEach(u=>msg+=cloudShort(u)+'\n');
   }
   msg+=`\n✅ Feltöltötte: ${h.uploader}`;
   return msg;
@@ -759,7 +771,7 @@ function copyNotify(){
 
 // ── Tab switch ────────────────────────────────────────
 function switchTab(name){
-  ['list','all','request','trash'].forEach(n=>{
+  ['list','request','trash'].forEach(n=>{
     document.getElementById('tab-'+n).classList.toggle('on',n===name);
     document.getElementById('view-'+n).classList.toggle('on',n===name);
   });
