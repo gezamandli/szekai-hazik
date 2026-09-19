@@ -783,6 +783,9 @@ function buildNotifyMsg(id){
 `;
   if(h.note)msg+=`📌 Megjegyzés: ${h.note}
 `;
+  const imgs=h.images||[];
+  if(imgs.length)msg+=`🖼️ ${imgs.length} fotó az appban
+`;
   msg+=`
 ✅ Feltöltötte: ${h.uploader}`;
   msg+=`
