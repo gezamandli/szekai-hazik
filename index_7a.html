@@ -299,6 +299,7 @@ const CFG = {
   CLOUD_NAME:    'g8tinasd',
   UPLOAD_PRESET: 'szekai_hazik',
   CLOUD_FOLDER:  'hazik_7a',
+  VISION_KEY:    '***REMOVED***',
 };
 
 let session = null;
@@ -368,7 +369,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   };
   document.getElementById('notifySheet').onclick=e=>{if(e.target===document.getElementById('notifySheet'))closeSheet('notifySheet');};
   ['list','request','trash','help'].forEach(name=>{
-    document.getElementById('tab-'+name).onclick=()=>{switchTab(name);if(name==='trash')loadTrash();if(name==='request')renderRequestTab();renderAll();};
+    document.getElementById('tab-'+name).onclick=()=>{switchTab(name);if(name==='trash')loadTrash();else if(name==='request')renderRequestTab();else if(name==='help')renderHelpTab();else renderAll();};
   });
   const s=localStorage.getItem('hz_s_7a');
   if(s){session=JSON.parse(s);showApp();}
@@ -1249,12 +1250,15 @@ let favSet = new Set(); // loaded from cloud on login
 async function loadFavs(){
   try{
     const r = await sheetRequest({action:'loadFavs', userName:session.name});
-    favSet = new Set(r.data||[]);
-    localStorage.setItem('hz_fav_cache_7a', JSON.stringify([...favSet]));
-  }catch{
-    // fallback to cache
+    if(r.status==='ok'){
+      favSet = new Set(r.data||[]);
+      localStorage.setItem('hz_fav_cache_7a', JSON.stringify([...favSet]));
+    }
+  }catch(e){
+    // fallback to local cache silently
     try{ favSet=new Set(JSON.parse(localStorage.getItem('hz_fav_cache_7a')||'[]')); }catch{}
   }
+  renderList(); // re-render with fav data
 }
 
 function isFav(id){ return favSet.has(id); }
@@ -1276,7 +1280,7 @@ async function toggleFav(id,e){
       userName: session.name,
       hwId: id
     });
-  }catch{ showToast('⚠️ Kedvenc szinkron sikertelen'); }
+  }catch(e){ console.warn('Fav sync failed:', e); }
 }
 
 async function removeFavFromCloud(hwId){
@@ -1470,16 +1474,7 @@ async function ocrImage(imgUrl, btnEl, resultEl){
   resultEl.style.display='none';
 
   try{
-    // Fetch image and convert to base64
-    const resp = await fetch(imgUrl);
-    const blob = await resp.blob();
-    const b64 = await new Promise(res=>{
-      const fr=new FileReader();
-      fr.onload=()=>res(fr.result.split(',')[1]);
-      fr.readAsDataURL(blob);
-    });
-
-    // Call Google Vision API
+    // Send image URL directly to Vision API (no CORS fetch needed)
     const r = await fetch(
       'https://vision.googleapis.com/v1/images:annotate?key='+CFG.VISION_KEY,
       {
@@ -1487,7 +1482,7 @@ async function ocrImage(imgUrl, btnEl, resultEl){
         headers:{'Content-Type':'application/json'},
         body: JSON.stringify({
           requests:[{
-            image:{content: b64},
+            image:{source:{imageUri: imgUrl}},
             features:[{type:'DOCUMENT_TEXT_DETECTION', maxResults:1}]
           }]
         })
