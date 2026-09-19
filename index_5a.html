@@ -170,9 +170,10 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
   <div class="chips" id="filterBar"></div>
   <div class="date-filter-bar" id="dateFilterBar"></div>
   <div id="dateRangePicker" style="display:none;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
-    <input type="date" id="dateFrom" style="padding:7px 10px;border:2px solid var(--line);border-radius:10px;font-size:13px;font-family:inherit;color:var(--ink)">
+    <input type="date" id="dateFrom" style="padding:7px 10px;border:2px solid var(--line);border-radius:10px;font-size:13px;font-family:inherit;color:var(--ink)" onchange="applyDateRange()">
     <span style="font-size:13px;color:var(--ink2)">–</span>
-    <input type="date" id="dateTo" style="padding:7px 10px;border:2px solid var(--line);border-radius:10px;font-size:13px;font-family:inherit;color:var(--ink)">
+    <input type="date" id="dateTo" style="padding:7px 10px;border:2px solid var(--line);border-radius:10px;font-size:13px;font-family:inherit;color:var(--ink)" onchange="applyDateRange()">
+    <button onclick="applyDateRange()" style="padding:7px 10px;border:2px solid var(--blue);border-radius:10px;font-size:12px;font-weight:700;background:var(--blue);color:#fff;cursor:pointer">Szűrés</button>
     <button onclick="clearDateRange()" style="padding:7px 10px;border:2px solid var(--line);border-radius:10px;font-size:12px;font-weight:700;background:#fff;color:var(--ink2);cursor:pointer">✕ Törlés</button>
   </div>
   <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
@@ -302,7 +303,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v6.9</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v7.0</span><span id="scriptVersion"></span></div>
 
 <script>
 const CFG = {
@@ -386,9 +387,6 @@ document.addEventListener('DOMContentLoaded',()=>{
   ['list','request','trash','help'].forEach(name=>{
     document.getElementById('tab-'+name).onclick=()=>{switchTab(name);if(name==='trash')loadTrash();else if(name==='request')renderRequestTab();else if(name==='help')renderHelpTab();else renderAll();};
   });
-  // Wire date range inputs
-  document.getElementById('dateFrom').addEventListener('change', applyDateRange);
-  document.getElementById('dateTo').addEventListener('change', applyDateRange);
   const s=localStorage.getItem('hz_s_5a');
   if(s){session=JSON.parse(s);showApp();}
 });
@@ -1612,10 +1610,11 @@ function updateDayChips(){
 
 
 function applyDateRange(){
-  const f=document.getElementById('dateFrom').value;
-  const t=document.getElementById('dateTo').value;
+  const f=document.getElementById('dateFrom')?document.getElementById('dateFrom').value:'';
+  const t=document.getElementById('dateTo')?document.getElementById('dateTo').value:'';
   dateFrom=f||null;
   dateTo=t||null;
+  console.log('applyDateRange called: from='+dateFrom+' to='+dateTo);
   if(!dateFrom&&!dateTo){setDateFilter('all');return;}
   activeDateFilter='range';
   renderList();
