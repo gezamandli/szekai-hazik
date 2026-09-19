@@ -955,28 +955,31 @@ function copyRequestMsg(){
 }
 
 
-function sendToMessenger(text){
-  // Copy to clipboard first
-  navigator.clipboard.writeText(text).catch(()=>{
+async function sendToMessenger(text){
+  // 1. Copy to clipboard
+  try{ await navigator.clipboard.writeText(text); }
+  catch(e){
     const ta=document.createElement('textarea');ta.value=text;
     document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);
-  });
-  // Try Messenger app deep link (mobile)
-  const encoded = encodeURIComponent(text);
+  }
+
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
   const isAndroid = /Android/.test(navigator.userAgent);
-  if(isIOS){
-    // iOS: try app, fallback to web
-    window.location.href = 'fb-messenger://share?text=' + encoded;
-    setTimeout(()=>{ window.open('https://www.messenger.com/t/me', '_blank'); }, 1500);
-  } else if(isAndroid){
-    window.location.href = 'intent://share/#Intent;scheme=fb-messenger;package=com.facebook.orca;end';
-    setTimeout(()=>{ window.open('https://www.messenger.com', '_blank'); }, 1500);
-  } else {
-    // Desktop: open messenger web
-    window.open('https://www.messenger.com', '_blank');
+
+  // 2. Try Web Share API (iOS Safari, Android Chrome) - native share sheet WITH text
+  if(navigator.share && (isIOS || isAndroid)){
+    try{
+      await navigator.share({ text: text });
+      return; // user handled it
+    }catch(e){
+      // User cancelled or not supported - fall through
+      if(e.name==='AbortError') return;
+    }
   }
-  showToast('📋 Szöveg másolva! Illeszd be a csoportba.');
+
+  // 3. Desktop: open messenger.com
+  showToast('📋 Szöveg másolva! Illeszd be Messengerbe.');
+  window.open('https://www.messenger.com', '_blank');
 }
 
 </script>
