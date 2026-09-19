@@ -236,6 +236,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
   <p style="font-size:13px;color:var(--ink2);margin-bottom:11px;">Másold ki és illeszd be a csoportba:</p>
   <div class="msg-box" id="notifyText"></div>
   <button class="fb-copy" id="copyBtn">📋 Másolás vágólapra</button>
+  <button class="fb-copy" id="messengerBtn" style="background:#0084ff;margin-top:8px">💬 Megnyitás Messengerben</button>
   <button class="btn btn-secondary btn-full" id="closeNotifyBtn">Bezárás</button>
 </div>
 </div>
@@ -313,6 +314,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('camInput').onchange=handleImgs;
   document.getElementById('galleryInput').onchange=handleImgs;
   document.getElementById('copyBtn').onclick=copyNotify;
+  document.getElementById('messengerBtn').onclick=()=>sendToMessenger(document.getElementById('notifyText').textContent);
   document.getElementById('closeNotifyBtn').onclick=()=>closeSheet('notifySheet');
   document.getElementById('imgViewer').onclick=()=>closeSheet('imgViewer');
   document.getElementById('addSheet').onclick=e=>{if(e.target===document.getElementById('addSheet'))closeSheet('addSheet');};
@@ -851,6 +853,7 @@ function renderRequestTab(){
       <h3>Előnézet</h3>
       <div class="req-preview" id="reqPreview">${buildRequestMsg()}</div>
       <button class="fb-copy" onclick="copyRequestMsg()">📋 Másolás vágólapra</button>
+      <button class="fb-copy" onclick="sendToMessenger(buildRequestMsg())" style="background:#0084ff;margin-top:8px">💬 Megnyitás Messengerben</button>
     </div>
   `;
 }
@@ -927,6 +930,31 @@ function copyRequestMsg(){
   navigator.clipboard.writeText(t).then(()=>showToast('✅ Másolva! Illeszd be Messengerbe.')).catch(()=>{
     const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);showToast('✅ Másolva!');
   });
+}
+
+
+function sendToMessenger(text){
+  // Copy to clipboard first
+  navigator.clipboard.writeText(text).catch(()=>{
+    const ta=document.createElement('textarea');ta.value=text;
+    document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);
+  });
+  // Try Messenger app deep link (mobile)
+  const encoded = encodeURIComponent(text);
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const isAndroid = /Android/.test(navigator.userAgent);
+  if(isIOS){
+    // iOS: try app, fallback to web
+    window.location.href = 'fb-messenger://share?text=' + encoded;
+    setTimeout(()=>{ window.open('https://www.messenger.com/t/me', '_blank'); }, 1500);
+  } else if(isAndroid){
+    window.location.href = 'intent://share/#Intent;scheme=fb-messenger;package=com.facebook.orca;end';
+    setTimeout(()=>{ window.open('https://www.messenger.com', '_blank'); }, 1500);
+  } else {
+    // Desktop: open messenger web
+    window.open('https://www.messenger.com', '_blank');
+  }
+  showToast('📋 Szöveg másolva! Illeszd be a csoportba.');
 }
 
 </script>
