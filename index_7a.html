@@ -333,7 +333,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v11.3</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v11.4</span><span id="scriptVersion"></span></div>
 
 <script>
 // ── Document state vars ─────────────────────────────
@@ -1996,8 +1996,12 @@ function getFileIcon(url){
 }
 
 function getFileName(url){
-  try{ return decodeURIComponent(url.split('/').pop().split('?')[0]); }
-  catch(e){ return url.split('/').pop(); }
+  try{
+    const raw=url.split('/').pop().split('?')[0];
+    const decoded=decodeURIComponent(raw);
+    // Remove Cloudinary random ID if filename looks like hash (no extension meaning)
+    return decoded;
+  }catch(e){ return url.split('/').pop(); }
 }
 
 function docCardHTML(d){
@@ -2231,7 +2235,11 @@ async function uploadDocFile(file,title,idx){
   fd.append('file',uploadFile);
   fd.append('upload_preset',CFG.UPLOAD_PRESET);
   fd.append('folder',folder);
-  // Use correct endpoint based on file type
+  if(!isImg){
+    // Keep original filename for raw files
+    fd.append('use_filename','true');
+    fd.append('unique_filename','true');
+  }
   const endpoint=isImg
     ?'https://api.cloudinary.com/v1_1/'+CFG.CLOUD_NAME+'/image/upload'
     :'https://api.cloudinary.com/v1_1/'+CFG.CLOUD_NAME+'/raw/upload';
