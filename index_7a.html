@@ -283,9 +283,11 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
     <div class="pick-btns">
       <div class="pick-btn" id="camBtn"><span class="ico">📷</span><span>Fénykép<br>készítése</span></div>
       <div class="pick-btn" id="galleryBtn"><span class="ico">🖼️</span><span>Meglévő<br>kép</span></div>
+      <div class="pick-btn" id="fileBtn"><span class="ico">📎</span><span>Fájl<br>feltöltés</span></div>
     </div>
     <input type="file" id="camInput" accept="image/*" capture="environment" style="display:none">
     <input type="file" id="galleryInput" accept="image/*" multiple style="display:none">
+    <input type="file" id="fileInput" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt" multiple style="display:none">
     <div class="prev-grid" id="prevGrid"></div>
     <div class="upload-status" id="uploadStatus"></div>
     <div class="progress" id="progressWrap"><div class="progress-fill" id="progressFill"></div></div>
@@ -331,7 +333,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v9.9</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v10.1</span><span id="scriptVersion"></span></div>
 
 <script>
 const CFG = {
@@ -421,6 +423,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('saveBtn').onclick=saveHW;
   document.getElementById('camBtn').onclick=()=>document.getElementById('camInput').click();
   document.getElementById('galleryBtn').onclick=()=>document.getElementById('galleryInput').click();
+  document.getElementById('fileBtn').onclick=()=>document.getElementById('fileInput').click();
+  document.getElementById('fileInput').onchange=e=>handleFileSelect(e.target.files);
   document.getElementById('camInput').onchange=handleImgs;
   document.getElementById('galleryInput').onchange=handleImgs;
   document.getElementById('copyBtn').onclick=copyNotify;
@@ -2170,19 +2174,24 @@ async function saveDoc(){
 async function uploadDocFile(file,title,idx){
   const folder=CFG.CLOUD_FOLDER+'/docs/'+slugify(title);
   const ext=file.name.split('.').pop().toLowerCase()||'bin';
-  const isImage=['jpg','jpeg','png','gif','webp','heic','heif'].includes(ext);
-  const uploadFile=isImage&&(ext==='heic'||ext==='heif')?await convertHeicToJpeg(file).catch(()=>file):file;
+  const isImg=['jpg','jpeg','png','gif','webp','heic','heif'].includes(ext);
+  let uploadFile=file;
+  if(isImg&&(ext==='heic'||ext==='heif')){
+    try{uploadFile=await convertHeicToJpeg(file);}catch(e){}
+  }
   const fd=new FormData();
   fd.append('file',uploadFile);
   fd.append('upload_preset',CFG.UPLOAD_PRESET);
   fd.append('folder',folder);
-  if(!isImage) fd.append('resource_type','raw');
-  const endpoint=isImage
-    ?'https://api.cloudinary.com/v1_1/'+CFG.CLOUD_NAME+'/image/upload'
-    :'https://api.cloudinary.com/v1_1/'+CFG.CLOUD_NAME+'/raw/upload';
+  // Use auto endpoint - works for both images and raw files with unsigned preset
+  const endpoint='https://api.cloudinary.com/v1_1/'+CFG.CLOUD_NAME+'/auto/upload';
   const r=await fetch(endpoint,{method:'POST',body:fd});
+  if(!r.ok){
+    const err=await r.json().catch(()=>({}));
+    throw new Error(err.error?.message||'HTTP '+r.status);
+  }
   const j=await r.json();
-  if(!j.secure_url)throw new Error(j.error?.message||'Upload failed');
+  if(!j.secure_url)throw new Error(j.error?.message||'No URL returned');
   return j.secure_url;
 }
 
@@ -2225,12 +2234,11 @@ async function uploadHwFile(file){
   fd.append('file',uploadFile);
   fd.append('upload_preset',CFG.UPLOAD_PRESET);
   fd.append('folder',folder);
-  const endpoint=isImage
-    ?'https://api.cloudinary.com/v1_1/'+CFG.CLOUD_NAME+'/image/upload'
-    :'https://api.cloudinary.com/v1_1/'+CFG.CLOUD_NAME+'/raw/upload';
+  const endpoint='https://api.cloudinary.com/v1_1/'+CFG.CLOUD_NAME+'/auto/upload';
   const r=await fetch(endpoint,{method:'POST',body:fd});
+  if(!r.ok){const err=await r.json().catch(()=>({}));throw new Error(err.error?.message||'HTTP '+r.status);}
   const j=await r.json();
-  if(!j.secure_url)throw new Error(j.error?.message||'Upload failed');
+  if(!j.secure_url)throw new Error(j.error?.message||'No URL returned');
   return j.secure_url;
 }
 
