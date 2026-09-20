@@ -312,7 +312,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v8.3</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v8.4</span><span id="scriptVersion"></span></div>
 
 <script>
 const CFG = {
@@ -813,7 +813,7 @@ function cardHTML(h,selMode=false){
     <div class="meta">
       ${h.note?`<span class="tag">📌 ${h.note}</span>`:''}
       ${imgs.length?`<span class="tag">🖼️ ${h.images.length}</span>`:''}
-      <span class="who">⬆️ ${h.uploader} · ${fmtDT(h.uploaded)}</span>
+      <span class="who">⬆️ ${h.uploader} · ${fmtDT(h.uploaded)}${h.modifiedBy?' · ✏️ '+h.modifiedBy+' '+fmtDT(h.modifiedAt):''}</span>
     </div>
   </div>`;
 }
