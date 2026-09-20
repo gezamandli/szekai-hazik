@@ -156,6 +156,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
   <div><h1>📚 Házi Feladatok</h1><div class="sub">5.a osztaly</div></div>
   <div style="display:flex;gap:6px;align-items:center">
     <span id="hdrName" style="font-size:12px;opacity:.85"></span>
+    <div id="tanevSwitch" style="position:relative"></div>
     <button class="hdr-btn" onclick="loadSheet()">🔄</button>
     <button class="hdr-btn" id="logoutBtn">↩</button>
   </div>
@@ -171,6 +172,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 <div id="view-list" class="view on">
   <div class="search-bar"><input type="search" id="searchList" placeholder="🔍 Keresés…" oninput="renderList()"></div>
   <div class="chips" id="filterBar"></div>
+  <div class="chips" id="typeFilterBar"></div>
   <div class="date-filter-bar" id="dateFilterBar"></div>
   <div id="dateRangePicker" style="display:none;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
     <input type="date" id="dateFrom" style="padding:7px 10px;border:2px solid var(--line);border-radius:10px;font-size:13px;font-family:inherit;color:var(--ink)" onchange="applyDateRange()">
@@ -306,7 +308,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v8.0</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v8.1</span><span id="scriptVersion"></span></div>
 
 <script>
 const CFG = {
@@ -334,6 +336,7 @@ let cfgSubjects = [];
 let selectMode = false;
 let selectedIds = new Set();
 let activeDateFilter = "all";
+let activeTypeFilter = "all";
 let dateFrom = null;
 let dateTo = null;
 
@@ -411,10 +414,70 @@ function signIn(){
 function showApp(){
   document.getElementById('loginScreen').classList.remove('on');
   document.getElementById('hdrName').textContent=session.name;
-  loadSheet().then(()=>{
-    const hash = window.location.hash.slice(1);
-    if(hash) openDetail(hash);
+  loadConfig().then(()=>{
+    loadSheet().then(()=>{
+      loadFavs();
+      const hash=window.location.hash.slice(1);
+      if(hash)openDetail(hash);
+    });
   });
+}
+
+async function loadConfig(){
+  try{
+    const r=await sheetRequest({action:'loadConfig'});
+    if(r.status==='ok'){
+      activeTanev=r.activeTanev||'2026-2027';
+      allTanevek=r.tanevek||[activeTanev];
+      cfgSubjects=r.subjects||[];
+      renderTanevSwitch();
+      updateSubjectSelect();
+    }
+  }catch(e){
+    console.warn('Config load failed:',e);
+    activeTanev='2026-2027';
+  }
+}
+
+function renderTanevSwitch(){
+  const el=document.getElementById('tanevSwitch');
+  if(!el)return;
+  el.innerHTML='<button class="tanev-btn" onclick="toggleTanevDD()">📅 '+activeTanev+' ▾</button>';
+}
+
+function toggleTanevDD(){
+  const el=document.getElementById('tanevSwitch');
+  const ex=el.querySelector('.tanev-dd');
+  if(ex){ex.remove();return;}
+  const dd=document.createElement('div');
+  dd.className='tanev-dd';
+  allTanevek.forEach(t=>{
+    const item=document.createElement('div');
+    item.className='tanev-dd-item'+(t===activeTanev?' active':'');
+    item.textContent=(t===activeTanev?'✓ ':'')+t;
+    item.onclick=()=>{switchTanev(t);dd.remove();};
+    dd.appendChild(item);
+  });
+  el.appendChild(dd);
+  setTimeout(()=>document.addEventListener('click',function h(e){
+    if(!el.contains(e.target)){dd.remove();document.removeEventListener('click',h);}
+  }),50);
+}
+
+async function switchTanev(t){
+  if(t===activeTanev)return;
+  activeTanev=t;
+  renderTanevSwitch();
+  await loadSheet();
+  showToast('📅 '+t+' tanév betöltve');
+}
+
+function updateSubjectSelect(){
+  const sel=document.getElementById('newSubject');
+  if(!sel||!cfgSubjects.length)return;
+  const cur=sel.value;
+  sel.innerHTML=cfgSubjects.map(s=>'<option>'+s+'</option>').join('');
+  if(cur&&cfgSubjects.includes(cur))sel.value=cur;
 }
 
 window.addEventListener('hashchange', ()=>{
@@ -467,7 +530,7 @@ async function loadSheet(){
   showToast('⏳ Betöltés…',99999);
   return new Promise(async (resolve)=>{
   try{
-    const url=`https://docs.google.com/spreadsheets/d/${CFG.SHEET_ID}/gviz/tq?tqx=out:json&sheet=Feladatok&t=${Date.now()}`;
+    const url=`https://docs.google.com/spreadsheets/d/${CFG.SHEET_ID}/gviz/tq?tqx=out:json&sheet=Feladatok_'+activeTanev+'&t=${Date.now()}`;
     const r=await fetch(url);
     const text=await r.text();
     // Google returns: /*O_o*/\ngoogle.visualization.Query.setResponse({...});
@@ -672,6 +735,7 @@ function exportExcel(mode){
   let items=[...homeworks];
   if(activeFilter==='__fav__')items=items.filter(h=>isFav(h.id));
   else if(activeFilter!=='all')items=items.filter(h=>h.subject===activeFilter);
+  if(activeTypeFilter!=='all')items=items.filter(h=>(h.type||'')===activeTypeFilter);
   items=items.filter(passesDateFilter);
   const q=document.getElementById('searchList')?.value?.toLowerCase()||'';
   if(q)items=items.filter(h=>h.subject.toLowerCase().includes(q)||h.desc.toLowerCase().includes(q)||(h.note||'').toLowerCase().includes(q));
@@ -693,7 +757,7 @@ function exportExcel(mode){
 }
 
 // ── Render ────────────────────────────────────────────
-function renderAll(){renderFilters();renderDateFilters();renderList();}
+function renderAll(){renderFilters();renderDateFilters();renderTypeFilters();renderList();}
 
 function renderFilters(){
   const subs=[...new Set(homeworks.map(h=>h.subject))];
@@ -757,6 +821,7 @@ function renderList(){
   let items=[...homeworks];
   if(activeFilter==='__fav__')items=items.filter(h=>isFav(h.id));
   else if(activeFilter!=='all')items=items.filter(h=>h.subject===activeFilter);
+  if(activeTypeFilter!=='all')items=items.filter(h=>(h.type||'')===activeTypeFilter);
   items=items.filter(passesDateFilter);
   items=filterSearch(items,'searchList');
   // Sort: newest upload first
@@ -1650,6 +1715,38 @@ function clearDateRange(){
   document.getElementById('dateFrom').value='';
   document.getElementById('dateTo').value='';
   setDateFilter('all');
+}
+
+
+// ── Type filter ──────────────────────────────────────
+const TYPE_FILTER_LABELS = {
+  'all': 'Mind',
+  '': 'Házi feladat',
+  'temaзaro': '⚠️ Témazáró',
+  'dolgozat': '📝 Dolgozat',
+  'projekt': '🎯 Projekt',
+  'anyag': '📖 Anyag',
+  'orai': '📝 Órai anyag'
+};
+
+function renderTypeFilters(){
+  const bar = document.getElementById('typeFilterBar');
+  if(!bar) return;
+  // Only show types that exist in current data
+  const usedTypes = new Set(homeworks.map(h=>h.type||''));
+  if(usedTypes.size <= 1 && activeTypeFilter==='all'){
+    bar.innerHTML=''; return;
+  }
+  const types = ['all', ...Object.keys(TYPE_FILTER_LABELS).filter(k=>k!=='all' && usedTypes.has(k))];
+  bar.innerHTML = types.map(t=>
+    `<div class="chip ${activeTypeFilter===t?'on':''}" onclick="setTypeFilter('${t}')">${TYPE_FILTER_LABELS[t]||t}</div>`
+  ).join('');
+}
+
+function setTypeFilter(t){
+  activeTypeFilter=t;
+  renderList();
+  renderTypeFilters();
 }
 
 </script>

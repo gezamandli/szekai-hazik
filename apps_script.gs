@@ -46,7 +46,7 @@ function getFeladatokSheet(ss, tanev) {
   const name = 'Feladatok_' + tanev;
   return ensureSheet(ss, name, [
     'id','subject','desc','due','note','uploader','uploaded',
-    'images','cloudFolder','ocrText','modifiedBy','modifiedAt'
+    'images','cloudFolder','ocrText','modifiedBy','modifiedAt','type'
   ]);
 }
 
@@ -82,7 +82,7 @@ function sheetToRows(sh, fields) {
   }).filter(r => r.id && r.id !== 'id');
 }
 
-const HW_FIELDS = ['id','subject','desc','due','note','uploader','uploaded','images','cloudFolder','ocrText','modifiedBy','modifiedAt'];
+const HW_FIELDS = ['id','subject','desc','due','note','uploader','uploaded','images','cloudFolder','ocrText','modifiedBy','modifiedAt','type'];
 const KUKA_FIELDS = ['id','subject','desc','due','note','uploader','uploaded','images','cloudFolder','ocrText','deletedAt','deletedBy','tanev'];
 const PERM_FIELDS = ['id','subject','desc','due','note','uploader','uploaded','images','cloudFolder','ocrText','deletedAt','deletedBy','permDeletedAt','tanev'];
 
