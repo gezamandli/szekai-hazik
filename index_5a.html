@@ -330,7 +330,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v12.5</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v12.6</span><span id="scriptVersion"></span></div>
 
 <script>
 // ── Document state vars ─────────────────────────────
@@ -1942,8 +1942,11 @@ async function convertHeicToJpeg(file){
 // ── Documents tab ─────────────────────────────────────
 async function initDocsTab(){
 
-  if(!docsLoaded||docsLoadedTanev!==activeTanev) await loadDocs();
-  else renderDocs();
+  const now=Date.now();
+  if(!docsLoaded||docsLoadedTanev!==activeTanev||(now-(window._docsLoadTime||0))>30000){
+    window._docsLoadTime=now;
+    await loadDocs();
+  } else renderDocs();
 }
 
 async function loadDocs(){
@@ -1980,13 +1983,12 @@ async function loadDocs(){
     }).filter(d=>d.id&&d.id!=='id');
     docsLoaded=true;
     docsLoadedTanev=activeTanev;
-    // Load doc favs
-    try{
-      const r2=await sheetRequest({action:'loadDocFavs',userName:session.name});
-      docFavSet=new Set(r2.data||[]);
-    }catch(e){}
     hideToast();
     renderDocs();
+    // Load doc favs in background (don't block rendering)
+    sheetRequest({action:'loadDocFavs',userName:session.name})
+      .then(r2=>{docFavSet=new Set(r2.data||[]);renderDocs();})
+      .catch(()=>{});
   }catch(e){
     hideToast();
     showToast('⚠️ Dokumentumok betöltése sikertelen');
