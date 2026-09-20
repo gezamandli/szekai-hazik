@@ -348,7 +348,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v12.7</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v12.8</span><span id="scriptVersion"></span></div>
 
 <script>
 // ── Document state vars ─────────────────────────────
@@ -357,7 +357,7 @@ let calEvents = [];
 let calLoaded = false;
 let calLoadedTanev = "";
 let activeCalType = "all";
-let calDateFrom = "";
+let calDateFrom = "upcoming";
 let calDateTo = "";
 let docsLoaded = false;
 let docsLoadedTanev = "";
@@ -1457,7 +1457,8 @@ function cardUrl(id){
 function renderDateFilters(){
   const bar=document.getElementById('dateFilterBar');if(!bar)return;
   const filters=[
-    {id:'all',label:'Bármikor'},
+    {id:'all',label:'Összes (elmúlt is)'},
+      {id:'upcoming',label:'Közelgő'},
     {id:'today',label:'Ma'},
     {id:'week',label:'Elmúlt hét'},
     {id:'range',label:'📅 Időszak'}
@@ -2428,10 +2429,22 @@ async function loadCal(){
     if(cols[1]&&(cols[1].label==='subject'||cols[1].label==='title'&&cols[2]&&cols[2].label==='desc'&&cols[3]&&cols[3].label==='tags')){
       calEvents=[];calLoaded=true;calLoadedTanev=activeTanev;hideToast();renderCal();return;
     }
+    // Parse GViz date: can be "Date(2026,8,24)" or "2026-09-24"
+    function parseGVizDate(v){
+      if(!v)return'';
+      const m=String(v).match(/Date\((\d+),(\d+),(\d+)\)/);
+      if(m){
+        const y=parseInt(m[1]),mo=parseInt(m[2]),d=parseInt(m[3]);
+        return new Date(y,mo,d).toISOString().split('T')[0];
+      }
+      return String(v);
+    }
     calEvents=(json.table.rows||[]).map(row=>{
       const get=i=>{const c=row.c&&row.c[i];return c&&c.v!=null?String(c.v):'';};
+      const getRaw=i=>{const c=row.c&&row.c[i];return c&&c.v!=null?c.v:'';}
       return{id:get(0),title:get(1),desc:get(2),type:get(3)||'egyéb',
-        dateFrom:get(4),dateTo:get(5),uploader:get(6),uploaded:get(7),
+        dateFrom:parseGVizDate(getRaw(4)),dateTo:parseGVizDate(getRaw(5)),
+        uploader:get(6),uploaded:get(7),
         modifiedBy:get(8),modifiedAt:get(9)};
     }).filter(e=>e.id&&e.id!=='id')
       .sort((a,b)=>new Date(a.dateFrom)-new Date(b.dateFrom));
@@ -2459,12 +2472,12 @@ function renderCal(){
   if(dateBar){
     const today=new Date();today.setHours(0,0,0,0);
     const filters=[
-      {id:'all',label:'Bármikor'},
+      {id:'all',label:'Összes (elmúlt is)'},
       {id:'upcoming',label:'Közelgő'},
       {id:'thismonth',label:'Ez a hónap'},
       {id:'range',label:'📅 Időszak'}
     ];
-    dateBar.innerHTML=filters.map(f=>`<div class="chip${calDateFrom===f.id||(!calDateFrom&&f.id==='all')?' on':''}" onclick="setCalDateFilter('${f.id}')">${f.label}</div>`).join('')
+    dateBar.innerHTML=filters.map(f=>`<div class="chip${calDateFrom===f.id||(!calDateFrom&&f.id==='upcoming')?' on':''}" onclick="setCalDateFilter('${f.id}')">${f.label}</div>`).join('')
       +(calDateFrom&&!['all','upcoming','thismonth','range'].includes(calDateFrom)
         ?`<span style="font-size:13px;padding:4px 8px;background:var(--blue-bg);border-radius:8px;color:var(--blue)">${calDateFrom}${calDateTo?' – '+calDateTo:''}</span>`:'');
   }
@@ -2555,7 +2568,7 @@ function openCalDetail(id){
       <div style="font-size:20px;font-weight:900;margin-bottom:6px">${e.title}</div>
       <div style="margin-bottom:8px">
         <span class="cal-type-badge" style="background:${color}22;color:${color};font-size:13px">${CAL_TYPES[e.type]||e.type}</span>
-        <span style="font-size:13px;color:var(--ink2);margin-left:8px">📅 ${fmtDate(e.dateFrom)}${e.dateTo&&e.dateTo!==e.dateFrom?' – '+fmtDate(e.dateTo):''}</span>
+        <span style="font-size:13px;color:var(--ink2);margin-left:8px">📅 ${fmtDate(e.dateFrom)}${e.dateTo&&e.dateTo!==e.dateFrom&&e.dateTo?' – '+fmtDate(e.dateTo):''}</span>
       </div>
       ${e.desc?`<div style="font-size:14px;color:var(--ink);line-height:1.7;margin-bottom:12px;white-space:pre-wrap">${e.desc}</div>`:''}
       <div style="font-size:12px;color:var(--ink2)">⬆️ ${e.uploader} · ${fmtDT(e.uploaded)}${e.modifiedBy?'<br>✏️ '+e.modifiedBy+' · '+fmtDT(e.modifiedAt):''}</div>
