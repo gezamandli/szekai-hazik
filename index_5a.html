@@ -2,6 +2,7 @@
 <html lang="hu">
 <head>
 <meta charset="UTF-8">
+<link rel="icon" href="data:,">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -329,7 +330,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v12.3</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v12.4</span><span id="scriptVersion"></span></div>
 
 <script>
 // ── Document state vars ─────────────────────────────
@@ -703,13 +704,23 @@ function handleImgs(e){
   e.target.value='';
 }
 function renderNewPreviews(){
-  document.getElementById('prevGrid').innerHTML=pendingImgs.map((img,i)=>
-    `<div class="prev-wrap"><img src="${img.dataUrl}"><button class="prev-rm" data-i="${i}">×</button></div>`
-  ).join('');
+  document.getElementById('prevGrid').innerHTML=pendingImgs.map((img,i)=>{
+    if(img.isFile){
+      const ext=(img.file?.name||'').split('.').pop().toLowerCase();
+      const icon=ext==='pdf'?'📕':ext==='doc'||ext==='docx'?'📝':ext==='xls'||ext==='xlsx'?'📊':ext==='ppt'||ext==='pptx'?'📑':'📄';
+      return`<div class="prev-wrap" style="display:flex;flex-direction:column;align-items:center;justify-content:center;background:#f3f4f6;border-radius:9px;border:1px solid var(--line);width:78px;height:78px;font-size:28px;position:relative">${icon}<span style="font-size:9px;color:var(--ink2);max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 2px">${img.file?.name||''}</span><button class="prev-rm" data-i="${i}">×</button></div>`;
+    }
+    return`<div class="prev-wrap"><img src="${img.dataUrl}"><button class="prev-rm" data-i="${i}">×</button></div>`;
+  }).join('');
   document.getElementById('prevGrid').querySelectorAll('.prev-rm').forEach(btn=>{
     btn.onclick=()=>{pendingImgs.splice(+btn.dataset.i,1);renderNewPreviews();};
   });
-  document.getElementById('uploadStatus').textContent=pendingImgs.length?`${pendingImgs.length} új kép`:'';
+  const nFiles=pendingImgs.filter(p=>p.isFile).length;
+  const nImgs=pendingImgs.filter(p=>!p.isFile).length;
+  const parts=[];
+  if(nImgs)parts.push(nImgs+' kép');
+  if(nFiles)parts.push(nFiles+' fájl');
+  document.getElementById('uploadStatus').textContent=parts.length?parts.join(', ')+' csatolva':'';
 }
 function renderExistingPreviews(){
   const el=document.getElementById('existingGrid');
@@ -743,6 +754,7 @@ async function saveHW(){
       pf.style.width=`${Math.round((i/pendingImgs.length)*80)}%`;
       const item=pendingImgs[i];
       if(item.isFile&&item.url){newUrls.push(item.url);continue;}
+      document.getElementById('uploadStatus').textContent=`${item.isFile?'Fájl mentése':'Kép feltöltése'} ${i+1}/${pendingImgs.length}…`;
       const res=await uploadToCloudinary(item.file,subject,due,i+1);
       newUrls.push(res.url);
       cloudFolder=`https://console.cloudinary.com/console/media_library/search?q=folder:${encodeURIComponent(res.folder)}`;
@@ -1611,6 +1623,7 @@ function printSelected(){
   items.sort((a,b)=>new Date(a.due||0)-new Date(b.due||0));
   let w=window.open('','_blank');
   w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+<link rel="icon" href="data:,">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -2299,7 +2312,7 @@ async function handleFileSelect(files){
       showToast(`⏳ Fájl ${i+1}/${arr.length}…`,99999);
       const url=await uploadHwFile(arr[i]);
       pendingImgs.push({file:arr[i],url,preview:null,isFile:true});
-      renderPreviews();
+      renderNewPreviews();
     }catch(e){
       showToast('⚠️ '+arr[i].name+' feltöltés sikertelen');
     }
