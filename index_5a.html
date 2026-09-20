@@ -308,7 +308,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v9.2</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v9.3</span><span id="scriptVersion"></span></div>
 
 <script>
 const CFG = {
@@ -371,6 +371,25 @@ function closeSheet(id){document.getElementById(id).classList.remove('on');}
 
 // ── Init ─────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded',()=>{
+  // Load class name immediately for login screen
+  (async()=>{
+    try{
+      const url='https://docs.google.com/spreadsheets/d/'+CFG.SHEET_ID+'/gviz/tq?tqx=out:json&sheet=Config&t='+Date.now();
+      const r=await fetch(url);
+      const text=await r.text();
+      const json=JSON.parse(text.replace(/^[^(]+\(|\);?$/g,''));
+      const cfg={};
+      (json.table.rows||[]).forEach(row=>{
+        const k=row.c&&row.c[0]&&row.c[0].v?String(row.c[0].v):'';
+        const v=row.c&&row.c[1]&&row.c[1].v?String(row.c[1].v):'';
+        if(k)cfg[k]=v;
+      });
+      if(cfg['osztaly_nev']){
+        document.querySelectorAll('.class-name').forEach(el=>el.textContent=cfg['osztaly_nev']);
+        document.title='Házi Feladatok – '+cfg['osztaly_nev'];
+      }
+    }catch(e){}
+  })();
   document.getElementById('loginBtn').onclick=signIn;
   document.getElementById('pinCode').addEventListener('keydown',e=>{if(e.key==='Enter')signIn();});
   document.getElementById('logoutBtn').onclick=logout;
