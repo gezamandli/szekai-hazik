@@ -312,14 +312,14 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v8.5</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v8.6</span><span id="scriptVersion"></span></div>
 
 <script>
 const CFG = {
   CNAME:         '7.a osztaly',
   PIN:           '2026',
   SHEET_ID:      '1XzvvQFt8CpwiXep8BeZb8M59s6R5lBZQEF0DZU2EyGk',
-  SCRIPT_URL:    'https://script.google.com/macros/s/AKfycbyg2H7E3QqTFwVFAC-kX-6m4Px0jVYZgPRl0SHyslIIZ27JALnZdKto8Dpg4sIbCkeb/exec',
+  SCRIPT_URL:    'https://script.google.com/macros/s/AKfycbxCmAlb38Kki-lflu_6zVBR2PxpZl_zoJ6dFLqT4WABRurWXxi_IXZR_CWoBQdMRs-s/exec',
   CLOUD_NAME:    'g8tinasd',
   UPLOAD_PRESET: 'szekai_hazik',
   CLOUD_FOLDER:  'hazik_7a',
@@ -585,15 +585,18 @@ async function uploadToCloudinary(file,subject,dateStr,idx){
   const folder=`${CFG.CLOUD_FOLDER}/${slugify(subject)}${dateStr?'_'+dateStr:''}`;
   const ext = file.name.split('.').pop().toLowerCase() || 'jpg';
   const fname = `${slugify(subject)}${dateStr?'_'+dateStr:''}_${idx||1}.${ext}`;
-  // Rename file before upload to get correct filename
-  const safeName = slugify(subject)+(dateStr?'_'+dateStr:'')+'_'+(idx||1)+'.'+file.name.split('.').pop().toLowerCase();
-  const renamedFile = new File([file], safeName, {type: file.type});
   const fd=new FormData();
-  fd.append('file',renamedFile);
   fd.append('upload_preset',CFG.UPLOAD_PRESET);
   fd.append('folder',folder);
-  fd.append('use_filename','true');
-  fd.append('unique_filename','false');
+  fd.append('public_id', slugify(subject)+(dateStr?'_'+dateStr:'')+'_'+(idx||1));
+  // Convert HEIF/HEIC to JPEG if needed
+  let uploadFile = file;
+  if(file.name&&(file.name.toLowerCase().endsWith('.heic')||file.name.toLowerCase().endsWith('.heif')||file.type==='image/heic'||file.type==='image/heif')){
+    try{
+      uploadFile = await convertHeicToJpeg(file);
+    }catch(e){ console.warn('HEIC convert failed, uploading original'); }
+  }
+  fd.append('file', uploadFile);
   const r=await fetch(`https://api.cloudinary.com/v1_1/${CFG.CLOUD_NAME}/image/upload`,{method:'POST',body:fd});
   if(!r.ok){const e=await r.json();throw new Error(e.error?.message||r.status);}
   const j=await r.json();
@@ -1753,6 +1756,30 @@ function setTypeFilter(t){
   activeTypeFilter=t;
   renderList();
   renderTypeFilters();
+}
+
+
+async function convertHeicToJpeg(file){
+  // Draw HEIC to canvas and export as JPEG
+  return new Promise((resolve, reject)=>{
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = ()=>{
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      canvas.getContext('2d').drawImage(img,0,0);
+      canvas.toBlob(blob=>{
+        if(blob){
+          const newFile = new File([blob], file.name.replace(/\.heic|\.heif/i,'.jpg'), {type:'image/jpeg'});
+          resolve(newFile);
+        } else reject(new Error('Canvas toBlob failed'));
+      }, 'image/jpeg', 0.92);
+      URL.revokeObjectURL(url);
+    };
+    img.onerror = ()=>{ URL.revokeObjectURL(url); reject(new Error('Image load failed')); };
+    img.src = url;
+  });
 }
 
 </script>
