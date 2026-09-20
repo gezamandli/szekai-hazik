@@ -333,7 +333,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v10.2</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v10.3</span><span id="scriptVersion"></span></div>
 
 <script>
 const CFG = {
@@ -2160,6 +2160,7 @@ async function saveDoc(){
     const id=Date.now().toString();
     const doc={id,title,desc,tags,uploader:session.name,uploaded:now,files:allFiles,cloudFolder:'',modifiedBy:'',modifiedAt:''};
     documents.unshift(doc);
+    console.log('Sending appendDoc, tanev='+activeTanev);
     sheetRequest({action:'appendDoc',tanev:activeTanev,row:JSON.stringify([
       id,title,desc,tags.join(','),session.name,now,
       JSON.stringify(allFiles),'','',''
