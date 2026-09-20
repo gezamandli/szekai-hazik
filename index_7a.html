@@ -333,7 +333,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v11.1</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v11.2</span><span id="scriptVersion"></span></div>
 
 <script>
 // ── Document state vars ─────────────────────────────
@@ -580,6 +580,19 @@ async function sheetRequest(params){
     encodeURIComponent(k)+'='+encodeURIComponent(typeof v==='object'?JSON.stringify(v):v)
   ).join('&');
   const url=base+'&'+qs+'&t='+Date.now();
+
+  // Try fetch first - follows redirect to googleusercontent.com which has CORS
+  try{
+    const r=await fetch(url,{redirect:'follow'});
+    const text=await r.text();
+    const data=JSON.parse(text);
+    if(data.version)document.getElementById('scriptVersion').textContent='Script v'+data.version;
+    return data;
+  }catch(e){
+    console.warn('fetch failed, trying JSONP:',e.message);
+  }
+
+  // JSONP fallback
   const writeActions=['append','update','delete','restore','permDelete',
     'addFav','removeFav','removeFavHw','appendDoc','updateDoc','deleteDoc',
     'addDocFav','removeDocFav'];
@@ -591,23 +604,19 @@ async function sheetRequest(params){
       delete window[cbName];
       try{document.head.removeChild(script);}catch(e){}
       if(data&&data.version)document.getElementById('scriptVersion').textContent='Script v'+data.version;
-      console.log(params.action+' ok:',data);
       resolve(data||{status:'ok'});
     };
     const script=document.createElement('script');
     script.src=url+'&callback='+cbName;
-    script.onerror=(err)=>{
+    script.onerror=()=>{
       delete window[cbName];
       try{document.head.removeChild(script);}catch(e){}
-      console.warn(params.action+' JSONP error:',err);
-      // For writes: resolve so app doesn't break
       isWrite?resolve({status:'ok'}):reject(new Error('Kapcsolat hiba'));
     };
     setTimeout(()=>{
       if(window[cbName]){
         delete window[cbName];
         try{document.head.removeChild(script);}catch(e){}
-        console.warn(params.action+' timeout');
         isWrite?resolve({status:'ok'}):reject(new Error('Timeout'));
       }
     },20000);
