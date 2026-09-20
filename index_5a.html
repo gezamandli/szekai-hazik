@@ -329,7 +329,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v10.3</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v10.4</span><span id="scriptVersion"></span></div>
 
 <script>
 const CFG = {
@@ -2183,11 +2183,14 @@ async function uploadDocFile(file,title,idx){
   // Use auto endpoint - works for both images and raw files with unsigned preset
   const endpoint='https://api.cloudinary.com/v1_1/'+CFG.CLOUD_NAME+'/auto/upload';
   const r=await fetch(endpoint,{method:'POST',body:fd});
+  console.log('Cloudinary response status:',r.status);
   if(!r.ok){
     const err=await r.json().catch(()=>({}));
+    console.error('Cloudinary error:',err);
     throw new Error(err.error?.message||'HTTP '+r.status);
   }
   const j=await r.json();
+  console.log('Cloudinary result: secure_url=',j.secure_url,'resource_type=',j.resource_type);
   if(!j.secure_url)throw new Error(j.error?.message||'No URL returned');
   return j.secure_url;
 }
