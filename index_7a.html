@@ -333,7 +333,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v12.0</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v12.1</span><span id="scriptVersion"></span></div>
 
 <script>
 // ── Document state vars ─────────────────────────────
@@ -2041,34 +2041,21 @@ function getFileName(url){
 function docCardHTML(d){
   const fav=docFavSet.has(d.id)?'❤️':'';
   const files=Array.isArray(d.files)?d.files:[];
+  const fileIcons=files.map(u=>{
+    const ext=(u||'').split('.').pop().toLowerCase().split('?')[0];
+    const isImg=['jpg','jpeg','png','gif','webp'].includes(ext);
+    const isPdf=ext==='pdf';
+    if(isImg) return`<img src="${u}" style="width:48px;height:40px;object-fit:cover;border-radius:6px;border:1px solid var(--line)">`;
+    const icon=isPdf?'📕':ext==='doc'||ext==='docx'?'📝':ext==='xls'||ext==='xlsx'?'📊':ext==='ppt'||ext==='pptx'?'📑':'📄';
+    return`<span style="display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;background:#f3f4f6;border-radius:6px;border:1.5px solid var(--line);font-size:24px">${icon}</span>`;
+  }).join('');
   return`<div class="doc-card" data-id="${d.id}">
     <div style="display:flex;justify-content:space-between;align-items:flex-start">
       <div class="doc-title">${d.title||'Névtelen'} ${fav}</div>
     </div>
     ${d.desc?`<div class="doc-desc">${d.desc}</div>`:''}
-    ${d.tags.length?`<div class="doc-tags">${d.tags.map(t=>`<span class="doc-tag">${t}</span>`).join('')}</div>`:''}
-    ${files.length?`<div class="doc-files">
-      ${files.map(u=>{
-        const ext=(u||'').split('.').pop().toLowerCase().split('?')[0];
-        const isPdf=ext==='pdf'||u.includes('.pdf');
-        const isImg=['jpg','jpeg','png','gif','webp'].includes(ext)||(u.includes('/image/upload/')&&!u.includes('.pdf')&&!u.includes('.doc')&&!u.includes('.xls'));
-        // Cloudinary PDF thumbnail: replace upload path with image format
-        // PDF thumbnail: raw uploads need image URL with page param
-        const pdfThumb=u.replace('/raw/upload/','/image/upload/').replace('/image/upload/','/image/upload/w_120,h_80,c_fit,pg_1/');
-        const thumb=isPdf?pdfThumb.replace(/\.pdf$/,'.jpg'):'';
-        return isPdf&&thumb
-          ?`<div class="doc-file" style="flex-direction:column;padding:4px;gap:3px">
-              <img src="${thumb}" style="width:80px;height:60px;object-fit:cover;border-radius:4px" onerror="this.style.display='none'">
-              <span style="font-size:10px;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${getFileName(u)}</span>
-            </div>`
-          :isImg
-          ?`<div class="doc-file" style="flex-direction:column;padding:4px;gap:3px">
-              <img src="${u}" style="width:80px;height:60px;object-fit:cover;border-radius:4px">
-              <span style="font-size:10px;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${getFileName(u)}</span>
-            </div>`
-          :`<span class="doc-file">${getFileIcon(u)} ${getFileName(u)}</span>`;
-      }).join('')}
-    </div>`:''}
+    ${d.tags&&d.tags.length?`<div class="doc-tags">${d.tags.map(t=>`<span class="doc-tag">${t}</span>`).join('')}</div>`:''}
+    ${fileIcons?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">${fileIcons}</div>`:''}
     <div class="doc-meta">⬆️ ${d.uploader} · ${fmtDT(d.uploaded)}${d.modifiedBy?' · ✏️ '+d.modifiedBy+' '+fmtDT(d.modifiedAt):''}</div>
   </div>`;
 }
@@ -2327,7 +2314,10 @@ async function uploadHwFile(file){
   const isImage=['jpg','jpeg','png','gif','webp','heic','heif'].includes(ext);
   const isPdf=ext==='pdf';
   const folder=CFG.CLOUD_FOLDER+'/files';
-  const uploadFile=isImage&&(ext==='heic'||ext==='heif')?await convertHeicToJpeg(file).catch(()=>file):file;
+  let uploadFile=file;
+  if(isImage&&(ext==='heic'||ext==='heif')){
+    try{uploadFile=await convertHeicToJpeg(file);}catch(e){}
+  }
   const fd=new FormData();
   fd.append('file',uploadFile);
   fd.append('upload_preset',CFG.UPLOAD_PRESET);
@@ -2336,9 +2326,10 @@ async function uploadHwFile(file){
     ?'https://api.cloudinary.com/v1_1/'+CFG.CLOUD_NAME+'/image/upload'
     :'https://api.cloudinary.com/v1_1/'+CFG.CLOUD_NAME+'/raw/upload';
   const r=await fetch(endpoint,{method:'POST',body:fd});
+  console.log('HW file upload status:',r.status,'ext:',ext,'endpoint:',endpoint.includes('raw')?'raw':'image');
   if(!r.ok){const err=await r.json().catch(()=>({}));throw new Error(err.error?.message||'HTTP '+r.status);}
   const j=await r.json();
-  if(!j.secure_url)throw new Error(j.error?.message||'No URL returned');
+  if(!j.secure_url)throw new Error(j.error?.message||'No URL');
   return j.secure_url;
 }
 
@@ -2360,7 +2351,7 @@ async function permDeleteDoc(id){
   docTrashItems=docTrashItems.filter(x=>x.id!==id);
   renderTrash();
   try{
-    await sheetRequest({action:'permDeleteDoc',id,deletedBy:session.name});
+    await sheetRequest({action:'permDeleteDoc',id,deletedBy:session.name,tanev:activeTanev});
     showToast('🗑️ Véglegesen törölve');
   }catch(e){showToast('🗑️ Törölve');}
 }
