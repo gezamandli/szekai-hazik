@@ -308,14 +308,14 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v8.6</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v8.7</span><span id="scriptVersion"></span></div>
 
 <script>
 const CFG = {
   CNAME:         '5.a osztaly',
   PIN:           '2026',
   SHEET_ID:      '1KopuaNCn1nUn8JHDBYEjEqKp3EXaLErX8qvkeOu8ndk',
-  SCRIPT_URL:    'https://script.google.com/macros/s/AKfycbxCmAlb38Kki-lflu_6zVBR2PxpZl_zoJ6dFLqT4WABRurWXxi_IXZR_CWoBQdMRs-s/exec',
+  SCRIPT_URL:    'https://script.google.com/macros/s/AKfycbypXXdfb0X1mPO_Tj3O27xnYSvfsAEv3neaqp9h_d-ev5MMAEayobFEVX1ALbu5f30M/exec',
   CLOUD_NAME:    'g8tinasd',
   UPLOAD_PRESET: 'szekai_hazik',
   CLOUD_FOLDER:  'hazik_5a',
@@ -498,15 +498,36 @@ async function sheetRequest(params){
     encodeURIComponent(k)+'='+encodeURIComponent(typeof v==='object'?JSON.stringify(v):v)
   ).join('&');
   const url = base + '&' + qs + '&t=' + Date.now();
-  
-  try {
-    const r = await fetch(url, {redirect:'follow'});
-    const text = await r.text();
-    const data = JSON.parse(text);
-    if(data.version) document.getElementById('scriptVersion').textContent='Script v'+data.version;
-    return data;
-  } catch(e) {
-    // Fallback: try JSONP
+
+  // Use JSONP directly (fetch blocked by CORS on GitHub Pages)
+  return new Promise((resolve,reject)=>{
+    const cbName='cb_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+    const cbUrl=url+'&callback='+cbName;
+    window[cbName]=(data)=>{
+      delete window[cbName];
+      try{document.head.removeChild(script);}catch(e){}
+      if(data.version) document.getElementById('scriptVersion').textContent='Script v'+data.version;
+      resolve(data);
+    };
+    const script=document.createElement('script');
+    script.src=cbUrl;
+    script.onerror=()=>{
+      delete window[cbName];
+      try{document.head.removeChild(script);}catch(e){}
+      reject(new Error('Script hiba'));
+    };
+    setTimeout(()=>{
+      if(window[cbName]){
+        delete window[cbName];
+        try{document.head.removeChild(script);}catch(e){}
+        reject(new Error('Timeout'));
+      }
+    },20000);
+    document.head.appendChild(script);
+  });
+
+  try{const _unused=null;}catch(e){
+  // Fallback: try JSONP
     return new Promise((resolve,reject)=>{
       const cbName='cb_'+Date.now()+'_'+Math.random().toString(36).slice(2);
       const cbUrl = url + '&callback=' + cbName;
