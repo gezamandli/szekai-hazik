@@ -331,7 +331,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v9.8</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v9.9</span><span id="scriptVersion"></span></div>
 
 <script>
 const CFG = {
@@ -416,7 +416,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('loginBtn').onclick=signIn;
   document.getElementById('pinCode').addEventListener('keydown',e=>{if(e.key==='Enter')signIn();});
   document.getElementById('logoutBtn').onclick=logout;
-  document.getElementById('fabBtn').onclick=()=>openAddSheet(null);
+  document.getElementById('fabBtn').onclick=()=>{ if(currentTab==='docs') openAddDoc(); else openAddSheet(null); };
   document.getElementById('cancelAddBtn').onclick=()=>closeSheet('addSheet');
   document.getElementById('saveBtn').onclick=saveHW;
   document.getElementById('camBtn').onclick=()=>document.getElementById('camInput').click();
@@ -456,22 +456,20 @@ function signIn(){
 function showApp(){
   document.getElementById('loginScreen').classList.remove('on');
   document.getElementById('hdrName').textContent=session.name;
-  loadConfig().then(()=>{
-    loadSheet().then(()=>{
-      loadFavs();
-      const hash=window.location.hash.slice(1);
-      if(hash)openDetail(hash);
-    });
+  // Load config and sheet in parallel for speed
+  Promise.all([loadConfig(), loadSheet()]).then(()=>{
+    loadFavs(); // async, don't wait
+    const hash=window.location.hash.slice(1);
+    if(hash)openDetail(hash);
   });
 }
 
 async function loadConfig(){
   try{
-    // Read Config sheet via GViz (public, no CORS issues)
     const url='https://docs.google.com/spreadsheets/d/'+CFG.SHEET_ID+'/gviz/tq?tqx=out:json&sheet=Config&t='+Date.now();
     const r=await fetch(url);
     const text=await r.text();
-    const json=JSON.parse(text.replace(/^[^(]+\(|\);?$/g,''));
+    const json=JSON.parse(text.replace(/^[^\(]+\(|\);?$/g,''));
     const rows=json.table.rows||[];
     const cfg={};
     rows.forEach(row=>{
