@@ -329,7 +329,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v10.1</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v10.2</span><span id="scriptVersion"></span></div>
 
 <script>
 const CFG = {
@@ -2123,44 +2123,44 @@ async function saveDoc(){
   if(!title){showToast('⚠️ Adj meg egy címet!');return;}
   const desc=document.getElementById('docDesc').value.trim();
   const tags=document.getElementById('docTags').value.split(',').map(s=>s.trim()).filter(Boolean);
+  const now=new Date().toISOString();
 
-  showToast('⏳ Mentés…',99999);
-
-  // Upload new files to Cloudinary
+  // Upload files first
   const newUrls=[];
   for(let i=0;i<docPendingFiles.length;i++){
+    showToast('⏳ Feltöltés '+(i+1)+'/'+docPendingFiles.length+'…',99999);
     try{
       const url=await uploadDocFile(docPendingFiles[i],title,i+1);
       newUrls.push(url);
-      showToast(`⏳ Fájl feltöltése ${i+1}/${docPendingFiles.length}…`,99999);
-    }catch(e){showToast('⚠️ Fájl feltöltés sikertelen: '+docPendingFiles[i].name);}
+    }catch(e){
+      hideToast();
+      showToast('⚠️ '+docPendingFiles[i].name+' feltöltés sikertelen: '+(e.message||''));
+      console.error('Upload error:',e);
+    }
   }
 
   const existingFiles=editingDocId?((documents.find(d=>d.id===editingDocId)||{}).files||[]):[];
   const allFiles=[...existingFiles,...newUrls];
-  const now=new Date().toISOString();
+
+  showToast('⏳ Mentés a Sheets-be…',99999);
 
   if(editingDocId){
     const d=documents.find(x=>x.id===editingDocId);
-    d.title=title;d.desc=desc;d.tags=tags;d.files=allFiles;d.modifiedBy=session.name;d.modifiedAt=now;
-    try{
-      await sheetRequest({action:'updateDoc',id:editingDocId,tanev:activeTanev,row:JSON.stringify([
-        d.id,d.title,d.desc,tags.join(','),d.uploader,d.uploaded,
-        JSON.stringify(allFiles),d.cloudFolder||'',session.name,now
-      ])});
-      showToast('✅ Frissítve!');
-    }catch(e){showToast('✅ Helyben frissítve');}
+    if(d){d.title=title;d.desc=desc;d.tags=tags;d.files=allFiles;d.modifiedBy=session.name;d.modifiedAt=now;}
+    sheetRequest({action:'updateDoc',id:editingDocId,tanev:activeTanev,row:JSON.stringify([
+      editingDocId,title,desc,tags.join(','),d?d.uploader:session.name,d?d.uploaded:now,
+      JSON.stringify(allFiles),'',session.name,now
+    ])}).catch(e=>console.warn('updateDoc failed:',e));
+    hideToast();showToast('✅ Frissítve!');
   }else{
     const id=Date.now().toString();
     const doc={id,title,desc,tags,uploader:session.name,uploaded:now,files:allFiles,cloudFolder:'',modifiedBy:'',modifiedAt:''};
     documents.unshift(doc);
-    try{
-      await sheetRequest({action:'appendDoc',tanev:activeTanev,row:JSON.stringify([
-        id,title,desc,tags.join(','),session.name,now,
-        JSON.stringify(allFiles),'','',''
-      ])});
-      showToast('✅ Dokumentum mentve!');
-    }catch(e){showToast('✅ Helyben mentve');}
+    sheetRequest({action:'appendDoc',tanev:activeTanev,row:JSON.stringify([
+      id,title,desc,tags.join(','),session.name,now,
+      JSON.stringify(allFiles),'','',''
+    ])}).catch(e=>console.warn('appendDoc failed:',e));
+    hideToast();showToast('✅ Dokumentum mentve!');
   }
 
   closeDocForm();
