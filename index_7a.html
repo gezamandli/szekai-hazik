@@ -355,7 +355,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v13.1</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v13.2</span><span id="scriptVersion"></span></div>
 
 <script>
 // ── Document state vars ─────────────────────────────
@@ -2407,13 +2407,40 @@ async function permDeleteDoc(id){
 
 // ── Calendar tab ──────────────────────────────────────
 const CAL_TYPES = {
-  'fogaszat':'🦷 Fogászat','kirándulás':'🏕️ Kirándulás','verseny':'🏆 Verseny',
-  'ügyelet':'⛪ Ügyelet','sportnap':'⚽ Sportnap','ünnepség':'🎉 Ünnepség',
+  'fogaszat':'🦷 Fogászat',
+  'vedono':'🏥 Védőnői vizsgálat',
+  'oltas':'💉 Oltás',
+  'ugyelet':'⛪ Ügyelet',
+  'mise':'🙏 Mise',
+  'lelkinap':'✝️ Lelkinap',
+  'unnepseg':'🎉 Ünnepség',
+  'megemlekezés':'🕯️ Megemlékezés',
+  'karacsony':'🎄 Karácsonyi rendezvény',
+  'pasztorjatek':'🌟 Pásztorjáték',
+  'kirandulas':'🚌 Kirándulás',
+  'erdei':'🏕️ Erdei iskola',
+  'sitabor':'⛷️ Sítábor',
+  'verseny':'🏆 Verseny',
+  'sportnap':'⚽ Sportnap',
+  'szinhaz':'🎭 Színház',
+  'mozi':'🎬 Mozi',
+  'muzeum':'🏛️ Múzeum',
+  'szunet':'🌴 Szünet',
+  'bizonyitvany':'📋 Bizonyítvány',
+  'szuloi':'👪 Szülői értekezlet',
+  'fotózás':'📸 Fotózás',
+  'vásár':'🛍️ Vásár',
   'egyéb':'📌 Egyéb'
 };
 const CAL_COLORS = {
-  'fogaszat':'#e87722','kirándulás':'#16a34a','verseny':'#7c3aed',
-  'ügyelet':'#0369a1','sportnap':'#dc2626','ünnepség':'#d97706','egyéb':'#6b7280'
+  'fogaszat':'#e87722','vedono':'#e87722','oltas':'#dc2626',
+  'ugyelet':'#0369a1','mise':'#0369a1','lelkinap':'#0369a1',
+  'unnepseg':'#d97706','megemlekezés':'#7c3aed','karacsony':'#16a34a',
+  'pasztorjatek':'#16a34a','kirandulas':'#16a34a','erdei':'#16a34a',
+  'sitabor':'#0891b2','verseny':'#7c3aed','sportnap':'#dc2626',
+  'szinhaz':'#9333ea','mozi':'#9333ea','muzeum':'#9333ea',
+  'szunet':'#16a34a','bizonyitvany':'#d97706','szuloi':'#6b7280',
+  'fotózás':'#6b7280','vásár':'#d97706','egyéb':'#6b7280'
 };
 
 async function initCalTab(){
