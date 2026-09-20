@@ -1,59 +1,130 @@
-// Google Apps Script – Házi Feladat App v4.1
-// CORS-enabled via HtmlService trick
-const VERSION = '4.1';
+// Google Apps Script – Házi Feladat App v5.0
+const VERSION = '5.0';
 
-function getSheets(sheetId) {
-  const ss = SpreadsheetApp.openById(sheetId);
-  let main = ss.getSheetByName('Feladatok') || ss.getSheets()[0];
-  if (main.getName() !== 'Feladatok') main.setName('Feladatok');
-  let trash = ss.getSheetByName('Kuka');
-  if (!trash) {
-    trash = ss.insertSheet('Kuka');
-    trash.appendRow(['id','subject','desc','due','note','uploader','uploaded','images','cloudFolder','deletedAt','deletedBy']);
+function getSheet(ss, name) {
+  return ss.getSheetByName(name);
+}
+
+function ensureSheet(ss, name, headers) {
+  let sh = ss.getSheetByName(name);
+  if (!sh) {
+    sh = ss.insertSheet(name);
+    if (headers) sh.appendRow(headers);
   }
-  let favs = ss.getSheetByName('Kedvencek');
-  if (!favs) {
-    favs = ss.insertSheet('Kedvencek');
-    favs.appendRow(['userName','hwId','addedAt']);
-  }
-  return { ss, main, trash, favs };
+  return sh;
 }
 
-function sanitizeRow(row) {
-  return row.map(val => val === null || val === undefined ? '' : String(val));
+function getConfig(ss) {
+  const cfg = ensureSheet(ss, 'Config', ['kulcs','ertek']);
+  const vals = cfg.getDataRange().getValues();
+  const map = {};
+  vals.forEach(r => { if(r[0]) map[String(r[0])] = String(r[1]); });
+  return map;
 }
 
-function corsResponse(data) {
-  const output = ContentService.createTextOutput(JSON.stringify(data));
-  output.setMimeType(ContentService.MimeType.JSON);
-  return output;
+function getActiveTanev(ss) {
+  const cfg = getConfig(ss);
+  return cfg['aktiv_tanev'] || '2026-2027';
 }
+
+function getSubjectsForTanev(ss, tanev) {
+  const cfg = getConfig(ss);
+  const key = 'tantargyak_' + tanev;
+  return cfg[key] ? cfg[key].split(',').map(s=>s.trim()) : [];
+}
+
+function getAllTanevek(ss) {
+  // Find all sheets named Feladatok_*
+  return ss.getSheets()
+    .map(s => s.getName())
+    .filter(n => n.startsWith('Feladatok_'))
+    .map(n => n.replace('Feladatok_', ''))
+    .sort();
+}
+
+function getFeladatokSheet(ss, tanev) {
+  const name = 'Feladatok_' + tanev;
+  return ensureSheet(ss, name, [
+    'id','subject','desc','due','note','uploader','uploaded',
+    'images','cloudFolder','ocrText','modifiedBy','modifiedAt'
+  ]);
+}
+
+function getKuka(ss) {
+  return ensureSheet(ss, 'Kuka', [
+    'id','subject','desc','due','note','uploader','uploaded',
+    'images','cloudFolder','ocrText','deletedAt','deletedBy','tanev'
+  ]);
+}
+
+function getVeglegesTorolve(ss) {
+  return ensureSheet(ss, 'Veglegesen_Torolve', [
+    'id','subject','desc','due','note','uploader','uploaded',
+    'images','cloudFolder','ocrText','deletedAt','deletedBy',
+    'permDeletedAt','tanev'
+  ]);
+}
+
+function getFavs(ss) {
+  return ensureSheet(ss, 'Kedvencek', ['userName','hwId','addedAt']);
+}
+
+function sanitize(row) {
+  return row.map(v => v === null || v === undefined ? '' : String(v));
+}
+
+function sheetToRows(sh, fields) {
+  const vals = sh.getDataRange().getValues();
+  return vals.slice(1).map(r => {
+    const obj = {};
+    fields.forEach((f,i) => obj[f] = String(r[i]||''));
+    return obj;
+  }).filter(r => r.id && r.id !== 'id');
+}
+
+const HW_FIELDS = ['id','subject','desc','due','note','uploader','uploaded','images','cloudFolder','ocrText','modifiedBy','modifiedAt'];
+const KUKA_FIELDS = ['id','subject','desc','due','note','uploader','uploaded','images','cloudFolder','ocrText','deletedAt','deletedBy','tanev'];
+const PERM_FIELDS = ['id','subject','desc','due','note','uploader','uploaded','images','cloudFolder','ocrText','deletedAt','deletedBy','permDeletedAt','tanev'];
 
 function doGet(e) {
   try {
     const p = e.parameter;
     const sheetId = p.sheetId;
     const action  = p.action || 'ping';
-
+    const cb      = p.callback;
     let result;
 
     if (action === 'ping') {
       result = {status:'ok', version:VERSION};
     }
+
+    else if (action === 'loadConfig' && sheetId) {
+      const ss = SpreadsheetApp.openById(sheetId);
+      const tanev = getActiveTanev(ss);
+      const tanevek = getAllTanevek(ss);
+      const subjects = getSubjectsForTanev(ss, tanev);
+      result = {status:'ok', version:VERSION, activeTanev:tanev, tanevek, subjects};
+    }
+
+    else if (action === 'loadHomeworks' && sheetId) {
+      const ss = SpreadsheetApp.openById(sheetId);
+      const tanev = p.tanev || getActiveTanev(ss);
+      const sh = getFeladatokSheet(ss, tanev);
+      const rows = sheetToRows(sh, HW_FIELDS);
+      result = {status:'ok', version:VERSION, data:rows, tanev};
+    }
+
     else if (action === 'loadTrash' && sheetId) {
-      const { trash } = getSheets(sheetId);
-      const vals = trash.getDataRange().getValues();
-      const rows = vals.slice(1).map(r => ({
-        id:String(r[0]), subject:String(r[1]), desc:String(r[2]),
-        due:String(r[3]), note:String(r[4]), uploader:String(r[5]),
-        uploaded:String(r[6]), images:String(r[7]), cloudFolder:String(r[8]),
-        deletedAt:String(r[9]), deletedBy:String(r[10])
-      })).filter(r => r.id && r.id !== 'id');
+      const ss = SpreadsheetApp.openById(sheetId);
+      const sh = getKuka(ss);
+      const rows = sheetToRows(sh, KUKA_FIELDS);
       result = {status:'ok', version:VERSION, data:rows};
     }
+
     else if (action === 'loadFavs' && sheetId) {
-      const { favs } = getSheets(sheetId);
-      const vals = favs.getDataRange().getValues();
+      const ss = SpreadsheetApp.openById(sheetId);
+      const sh = getFavs(ss);
+      const vals = sh.getDataRange().getValues();
       const userName = p.userName || '';
       const rows = vals.slice(1)
         .filter(r => String(r[0]) === userName)
@@ -61,107 +132,135 @@ function doGet(e) {
         .filter(id => id && id !== 'hwId');
       result = {status:'ok', version:VERSION, data:rows};
     }
+
     else if (action === 'addFav' && sheetId) {
-      const { favs } = getSheets(sheetId);
+      const ss = SpreadsheetApp.openById(sheetId);
+      const sh = getFavs(ss);
       const userName = p.userName || '';
       const hwId = p.hwId || '';
-      const vals = favs.getDataRange().getValues();
+      const vals = sh.getDataRange().getValues();
       const exists = vals.slice(1).some(r => String(r[0])===userName && String(r[1])===hwId);
-      if (!exists) favs.appendRow([userName, hwId, new Date().toISOString()]);
+      if (!exists) sh.appendRow([userName, hwId, new Date().toISOString()]);
       result = {status:'ok', version:VERSION};
     }
+
     else if (action === 'removeFav' && sheetId) {
-      const { favs } = getSheets(sheetId);
+      const ss = SpreadsheetApp.openById(sheetId);
+      const sh = getFavs(ss);
       const userName = p.userName || '';
       const hwId = p.hwId || '';
-      const vals = favs.getRange('A:B').getValues();
+      const vals = sh.getRange('A:B').getValues();
       for (let i = vals.length-1; i >= 1; i--) {
         if (String(vals[i][0])===userName && String(vals[i][1])===hwId) {
-          favs.deleteRow(i+1); break;
+          sh.deleteRow(i+1); break;
         }
       }
       result = {status:'ok', version:VERSION};
     }
+
     else if (action === 'removeFavHw' && sheetId) {
-      const { favs } = getSheets(sheetId);
+      const ss = SpreadsheetApp.openById(sheetId);
+      const sh = getFavs(ss);
       const hwId = p.hwId || '';
-      const vals = favs.getRange('A:B').getValues();
+      const vals = sh.getRange('A:B').getValues();
       for (let i = vals.length-1; i >= 1; i--) {
-        if (String(vals[i][1])===hwId) favs.deleteRow(i+1);
+        if (String(vals[i][1])===hwId) sh.deleteRow(i+1);
       }
       result = {status:'ok', version:VERSION};
     }
+
     else if (action === 'append' && sheetId) {
-      const { main } = getSheets(sheetId);
+      const ss = SpreadsheetApp.openById(sheetId);
+      const tanev = p.tanev || getActiveTanev(ss);
+      const sh = getFeladatokSheet(ss, tanev);
       const row = JSON.parse(p.row);
-      main.appendRow(sanitizeRow(row));
+      sh.appendRow(sanitize(row));
       result = {status:'ok', version:VERSION};
     }
+
     else if (action === 'update' && sheetId) {
-      const { main } = getSheets(sheetId);
+      const ss = SpreadsheetApp.openById(sheetId);
+      const tanev = p.tanev || getActiveTanev(ss);
+      const sh = getFeladatokSheet(ss, tanev);
       const row = JSON.parse(p.row);
-      const vals = main.getRange('A:A').getValues();
+      const vals = sh.getRange('A:A').getValues();
       for (let i = 0; i < vals.length; i++) {
         if (String(vals[i][0]) === String(p.id)) {
-          main.getRange(i+1,1,1,sanitizeRow(row).length).setValues([sanitizeRow(row)]);
+          sh.getRange(i+1,1,1,sanitize(row).length).setValues([sanitize(row)]);
           result = {status:'ok', version:VERSION}; break;
         }
       }
       if (!result) result = {status:'ok', msg:'not found', version:VERSION};
     }
+
     else if (action === 'delete' && sheetId) {
-      const { main, trash } = getSheets(sheetId);
-      const vals = main.getRange('A:A').getValues();
+      const ss = SpreadsheetApp.openById(sheetId);
+      const tanev = p.tanev || getActiveTanev(ss);
+      const sh = getFeladatokSheet(ss, tanev);
+      const kuka = getKuka(ss);
+      const vals = sh.getRange('A:A').getValues();
       for (let i = 0; i < vals.length; i++) {
         if (String(vals[i][0]) === String(p.id)) {
-          const lastCol = Math.max(main.getLastColumn(), 9);
-          const row = main.getRange(i+1,1,1,lastCol).getValues()[0];
-          trash.appendRow([String(row[0]),String(row[1]),String(row[2]),String(row[3]),
-            String(row[4]),String(row[5]),String(row[6]),String(row[7]),
-            String(row[8]||''), new Date().toISOString(), String(p.deletedBy||'')]);
-          main.deleteRow(i+1);
+          const lastCol = Math.max(sh.getLastColumn(), 10);
+          const row = sh.getRange(i+1,1,1,lastCol).getValues()[0];
+          kuka.appendRow(sanitize([
+            row[0],row[1],row[2],row[3],row[4],row[5],row[6],
+            row[7],row[8]||'',row[9]||'',
+            new Date().toISOString(), p.deletedBy||'', tanev
+          ]));
+          sh.deleteRow(i+1);
           result = {status:'ok', version:VERSION}; break;
         }
       }
       if (!result) result = {status:'ok', msg:'not found', version:VERSION};
     }
+
     else if (action === 'restore' && sheetId) {
-      const { main, trash } = getSheets(sheetId);
-      const vals = trash.getRange('A:A').getValues();
+      const ss = SpreadsheetApp.openById(sheetId);
+      const kuka = getKuka(ss);
+      const vals = kuka.getRange('A:A').getValues();
       for (let i = 1; i < vals.length; i++) {
         if (String(vals[i][0]) === String(p.id)) {
-          const row = trash.getRange(i+1,1,1,9).getValues()[0];
-          row[0] = String(Date.now());
-          main.appendRow(sanitizeRow(row));
-          trash.deleteRow(i+1);
-          result = {status:'ok', newId:row[0], version:VERSION}; break;
+          const row = kuka.getRange(i+1,1,1,13).getValues()[0];
+          const tanev = String(row[12]) || getActiveTanev(ss);
+          const sh = getFeladatokSheet(ss, tanev);
+          const newId = String(Date.now());
+          sh.appendRow(sanitize([newId,row[1],row[2],row[3],row[4],row[5],row[6],row[7],row[8]||'',row[9]||'','','']));
+          kuka.deleteRow(i+1);
+          result = {status:'ok', newId, version:VERSION}; break;
         }
       }
       if (!result) result = {status:'ok', msg:'not found', version:VERSION};
     }
+
     else if (action === 'permDelete' && sheetId) {
-      const { trash } = getSheets(sheetId);
-      const vals = trash.getRange('A:A').getValues();
+      const ss = SpreadsheetApp.openById(sheetId);
+      const kuka = getKuka(ss);
+      const perm = getVeglegesTorolve(ss);
+      const vals = kuka.getRange('A:A').getValues();
       for (let i = vals.length-1; i >= 1; i--) {
         if (String(vals[i][0]) === String(p.id)) {
-          trash.deleteRow(i+1); break;
+          const row = kuka.getRange(i+1,1,1,13).getValues()[0];
+          // Archive to Veglegesen_Torolve
+          perm.appendRow(sanitize([
+            row[0],row[1],row[2],row[3],row[4],row[5],row[6],
+            row[7],row[8]||'',row[9]||'',row[10]||'',row[11]||'',
+            new Date().toISOString(), row[12]||''
+          ]));
+          kuka.deleteRow(i+1);
+          result = {status:'ok', version:VERSION}; break;
         }
       }
-      result = {status:'ok', version:VERSION};
+      if (!result) result = {status:'ok', msg:'not found', version:VERSION};
     }
+
     else {
       result = {status:'unknown', action, version:VERSION};
     }
 
-    // Return with JSONP if callback provided, else plain JSON
-    const jsonStr = JSON.stringify(result);
-    const cb = p.callback;
-    if (cb) {
-      return ContentService.createTextOutput(cb+'('+jsonStr+')')
-        .setMimeType(ContentService.MimeType.JAVASCRIPT);
-    }
-    return ContentService.createTextOutput(jsonStr)
-      .setMimeType(ContentService.MimeType.JSON);
+    const json = JSON.stringify(result);
+    if (cb) return ContentService.createTextOutput(cb+'('+json+')').setMimeType(ContentService.MimeType.JAVASCRIPT);
+    return ContentService.createTextOutput(json).setMimeType(ContentService.MimeType.JSON);
 
   } catch(err) {
     const out = JSON.stringify({status:'error', message:err.toString(), version:VERSION});
