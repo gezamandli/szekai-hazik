@@ -329,7 +329,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v11.2</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v11.3</span><span id="scriptVersion"></span></div>
 
 <script>
 // ── Document state vars ─────────────────────────────
@@ -982,7 +982,7 @@ function openDetail(id){
       </div>
       <div class="gallery">${imgs.map((u,i)=>{
         const ext=(u||'').split('.').pop().toLowerCase().split('?')[0];
-        const isImg=['jpg','jpeg','png','gif','webp'].includes(ext)||u.includes('/image/upload/');
+        const isImg=['jpg','jpeg','png','gif','webp'].includes(ext)||(u.includes('/image/upload/')&&!u.includes('.pdf')&&!u.includes('.doc')&&!u.includes('.xls'));
         const icon=ext==='pdf'?'📕':ext==='doc'||ext==='docx'?'📝':ext==='xls'||ext==='xlsx'?'📊':'📄';
         const fname=u.split('/').pop().split('?')[0];
         return isImg
@@ -2009,9 +2009,11 @@ function docCardHTML(d){
       ${files.map(u=>{
         const ext=(u||'').split('.').pop().toLowerCase().split('?')[0];
         const isPdf=ext==='pdf'||u.includes('.pdf');
-        const isImg=['jpg','jpeg','png','gif','webp'].includes(ext)||u.includes('/image/upload/');
+        const isImg=['jpg','jpeg','png','gif','webp'].includes(ext)||(u.includes('/image/upload/')&&!u.includes('.pdf')&&!u.includes('.doc')&&!u.includes('.xls'));
         // Cloudinary PDF thumbnail: replace upload path with image format
-        const thumb=isPdf?u.replace('/upload/','/upload/w_120,h_80,c_fit,pg_1/').replace('.pdf','.jpg'):'';
+        // PDF thumbnail: raw uploads need image URL with page param
+        const pdfThumb=u.replace('/raw/upload/','/image/upload/').replace('/image/upload/','/image/upload/w_120,h_80,c_fit,pg_1/');
+        const thumb=isPdf?pdfThumb.replace(/\.pdf$/,'.jpg'):'';
         return isPdf&&thumb
           ?`<div class="doc-file" style="flex-direction:column;padding:4px;gap:3px">
               <img src="${thumb}" style="width:80px;height:60px;object-fit:cover;border-radius:4px" onerror="this.style.display='none'">
@@ -2225,8 +2227,10 @@ async function uploadDocFile(file,title,idx){
   fd.append('file',uploadFile);
   fd.append('upload_preset',CFG.UPLOAD_PRESET);
   fd.append('folder',folder);
-  // Use auto endpoint - works for both images and raw files with unsigned preset
-  const endpoint='https://api.cloudinary.com/v1_1/'+CFG.CLOUD_NAME+'/auto/upload';
+  // Use correct endpoint based on file type
+  const endpoint=isImg
+    ?'https://api.cloudinary.com/v1_1/'+CFG.CLOUD_NAME+'/image/upload'
+    :'https://api.cloudinary.com/v1_1/'+CFG.CLOUD_NAME+'/raw/upload';
   const r=await fetch(endpoint,{method:'POST',body:fd});
   console.log('Cloudinary response status:',r.status);
   if(!r.ok){
@@ -2279,7 +2283,9 @@ async function uploadHwFile(file){
   fd.append('file',uploadFile);
   fd.append('upload_preset',CFG.UPLOAD_PRESET);
   fd.append('folder',folder);
-  const endpoint='https://api.cloudinary.com/v1_1/'+CFG.CLOUD_NAME+'/auto/upload';
+  const endpoint=isImage
+    ?'https://api.cloudinary.com/v1_1/'+CFG.CLOUD_NAME+'/image/upload'
+    :'https://api.cloudinary.com/v1_1/'+CFG.CLOUD_NAME+'/raw/upload';
   const r=await fetch(endpoint,{method:'POST',body:fd});
   if(!r.ok){const err=await r.json().catch(()=>({}));throw new Error(err.error?.message||'HTTP '+r.status);}
   const j=await r.json();
