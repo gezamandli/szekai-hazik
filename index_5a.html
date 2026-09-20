@@ -329,7 +329,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v10.8</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v10.9</span><span id="scriptVersion"></span></div>
 
 <script>
 // ── Document state vars ─────────────────────────────
@@ -2019,7 +2019,26 @@ function docCardHTML(d){
     </div>
     ${d.desc?`<div class="doc-desc">${d.desc}</div>`:''}
     ${d.tags.length?`<div class="doc-tags">${d.tags.map(t=>`<span class="doc-tag">${t}</span>`).join('')}</div>`:''}
-    ${files.length?`<div class="doc-files">${files.map(u=>`<span class="doc-file">${getFileIcon(u)} ${getFileName(u)}</span>`).join('')}</div>`:''}
+    ${files.length?`<div class="doc-files">
+      ${files.map(u=>{
+        const ext=(u||'').split('.').pop().toLowerCase().split('?')[0];
+        const isPdf=ext==='pdf'||u.includes('.pdf');
+        const isImg=['jpg','jpeg','png','gif','webp'].includes(ext)||u.includes('/image/upload/');
+        // Cloudinary PDF thumbnail: replace upload path with image format
+        const thumb=isPdf?u.replace('/upload/','/upload/w_120,h_80,c_fit,pg_1/').replace('.pdf','.jpg'):'';
+        return isPdf&&thumb
+          ?`<div class="doc-file" style="flex-direction:column;padding:4px;gap:3px">
+              <img src="${thumb}" style="width:80px;height:60px;object-fit:cover;border-radius:4px" onerror="this.style.display='none'">
+              <span style="font-size:10px;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${getFileName(u)}</span>
+            </div>`
+          :isImg
+          ?`<div class="doc-file" style="flex-direction:column;padding:4px;gap:3px">
+              <img src="${u}" style="width:80px;height:60px;object-fit:cover;border-radius:4px">
+              <span style="font-size:10px;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${getFileName(u)}</span>
+            </div>`
+          :`<span class="doc-file">${getFileIcon(u)} ${getFileName(u)}</span>`;
+      }).join('')}
+    </div>`:''}
     <div class="doc-meta">⬆️ ${d.uploader} · ${fmtDT(d.uploaded)}${d.modifiedBy?' · ✏️ '+d.modifiedBy+' '+fmtDT(d.modifiedAt):''}</div>
   </div>`;
 }
