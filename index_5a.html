@@ -116,6 +116,13 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 .select-bar .cnt{font-size:14px;font-weight:800}
 .sb-btn{background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:9px;padding:9px 14px;font-size:13px;font-weight:700;cursor:pointer}
 .help-section{display:flex;gap:14px;margin-bottom:18px;align-items:flex-start}
+.cal-card{background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,.07);border:1.5px solid var(--line);cursor:pointer;transition:box-shadow .15s;border-left:4px solid var(--blue)}
+.cal-card:hover{box-shadow:0 2px 12px rgba(0,0,0,.12)}
+.cal-date-badge{display:inline-flex;flex-direction:column;align-items:center;background:var(--blue);color:#fff;border-radius:10px;padding:6px 12px;min-width:52px;margin-right:12px;flex-shrink:0}
+.cal-date-badge .cal-day{font-size:22px;font-weight:900;line-height:1}
+.cal-date-badge .cal-mon{font-size:11px;font-weight:700;text-transform:uppercase}
+.cal-date-badge .cal-dow{font-size:10px;opacity:.85}
+.cal-type-badge{border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;margin-left:6px}
 .doc-card{background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,.07);border:1.5px solid var(--line);cursor:pointer;transition:box-shadow .15s}
 .doc-card:hover{box-shadow:0 2px 12px rgba(0,0,0,.12)}
 .doc-card.selected{outline:3px solid var(--blue);background:#f0f7ff}
@@ -176,6 +183,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 
 <nav class="tabs">
   <div class="tab on" id="tab-list">📋 Feladatok</div>
+  <div class="tab" id="tab-cal">📅 Naptár</div>
   <div class="tab" id="tab-docs">📁 Dokumentumok</div>
   <div class="tab" id="tab-request">🙋 Kérés</div>
   <div class="tab" id="tab-trash">🗑️ Kuka</div>
@@ -224,6 +232,12 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 
 
 
+<div id="view-cal" class="view">
+  <div class="search-bar"><input type="search" id="searchCal" placeholder="🔍 Keresés eseményekben…" oninput="renderCal()"></div>
+  <div class="chips" id="calTypeBar"></div>
+  <div class="chips" id="calDateBar"></div>
+  <div id="calList"></div>
+</div>
 <div id="view-docs" class="view">
   <div class="search-bar"><input type="search" id="searchDocs" placeholder="🔍 Keresés dokumentumokban…" oninput="renderDocs()"></div>
   <div class="chips" id="docsTagBar"></div>
@@ -330,11 +344,17 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v12.6</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v12.7</span><span id="scriptVersion"></span></div>
 
 <script>
 // ── Document state vars ─────────────────────────────
 let documents = [];
+let calEvents = [];
+let calLoaded = false;
+let calLoadedTanev = "";
+let activeCalType = "all";
+let calDateFrom = "";
+let calDateTo = "";
 let docsLoaded = false;
 let docsLoadedTanev = "";
 let activeDocTag = 'all';
@@ -345,7 +365,7 @@ const CFG = {
   CNAME:         '5.a osztaly',
   PIN:           '2026',
   SHEET_ID:      '1KopuaNCn1nUn8JHDBYEjEqKp3EXaLErX8qvkeOu8ndk',
-  SCRIPT_URL:    'https://script.google.com/macros/s/AKfycbyjOP_Bna_bdw6aXt091M5jCoPJDmA95ujEEryJoY4AoBKmUqQLNGrBB1lHL8Llej42/exec',
+  SCRIPT_URL:    'https://script.google.com/macros/s/AKfycbzVA9AgfBnY2Jygd8iLvzGWQywN5BV_mvre3Xxe174pD4xsuAu6E4j4Cv5TiQtY4cYZ/exec',
   CLOUD_NAME:    'g8tinasd',
   UPLOAD_PRESET: 'szekai_hazik',
   CLOUD_FOLDER:  'hazik_5a',
@@ -424,7 +444,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('loginBtn').onclick=signIn;
   document.getElementById('pinCode').addEventListener('keydown',e=>{if(e.key==='Enter')signIn();});
   document.getElementById('logoutBtn').onclick=logout;
-  document.getElementById('fabBtn').onclick=()=>{ if(currentTab==='docs') openAddDoc(); else openAddSheet(null); };
+  document.getElementById('fabBtn').onclick=()=>{ if(currentTab==='docs') openAddDoc(); else if(currentTab==='cal') openAddCalEvent(); else openAddSheet(null); };
   document.getElementById('cancelAddBtn').onclick=()=>closeSheet('addSheet');
   document.getElementById('saveBtn').onclick=saveHW;
   document.getElementById('camBtn').onclick=()=>document.getElementById('camInput').click();
@@ -445,8 +465,9 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
   };
   document.getElementById('notifySheet').onclick=e=>{if(e.target===document.getElementById('notifySheet'))closeSheet('notifySheet');};
-  ['list','docs','request','trash','help'].forEach(name=>{
-    document.getElementById('tab-'+name).onclick=()=>{switchTab(name);if(name==='trash')loadTrash();else if(name==='request')renderRequestTab();else if(name==='help')renderHelpTab();else if(name==='docs')initDocsTab();else renderAll();};
+  ['list','cal','docs','request','trash','help'].forEach(name=>{
+    document.getElementById('tab-'+name).onclick=()=>{switchTab(name);if(name==='trash')loadTrash();else if(name==='request')renderRequestTab();else if(name==='help')renderHelpTab();else if(name==='cal')initCalTab();
+    else if(name==='docs')initDocsTab();else renderAll();};
   });
   const s=localStorage.getItem('hz_s_5a');
   if(s){session=JSON.parse(s);showApp();}
@@ -1159,7 +1180,7 @@ let currentTab="list";
 function switchTab(name){
   currentTab=name;
 
-  ['list','docs','request','trash','help'].forEach(n=>{
+  ['list','cal','docs','request','trash','help'].forEach(n=>{
     document.getElementById('tab-'+n).classList.toggle('on',n===name);
     document.getElementById('view-'+n).classList.toggle('on',n===name);
   });
@@ -2369,6 +2390,261 @@ async function permDeleteDoc(id){
     await sheetRequest({action:'permDeleteDoc',id,deletedBy:session.name,tanev:activeTanev});
     showToast('🗑️ Véglegesen törölve');
   }catch(e){showToast('🗑️ Törölve');}
+}
+
+
+// ── Calendar tab ──────────────────────────────────────
+const CAL_TYPES = {
+  'fogaszat':'🦷 Fogászat','kirándulás':'🏕️ Kirándulás','verseny':'🏆 Verseny',
+  'ügyelet':'⛪ Ügyelet','sportnap':'⚽ Sportnap','ünnepség':'🎉 Ünnepség',
+  'egyéb':'📌 Egyéb'
+};
+const CAL_COLORS = {
+  'fogaszat':'#e87722','kirándulás':'#16a34a','verseny':'#7c3aed',
+  'ügyelet':'#0369a1','sportnap':'#dc2626','ünnepség':'#d97706','egyéb':'#6b7280'
+};
+
+async function initCalTab(){
+  const now=Date.now();
+  if(!calLoaded||calLoadedTanev!==activeTanev||(now-(window._calLoadTime||0))>30000){
+    window._calLoadTime=now;
+    await loadCal();
+  } else renderCal();
+}
+
+async function loadCal(){
+  try{
+    showToast('⏳ Naptár betöltése…',99999);
+    const url='https://docs.google.com/spreadsheets/d/'+CFG.SHEET_ID
+      +'/gviz/tq?tqx=out:json&sheet=Naptar_'+encodeURIComponent(activeTanev)+'&t='+Date.now();
+    const r=await fetch(url);
+    const text=await r.text();
+    const json=JSON.parse(text.replace(/^[^\(]+\(|\);?$/g,''));
+    const cols=json.table&&json.table.cols||[];
+    if(cols[1]&&(cols[1].label==='subject'||cols[1].label==='title'&&cols[2]&&cols[2].label==='desc'&&cols[3]&&cols[3].label==='tags')){
+      calEvents=[];calLoaded=true;calLoadedTanev=activeTanev;hideToast();renderCal();return;
+    }
+    calEvents=(json.table.rows||[]).map(row=>{
+      const get=i=>{const c=row.c&&row.c[i];return c&&c.v!=null?String(c.v):'';};
+      return{id:get(0),title:get(1),desc:get(2),type:get(3)||'egyéb',
+        dateFrom:get(4),dateTo:get(5),uploader:get(6),uploaded:get(7),
+        modifiedBy:get(8),modifiedAt:get(9)};
+    }).filter(e=>e.id&&e.id!=='id')
+      .sort((a,b)=>new Date(a.dateFrom)-new Date(b.dateFrom));
+    calLoaded=true;calLoadedTanev=activeTanev;
+    hideToast();renderCal();
+  }catch(e){
+    hideToast();calEvents=[];calLoaded=true;calLoadedTanev=activeTanev;renderCal();
+    console.warn('loadCal error:',e);
+  }
+}
+
+function renderCal(){
+  // Type chips
+  const typeBar=document.getElementById('calTypeBar');
+  if(typeBar){
+    const types=['all',...new Set(calEvents.map(e=>e.type).filter(Boolean))];
+    typeBar.innerHTML=types.map(t=>{
+      const label=t==='all'?'Összes':(CAL_TYPES[t]||t);
+      return`<div class="chip${activeCalType===t?' on':''}" onclick="activeCalType='${t}';renderCal()">${label}</div>`;
+    }).join('');
+  }
+
+  // Date filter chips
+  const dateBar=document.getElementById('calDateBar');
+  if(dateBar){
+    const today=new Date();today.setHours(0,0,0,0);
+    const filters=[
+      {id:'all',label:'Bármikor'},
+      {id:'upcoming',label:'Közelgő'},
+      {id:'thismonth',label:'Ez a hónap'},
+      {id:'range',label:'📅 Időszak'}
+    ];
+    dateBar.innerHTML=filters.map(f=>`<div class="chip${calDateFrom===f.id||(!calDateFrom&&f.id==='all')?' on':''}" onclick="setCalDateFilter('${f.id}')">${f.label}</div>`).join('')
+      +(calDateFrom&&!['all','upcoming','thismonth','range'].includes(calDateFrom)
+        ?`<span style="font-size:13px;padding:4px 8px;background:var(--blue-bg);border-radius:8px;color:var(--blue)">${calDateFrom}${calDateTo?' – '+calDateTo:''}</span>`:'');
+  }
+
+  let items=[...calEvents];
+  const q=document.getElementById('searchCal')?.value?.toLowerCase()||'';
+  if(q) items=items.filter(e=>e.title.toLowerCase().includes(q)||e.desc.toLowerCase().includes(q));
+  if(activeCalType!=='all') items=items.filter(e=>e.type===activeCalType);
+
+  // Date filter
+  const today=new Date();today.setHours(0,0,0,0);
+  if(calDateFrom==='upcoming') items=items.filter(e=>new Date(e.dateFrom)>=today);
+  else if(calDateFrom==='thismonth'){
+    const m=today.getMonth(),y=today.getFullYear();
+    items=items.filter(e=>{const d=new Date(e.dateFrom);return d.getMonth()===m&&d.getFullYear()===y;});
+  } else if(calDateFrom&&!['all','upcoming','thismonth','range'].includes(calDateFrom)){
+    const from=new Date(calDateFrom);
+    const to=calDateTo?new Date(calDateTo):new Date(calDateFrom);
+    to.setHours(23,59,59);
+    items=items.filter(e=>new Date(e.dateFrom)>=from&&new Date(e.dateFrom)<=to);
+  }
+
+  const list=document.getElementById('calList');
+  if(!list)return;
+  if(!items.length){
+    list.innerHTML='<div class="empty"><div class="ico">📅</div><p>Nincs esemény</p></div>';
+    return;
+  }
+
+  list.innerHTML=items.map(e=>calCardHTML(e)).join('');
+  list.querySelectorAll('.cal-card[data-id]').forEach(c=>{
+    c.onclick=()=>openCalDetail(c.dataset.id);
+  });
+}
+
+function setCalDateFilter(id){
+  if(id==='range'){
+    const from=prompt('Kezdő dátum (ÉÉÉÉ-HH-NN):');
+    if(!from)return;
+    const to=prompt('Záró dátum (ÉÉÉÉ-HH-NN, üres = csak ez a nap):');
+    calDateFrom=from;calDateTo=to||'';
+  } else {
+    calDateFrom=id;calDateTo='';
+  }
+  renderCal();
+}
+
+function calCardHTML(e){
+  const d=new Date(e.dateFrom);
+  const isValid=!isNaN(d);
+  const day=isValid?d.getDate():'?';
+  const mon=isValid?d.toLocaleDateString('hu',{month:'short'}):'';
+  const dow=isValid?d.toLocaleDateString('hu',{weekday:'short'}):'';
+  const color=CAL_COLORS[e.type]||'#6b7280';
+  const typeLabel=CAL_TYPES[e.type]||e.type;
+  const hasRange=e.dateTo&&e.dateTo!==e.dateFrom&&e.dateTo;
+  const dTo=hasRange?new Date(e.dateTo):null;
+  return`<div class="cal-card" data-id="${e.id}" style="border-left-color:${color}">
+    <div style="display:flex;align-items:flex-start;gap:0">
+      <div class="cal-date-badge" style="background:${color}">
+        <div class="cal-day">${day}</div>
+        <div class="cal-mon">${mon}</div>
+        <div class="cal-dow">${dow}</div>
+      </div>
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-bottom:4px">
+          <span style="font-size:15px;font-weight:800">${e.title}</span>
+          <span class="cal-type-badge" style="background:${color}22;color:${color}">${typeLabel}</span>
+        </div>
+        ${hasRange?`<div style="font-size:12px;color:var(--ink2);margin-bottom:4px">📅 ${fmtDate(e.dateFrom)} – ${fmtDate(e.dateTo)}</div>`:''}
+        ${e.desc?`<div style="font-size:13px;color:var(--ink2);line-height:1.5;margin-bottom:4px">${e.desc}</div>`:''}
+        <div style="font-size:11px;color:var(--ink2)">⬆️ ${e.uploader} · ${fmtDT(e.uploaded)}${e.modifiedBy?' · ✏️ '+e.modifiedBy:''}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function openCalDetail(id){
+  const e=calEvents.find(x=>x.id===id);if(!e)return;
+  const color=CAL_COLORS[e.type]||'#6b7280';
+  const modal=document.createElement('div');
+  modal.className='overlay on';
+  modal.id='calDetailModal';
+  modal.innerHTML=`<div class="sheet" onclick="event.stopPropagation()">
+    <div class="handle"></div>
+    <button onclick="closeCalDetail()" style="position:absolute;top:12px;right:16px;background:var(--bg);border:none;border-radius:50%;width:32px;height:32px;font-size:18px;cursor:pointer">✕</button>
+    <div style="padding:4px 0 16px">
+      <div style="font-size:20px;font-weight:900;margin-bottom:6px">${e.title}</div>
+      <div style="margin-bottom:8px">
+        <span class="cal-type-badge" style="background:${color}22;color:${color};font-size:13px">${CAL_TYPES[e.type]||e.type}</span>
+        <span style="font-size:13px;color:var(--ink2);margin-left:8px">📅 ${fmtDate(e.dateFrom)}${e.dateTo&&e.dateTo!==e.dateFrom?' – '+fmtDate(e.dateTo):''}</span>
+      </div>
+      ${e.desc?`<div style="font-size:14px;color:var(--ink);line-height:1.7;margin-bottom:12px;white-space:pre-wrap">${e.desc}</div>`:''}
+      <div style="font-size:12px;color:var(--ink2)">⬆️ ${e.uploader} · ${fmtDT(e.uploaded)}${e.modifiedBy?'<br>✏️ '+e.modifiedBy+' · '+fmtDT(e.modifiedAt):''}</div>
+    </div>
+    <div class="detail-actions">
+      <button class="btn btn-secondary btn-full" onclick="shareCalEvent('${id}')">💬 Értesítő küldése</button>
+      <button class="btn btn-secondary btn-full" onclick="closeCalDetail();openEditCalEvent('${id}')">✏️ Szerkesztés</button>
+      <button class="btn btn-danger btn-full" onclick="deleteCalEvent('${id}')">🗑️ Törlés</button>
+    </div>
+  </div>`;
+  modal.onclick=e=>{if(e.target===modal)closeCalDetail();};
+  document.body.appendChild(modal);
+}
+
+function closeCalDetail(){const m=document.getElementById('calDetailModal');if(m)m.remove();}
+
+function shareCalEvent(id){
+  const e=calEvents.find(x=>x.id===id);if(!e)return;
+  const text=`📅 ${e.title}\n🗓️ ${fmtDate(e.dateFrom)}${e.dateTo&&e.dateTo!==e.dateFrom?' – '+fmtDate(e.dateTo):''}\n${e.desc?'\n'+e.desc:''}`;
+  if(navigator.share){navigator.share({title:e.title,text});}
+  else{navigator.clipboard?.writeText(text);showToast('📋 Vágólapra másolva');}
+}
+
+let editingCalId=null;
+
+function openAddCalEvent(){editingCalId=null;showCalForm(null);}
+function openEditCalEvent(id){editingCalId=id;showCalForm(calEvents.find(e=>e.id===id));}
+
+function showCalForm(e){
+  const modal=document.createElement('div');
+  modal.className='overlay on';
+  modal.id='calFormModal';
+  const typeOpts=Object.entries(CAL_TYPES).map(([v,l])=>`<option value="${v}"${e&&e.type===v?' selected':''}>${l}</option>`).join('');
+  modal.innerHTML=`<div class="sheet" onclick="event.stopPropagation()" style="max-height:90vh;overflow-y:auto">
+    <div class="handle"></div>
+    <div class="sheet-title">${e?'Esemény szerkesztése':'Új esemény'}</div>
+    <div class="field"><label>Cím</label><input id="calTitle" type="text" value="${e?e.title:''}" placeholder="Pl. Fogászati vizsgálat"></div>
+    <div class="field"><label>Típus</label><select id="calType">${typeOpts}</select></div>
+    <div class="field"><label>Esemény dátuma</label><input id="calDateFrom" type="date" value="${e?e.dateFrom.split('T')[0]:''}"></div>
+    <div class="field"><label>Záró dátum (opcionális, ha több napos)</label><input id="calDateTo" type="date" value="${e&&e.dateTo?e.dateTo.split('T')[0]:''}"></div>
+    <div class="field"><label>Leírás</label><textarea id="calDesc" style="min-height:100px">${e?e.desc:''}</textarea></div>
+    <div class="btn-row" style="margin-top:16px">
+      <button class="btn btn-secondary" style="flex:1" onclick="closeCalForm()">Mégse</button>
+      <button class="btn btn-primary" style="flex:2" onclick="saveCalEvent()">💾 Mentés</button>
+    </div>
+  </div>`;
+  modal.onclick=ev=>{if(ev.target===modal)closeCalForm();};
+  document.body.appendChild(modal);
+}
+
+function closeCalForm(){const m=document.getElementById('calFormModal');if(m)m.remove();}
+
+async function saveCalEvent(){
+  const title=document.getElementById('calTitle').value.trim();
+  if(!title){showToast('⚠️ Adj meg egy címet!');return;}
+  const type=document.getElementById('calType').value;
+  const dateFrom=document.getElementById('calDateFrom').value;
+  if(!dateFrom){showToast('⚠️ Adj meg egy dátumot!');return;}
+  const dateTo=document.getElementById('calDateTo').value||'';
+  const desc=document.getElementById('calDesc').value.trim();
+  const now=new Date().toISOString();
+
+  if(editingCalId){
+    const ev=calEvents.find(x=>x.id===editingCalId);
+    if(ev){ev.title=title;ev.type=type;ev.dateFrom=dateFrom;ev.dateTo=dateTo;ev.desc=desc;ev.modifiedBy=session.name;ev.modifiedAt=now;}
+    calEvents.sort((a,b)=>new Date(a.dateFrom)-new Date(b.dateFrom));
+    showToast('⏳ Mentés…',99999);
+    try{
+      await sheetRequest({action:'updateCal',id:editingCalId,tanev:activeTanev,row:JSON.stringify([editingCalId,title,desc,type,dateFrom,dateTo,ev?ev.uploader:session.name,ev?ev.uploaded:now,session.name,now])});
+      hideToast();showToast('✅ Frissítve!');
+    }catch(e){hideToast();showToast('✅ Helyben frissítve');}
+  } else {
+    const id=Date.now().toString();
+    const ev={id,title,desc,type,dateFrom,dateTo,uploader:session.name,uploaded:now,modifiedBy:'',modifiedAt:''};
+    calEvents.push(ev);
+    calEvents.sort((a,b)=>new Date(a.dateFrom)-new Date(b.dateFrom));
+    showToast('⏳ Mentés…',99999);
+    try{
+      await sheetRequest({action:'appendCal',tanev:activeTanev,row:JSON.stringify([id,title,desc,type,dateFrom,dateTo,session.name,now,'',''])});
+      hideToast();showToast('✅ Esemény mentve!');
+    }catch(e){hideToast();showToast('✅ Helyben mentve');}
+  }
+  closeCalForm();renderCal();
+}
+
+async function deleteCalEvent(id){
+  if(!confirm('Biztosan törlöd ezt az eseményt?'))return;
+  calEvents=calEvents.filter(e=>e.id!==id);
+  closeCalDetail();renderCal();
+  try{
+    await sheetRequest({action:'deleteCal',id,tanev:activeTanev,deletedBy:session.name});
+    showToast('🗑️ Esemény törölve');
+  }catch(e){showToast('🗑️ Helyben törölve');}
 }
 
 </script>
