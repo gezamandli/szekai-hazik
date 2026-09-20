@@ -329,7 +329,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v11.4</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v11.5</span><span id="scriptVersion"></span></div>
 
 <script>
 // ── Document state vars ─────────────────────────────
@@ -1901,20 +1901,17 @@ async function loadDocs(){
       +'/gviz/tq?tqx=out:json&sheet='+encodeURIComponent(sheetName)+'&t='+Date.now();
     const r=await fetch(url);
     const text=await r.text();
-    // Check if GViz returned the right sheet (not fallback)
-    if(text.includes('"sig"') && !text.includes(sheetName.replace(/_/g,' ')) && !text.includes('Dokumentumok')){
-      // Wrong sheet returned (fallback) - sheet doesn't exist yet
-      documents=[];
-      docsLoaded=true;
-      hideToast();
-      renderDocs();
-      return;
-    }
+
     const json=JSON.parse(text.replace(/^[^(]+\(|\);?$/g,''));
-    // Verify first column header is 'id' not 'id' from Feladatok
-    const firstHeader=json.table&&json.table.cols&&json.table.cols[1]?json.table.cols[1].label:'';
-    if(firstHeader==='subject'){
-      // Got Feladatok sheet instead of Dokumentumok
+    // Verify we got the right sheet by checking column count and second column
+    const cols=json.table&&json.table.cols||[];
+    const col1Label=cols[1]?cols[1].label:'';
+    if(col1Label==='subject'||col1Label==='B'){
+      // Got wrong sheet (Feladatok fallback) - show empty
+      console.warn('Got wrong sheet, showing empty docs');
+      documents=[];docsLoaded=true;hideToast();renderDocs();return;
+    }
+    if(!json.table.rows||!json.table.rows.length){
       documents=[];docsLoaded=true;hideToast();renderDocs();return;
     }
     documents=json.table.rows.map(row=>{
@@ -2231,11 +2228,7 @@ async function uploadDocFile(file,title,idx){
   fd.append('file',uploadFile);
   fd.append('upload_preset',CFG.UPLOAD_PRESET);
   fd.append('folder',folder);
-  if(!isImg){
-    // Keep original filename for raw files
-    fd.append('use_filename','true');
-    fd.append('unique_filename','true');
-  }
+
   const endpoint=isImg
     ?'https://api.cloudinary.com/v1_1/'+CFG.CLOUD_NAME+'/image/upload'
     :'https://api.cloudinary.com/v1_1/'+CFG.CLOUD_NAME+'/raw/upload';
