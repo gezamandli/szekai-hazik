@@ -236,6 +236,13 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
   <div class="search-bar"><input type="search" id="searchCal" placeholder="🔍 Keresés eseményekben…" oninput="renderCal()"></div>
   <div class="chips" id="calTypeBar"></div>
   <div class="chips" id="calDateBar"></div>
+  <div id="calRangeRow" style="display:none;gap:8px;align-items:center;flex-wrap:wrap;padding:4px 0">
+    <input type="date" id="calFrom" style="border:1.5px solid var(--line);border-radius:8px;padding:6px 10px;font-size:14px">
+    <span>–</span>
+    <input type="date" id="calTo" style="border:1.5px solid var(--line);border-radius:8px;padding:6px 10px;font-size:14px">
+    <button onclick="applyCalRange()" style="background:var(--blue);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:14px;font-weight:700;cursor:pointer">Szűrés</button>
+    <button onclick="clearCalRange()" style="background:var(--bg);color:var(--ink2);border:1.5px solid var(--line);border-radius:8px;padding:6px 10px;font-size:13px;cursor:pointer">× Törlés</button>
+  </div>
   <div id="calList"></div>
 </div>
 <div id="view-docs" class="view">
@@ -344,7 +351,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v13.0</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v13.1</span><span id="scriptVersion"></span></div>
 
 <script>
 // ── Document state vars ─────────────────────────────
@@ -2471,12 +2478,13 @@ function renderCal(){
     const filters=[
       {id:'all',label:'Összes (elmúlt is)'},
       {id:'upcoming',label:'Közelgő'},
-      {id:'thismonth',label:'Ez a hónap'},
+      {id:'today',label:'Ma'},
+      {id:'week',label:'Elmúlt hét'},
       {id:'range',label:'📅 Időszak'}
     ];
-    dateBar.innerHTML=filters.map(f=>`<div class="chip${calDateFrom===f.id||(!calDateFrom&&f.id==='upcoming')?' on':''}" onclick="setCalDateFilter('${f.id}')">${f.label}</div>`).join('')
-      +(calDateFrom&&!['all','upcoming','thismonth','range'].includes(calDateFrom)
-        ?`<span style="font-size:13px;padding:4px 8px;background:var(--blue-bg);border-radius:8px;color:var(--blue)">${calDateFrom}${calDateTo?' – '+calDateTo:''}</span>`:'');
+    dateBar.innerHTML=filters.map(f=>`<div class="chip${calDateFrom===f.id?' on':''}" onclick="setCalDateFilter('${f.id}')">${f.label}</div>`).join('');
+    const rangeRow=document.getElementById('calRangeRow');
+    if(rangeRow)rangeRow.style.display=calDateFrom==='range'?'flex':'none';
   }
 
   let items=[...calEvents];
@@ -2487,14 +2495,19 @@ function renderCal(){
   // Date filter
   const today=new Date();today.setHours(0,0,0,0);
   if(calDateFrom==='upcoming') items=items.filter(e=>ld(e.dateFrom)>=today);
-  else if(calDateFrom==='thismonth'){
-    const m=today.getMonth(),y=today.getFullYear();
-    items=items.filter(e=>{const d=ld(e.dateFrom);return d.getMonth()===m&&d.getFullYear()===y;});
-  } else if(calDateFrom&&!['all','upcoming','thismonth','range'].includes(calDateFrom)){
-    const from=new Date(calDateFrom);
-    const to=calDateTo?new Date(calDateTo):new Date(calDateFrom);
-    to.setHours(23,59,59);
-    items=items.filter(e=>ld(e.dateFrom)>=from&&ld(e.dateFrom)<=to);
+  else if(calDateFrom==='today') items=items.filter(e=>{const d=ld(e.dateFrom);return d.toDateString()===today.toDateString();});
+  else if(calDateFrom==='week'){
+    const weekAgo=new Date(today);weekAgo.setDate(today.getDate()-7);
+    items=items.filter(e=>ld(e.dateFrom)>=weekAgo&&ld(e.dateFrom)<=new Date());
+  } else if(calDateFrom==='range'||calDateFrom&&!['all','upcoming','today','week'].includes(calDateFrom)){
+    const fromVal=document.getElementById('calFrom')?.value||calDateFrom;
+    const toVal=document.getElementById('calTo')?.value||calDateTo;
+    if(fromVal&&fromVal!=='range'){
+      const from=ld(fromVal);
+      const to=toVal?ld(toVal):ld(fromVal);
+      to.setHours(23,59,59);
+      items=items.filter(e=>ld(e.dateFrom)>=from&&ld(e.dateFrom)<=to);
+    }
   }
 
   const list=document.getElementById('calList');
@@ -2511,14 +2524,17 @@ function renderCal(){
 }
 
 function setCalDateFilter(id){
-  if(id==='range'){
-    const from=prompt('Kezdő dátum (ÉÉÉÉ-HH-NN):');
-    if(!from)return;
-    const to=prompt('Záró dátum (ÉÉÉÉ-HH-NN, üres = csak ez a nap):');
-    calDateFrom=from;calDateTo=to||'';
-  } else {
-    calDateFrom=id;calDateTo='';
-  }
+  calDateFrom=id;
+  if(id!=='range') calDateTo='';
+  renderCal();
+}
+function applyCalRange(){
+  calDateFrom=document.getElementById('calFrom').value||'range';
+  calDateTo=document.getElementById('calTo').value||'';
+  renderCal();
+}
+function clearCalRange(){
+  calDateFrom='upcoming';calDateTo='';
   renderCal();
 }
 
