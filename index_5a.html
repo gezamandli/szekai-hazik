@@ -308,7 +308,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v8.9</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v9.0</span><span id="scriptVersion"></span></div>
 
 <script>
 const CFG = {
@@ -554,7 +554,7 @@ async function loadSheet(){
   showToast('⏳ Betöltés…',99999);
   return new Promise(async (resolve)=>{
   try{
-    const url=`https://docs.google.com/spreadsheets/d/${CFG.SHEET_ID}/gviz/tq?tqx=out:json&sheet=Feladatok_'+activeTanev+'&t=${Date.now()}`;
+    const url='https://docs.google.com/spreadsheets/d/'+CFG.SHEET_ID+'/gviz/tq?tqx=out:json&sheet=Feladatok_'+encodeURIComponent(activeTanev)+'&t='+Date.now();
     const r=await fetch(url);
     const text=await r.text();
     // Google returns: /*O_o*/\ngoogle.visualization.Query.setResponse({...});
@@ -605,18 +605,16 @@ async function uploadToCloudinary(file,subject,dateStr,idx){
   const folder=`${CFG.CLOUD_FOLDER}/${slugify(subject)}${dateStr?'_'+dateStr:''}`;
   const ext = file.name.split('.').pop().toLowerCase() || 'jpg';
   const fname = `${slugify(subject)}${dateStr?'_'+dateStr:''}_${idx||1}.${ext}`;
-  const fd=new FormData();
-  fd.append('upload_preset',CFG.UPLOAD_PRESET);
-  fd.append('folder',folder);
-  fd.append('public_id', slugify(subject)+(dateStr?'_'+dateStr:'')+'_'+(idx||1));
   // Convert HEIF/HEIC to JPEG if needed
   let uploadFile = file;
   if(file.name&&(file.name.toLowerCase().endsWith('.heic')||file.name.toLowerCase().endsWith('.heif')||file.type==='image/heic'||file.type==='image/heif')){
-    try{
-      uploadFile = await convertHeicToJpeg(file);
-    }catch(e){ console.warn('HEIC convert failed, uploading original'); }
+    try{ uploadFile = await convertHeicToJpeg(file); }
+    catch(e){ console.warn('HEIC convert failed, uploading original'); }
   }
+  const fd=new FormData();
   fd.append('file', uploadFile);
+  fd.append('upload_preset', CFG.UPLOAD_PRESET);
+  fd.append('folder', folder);
   const r=await fetch(`https://api.cloudinary.com/v1_1/${CFG.CLOUD_NAME}/image/upload`,{method:'POST',body:fd});
   if(!r.ok){const e=await r.json();throw new Error(e.error?.message||r.status);}
   const j=await r.json();
