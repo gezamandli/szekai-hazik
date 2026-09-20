@@ -61,7 +61,7 @@ function getVeglegesTorolve(ss) {
   return ensureSheet(ss, 'Veglegesen_Torolve', [
     'id','subject','desc','due','note','uploader','uploaded',
     'images','cloudFolder','ocrText','deletedAt','deletedBy',
-    'permDeletedAt','tanev'
+    'permDeletedAt','permDeletedBy','tanev'
   ]);
 }
 
@@ -84,7 +84,7 @@ function sheetToRows(sh, fields) {
 
 const HW_FIELDS = ['id','subject','desc','due','note','uploader','uploaded','images','cloudFolder','ocrText','modifiedBy','modifiedAt','type'];
 const KUKA_FIELDS = ['id','subject','desc','due','note','uploader','uploaded','images','cloudFolder','ocrText','deletedAt','deletedBy','tanev'];
-const PERM_FIELDS = ['id','subject','desc','due','note','uploader','uploaded','images','cloudFolder','ocrText','deletedAt','deletedBy','permDeletedAt','tanev'];
+const PERM_FIELDS = ['id','subject','desc','due','note','uploader','uploaded','images','cloudFolder','ocrText','deletedAt','deletedBy','permDeletedAt','permDeletedBy','tanev'];
 
 function doGet(e) {
   try {
@@ -233,7 +233,7 @@ function doGet(e) {
       if (!result) result = {status:'ok', msg:'not found', version:VERSION};
     }
 
-    else if (action === 'permDelete' && sheetId) {
+    else if (action === 'permDelete' && sheetId) { // p.deletedBy = who permanently deleted
       const ss = SpreadsheetApp.openById(sheetId);
       const kuka = getKuka(ss);
       const perm = getVeglegesTorolve(ss);
@@ -245,7 +245,7 @@ function doGet(e) {
           perm.appendRow(sanitize([
             row[0],row[1],row[2],row[3],row[4],row[5],row[6],
             row[7],row[8]||'',row[9]||'',row[10]||'',row[11]||'',
-            new Date().toISOString(), row[12]||''
+            new Date().toISOString(), String(p.deletedBy||''), row[12]||''
           ]));
           kuka.deleteRow(i+1);
           result = {status:'ok', version:VERSION}; break;
