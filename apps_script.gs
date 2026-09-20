@@ -1,16 +1,12 @@
-// Google Apps Script – Házi Feladat App v5.0
-const VERSION = '5.0';
+// Google Apps Script – Házi Feladat App v5.1
+// CORS enabled
+const VERSION = '5.1';
 
-function getSheet(ss, name) {
-  return ss.getSheetByName(name);
-}
+function getSheet(ss, name) { return ss.getSheetByName(name); }
 
 function ensureSheet(ss, name, headers) {
   let sh = ss.getSheetByName(name);
-  if (!sh) {
-    sh = ss.insertSheet(name);
-    if (headers) sh.appendRow(headers);
-  }
+  if (!sh) { sh = ss.insertSheet(name); if (headers) sh.appendRow(headers); }
   return sh;
 }
 
@@ -23,8 +19,7 @@ function getConfig(ss) {
 }
 
 function getActiveTanev(ss) {
-  const cfg = getConfig(ss);
-  return cfg['aktiv_tanev'] || '2026-2027';
+  return getConfig(ss)['aktiv_tanev'] || '2026-2027';
 }
 
 function getSubjectsForTanev(ss, tanev) {
@@ -34,17 +29,13 @@ function getSubjectsForTanev(ss, tanev) {
 }
 
 function getAllTanevek(ss) {
-  // Find all sheets named Feladatok_*
-  return ss.getSheets()
-    .map(s => s.getName())
-    .filter(n => n.startsWith('Feladatok_'))
-    .map(n => n.replace('Feladatok_', ''))
-    .sort();
+  const cfg = getConfig(ss);
+  const tanevStr = cfg['tanevek'] || getActiveTanev(ss);
+  return tanevStr.split(',').map(s=>s.trim()).filter(Boolean);
 }
 
 function getFeladatokSheet(ss, tanev) {
-  const name = 'Feladatok_' + tanev;
-  return ensureSheet(ss, name, [
+  return ensureSheet(ss, 'Feladatok_' + tanev, [
     'id','subject','desc','due','note','uploader','uploaded',
     'images','cloudFolder','ocrText','modifiedBy','modifiedAt','type'
   ]);
@@ -53,15 +44,16 @@ function getFeladatokSheet(ss, tanev) {
 function getKuka(ss) {
   return ensureSheet(ss, 'Kuka', [
     'id','subject','desc','due','note','uploader','uploaded',
-    'images','cloudFolder','ocrText','deletedAt','deletedBy','tanev'
+    'images','cloudFolder','ocrText','modifiedBy','modifiedAt','type',
+    'deletedAt','deletedBy','tanev'
   ]);
 }
 
 function getVeglegesTorolve(ss) {
   return ensureSheet(ss, 'Veglegesen_Torolve', [
     'id','subject','desc','due','note','uploader','uploaded',
-    'images','cloudFolder','ocrText','deletedAt','deletedBy',
-    'permDeletedAt','permDeletedBy','tanev'
+    'images','cloudFolder','ocrText','modifiedBy','modifiedAt','type',
+    'deletedAt','deletedBy','permDeletedAt','permDeletedBy','tanev'
   ]);
 }
 
@@ -83,21 +75,31 @@ function sheetToRows(sh, fields) {
 }
 
 const HW_FIELDS = ['id','subject','desc','due','note','uploader','uploaded','images','cloudFolder','ocrText','modifiedBy','modifiedAt','type'];
-const KUKA_FIELDS = ['id','subject','desc','due','note','uploader','uploaded','images','cloudFolder','ocrText','deletedAt','deletedBy','tanev'];
-const PERM_FIELDS = ['id','subject','desc','due','note','uploader','uploaded','images','cloudFolder','ocrText','deletedAt','deletedBy','permDeletedAt','permDeletedBy','tanev'];
+const KUKA_FIELDS = ['id','subject','desc','due','note','uploader','uploaded','images','cloudFolder','ocrText','modifiedBy','modifiedAt','type','deletedAt','deletedBy','tanev'];
+
+function makeResponse(result, cb) {
+  const json = JSON.stringify(result);
+  if (cb) {
+    return ContentService.createTextOutput(cb+'('+json+')')
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+  // Return JSON with CORS headers via HTML service trick
+  const html = HtmlService.createHtmlOutput(json);
+  return ContentService.createTextOutput(json)
+    .setMimeType(ContentService.MimeType.JSON);
+}
 
 function doGet(e) {
   try {
     const p = e.parameter;
     const sheetId = p.sheetId;
-    const action  = p.action || 'ping';
-    const cb      = p.callback;
+    const action = p.action || 'ping';
+    const cb = p.callback;
     let result;
 
     if (action === 'ping') {
       result = {status:'ok', version:VERSION};
     }
-
     else if (action === 'loadConfig' && sheetId) {
       const ss = SpreadsheetApp.openById(sheetId);
       const tanev = getActiveTanev(ss);
@@ -105,22 +107,16 @@ function doGet(e) {
       const subjects = getSubjectsForTanev(ss, tanev);
       result = {status:'ok', version:VERSION, activeTanev:tanev, tanevek, subjects};
     }
-
     else if (action === 'loadHomeworks' && sheetId) {
       const ss = SpreadsheetApp.openById(sheetId);
       const tanev = p.tanev || getActiveTanev(ss);
       const sh = getFeladatokSheet(ss, tanev);
-      const rows = sheetToRows(sh, HW_FIELDS);
-      result = {status:'ok', version:VERSION, data:rows, tanev};
+      result = {status:'ok', version:VERSION, data:sheetToRows(sh, HW_FIELDS), tanev};
     }
-
     else if (action === 'loadTrash' && sheetId) {
       const ss = SpreadsheetApp.openById(sheetId);
-      const sh = getKuka(ss);
-      const rows = sheetToRows(sh, KUKA_FIELDS);
-      result = {status:'ok', version:VERSION, data:rows};
+      result = {status:'ok', version:VERSION, data:sheetToRows(getKuka(ss), KUKA_FIELDS)};
     }
-
     else if (action === 'loadFavs' && sheetId) {
       const ss = SpreadsheetApp.openById(sheetId);
       const sh = getFavs(ss);
@@ -132,67 +128,54 @@ function doGet(e) {
         .filter(id => id && id !== 'hwId');
       result = {status:'ok', version:VERSION, data:rows};
     }
-
     else if (action === 'addFav' && sheetId) {
       const ss = SpreadsheetApp.openById(sheetId);
       const sh = getFavs(ss);
-      const userName = p.userName || '';
-      const hwId = p.hwId || '';
+      const userName = p.userName || '', hwId = p.hwId || '';
       const vals = sh.getDataRange().getValues();
-      const exists = vals.slice(1).some(r => String(r[0])===userName && String(r[1])===hwId);
-      if (!exists) sh.appendRow([userName, hwId, new Date().toISOString()]);
+      if (!vals.slice(1).some(r => String(r[0])===userName && String(r[1])===hwId))
+        sh.appendRow([userName, hwId, new Date().toISOString()]);
       result = {status:'ok', version:VERSION};
     }
-
     else if (action === 'removeFav' && sheetId) {
       const ss = SpreadsheetApp.openById(sheetId);
       const sh = getFavs(ss);
-      const userName = p.userName || '';
-      const hwId = p.hwId || '';
+      const userName = p.userName || '', hwId = p.hwId || '';
       const vals = sh.getRange('A:B').getValues();
-      for (let i = vals.length-1; i >= 1; i--) {
-        if (String(vals[i][0])===userName && String(vals[i][1])===hwId) {
-          sh.deleteRow(i+1); break;
-        }
-      }
+      for (let i = vals.length-1; i >= 1; i--)
+        if (String(vals[i][0])===userName && String(vals[i][1])===hwId) { sh.deleteRow(i+1); break; }
       result = {status:'ok', version:VERSION};
     }
-
     else if (action === 'removeFavHw' && sheetId) {
       const ss = SpreadsheetApp.openById(sheetId);
       const sh = getFavs(ss);
       const hwId = p.hwId || '';
       const vals = sh.getRange('A:B').getValues();
-      for (let i = vals.length-1; i >= 1; i--) {
+      for (let i = vals.length-1; i >= 1; i--)
         if (String(vals[i][1])===hwId) sh.deleteRow(i+1);
-      }
       result = {status:'ok', version:VERSION};
     }
-
     else if (action === 'append' && sheetId) {
       const ss = SpreadsheetApp.openById(sheetId);
       const tanev = p.tanev || getActiveTanev(ss);
       const sh = getFeladatokSheet(ss, tanev);
-      const row = JSON.parse(p.row);
-      sh.appendRow(sanitize(row));
+      sh.appendRow(sanitize(JSON.parse(p.row)));
       result = {status:'ok', version:VERSION};
     }
-
     else if (action === 'update' && sheetId) {
       const ss = SpreadsheetApp.openById(sheetId);
       const tanev = p.tanev || getActiveTanev(ss);
       const sh = getFeladatokSheet(ss, tanev);
-      const row = JSON.parse(p.row);
+      const row = sanitize(JSON.parse(p.row));
       const vals = sh.getRange('A:A').getValues();
       for (let i = 0; i < vals.length; i++) {
         if (String(vals[i][0]) === String(p.id)) {
-          sh.getRange(i+1,1,1,sanitize(row).length).setValues([sanitize(row)]);
+          sh.getRange(i+1,1,1,row.length).setValues([row]);
           result = {status:'ok', version:VERSION}; break;
         }
       }
       if (!result) result = {status:'ok', msg:'not found', version:VERSION};
     }
-
     else if (action === 'delete' && sheetId) {
       const ss = SpreadsheetApp.openById(sheetId);
       const tanev = p.tanev || getActiveTanev(ss);
@@ -201,11 +184,10 @@ function doGet(e) {
       const vals = sh.getRange('A:A').getValues();
       for (let i = 0; i < vals.length; i++) {
         if (String(vals[i][0]) === String(p.id)) {
-          const lastCol = Math.max(sh.getLastColumn(), 10);
-          const row = sh.getRange(i+1,1,1,lastCol).getValues()[0];
+          const row = sh.getRange(i+1,1,1,Math.max(sh.getLastColumn(),13)).getValues()[0];
           kuka.appendRow(sanitize([
             row[0],row[1],row[2],row[3],row[4],row[5],row[6],
-            row[7],row[8]||'',row[9]||'',
+            row[7],row[8]||'',row[9]||'',row[10]||'',row[11]||'',row[12]||'',
             new Date().toISOString(), p.deletedBy||'', tanev
           ]));
           sh.deleteRow(i+1);
@@ -214,38 +196,36 @@ function doGet(e) {
       }
       if (!result) result = {status:'ok', msg:'not found', version:VERSION};
     }
-
     else if (action === 'restore' && sheetId) {
       const ss = SpreadsheetApp.openById(sheetId);
       const kuka = getKuka(ss);
       const vals = kuka.getRange('A:A').getValues();
       for (let i = 1; i < vals.length; i++) {
         if (String(vals[i][0]) === String(p.id)) {
-          const row = kuka.getRange(i+1,1,1,13).getValues()[0];
-          const tanev = String(row[12]) || getActiveTanev(ss);
+          const row = kuka.getRange(i+1,1,1,16).getValues()[0];
+          const tanev = String(row[15]) || getActiveTanev(ss);
           const sh = getFeladatokSheet(ss, tanev);
           const newId = String(Date.now());
-          sh.appendRow(sanitize([newId,row[1],row[2],row[3],row[4],row[5],row[6],row[7],row[8]||'',row[9]||'','','']));
+          sh.appendRow(sanitize([newId,row[1],row[2],row[3],row[4],row[5],row[6],row[7],row[8]||'',row[9]||'',row[10]||'',row[11]||'',row[12]||'']));
           kuka.deleteRow(i+1);
           result = {status:'ok', newId, version:VERSION}; break;
         }
       }
       if (!result) result = {status:'ok', msg:'not found', version:VERSION};
     }
-
-    else if (action === 'permDelete' && sheetId) { // p.deletedBy = who permanently deleted
+    else if (action === 'permDelete' && sheetId) {
       const ss = SpreadsheetApp.openById(sheetId);
       const kuka = getKuka(ss);
       const perm = getVeglegesTorolve(ss);
       const vals = kuka.getRange('A:A').getValues();
       for (let i = vals.length-1; i >= 1; i--) {
         if (String(vals[i][0]) === String(p.id)) {
-          const row = kuka.getRange(i+1,1,1,13).getValues()[0];
-          // Archive to Veglegesen_Torolve
+          const row = kuka.getRange(i+1,1,1,16).getValues()[0];
           perm.appendRow(sanitize([
             row[0],row[1],row[2],row[3],row[4],row[5],row[6],
-            row[7],row[8]||'',row[9]||'',row[10]||'',row[11]||'',
-            new Date().toISOString(), String(p.deletedBy||''), row[12]||''
+            row[7],row[8]||'',row[9]||'',row[10]||'',row[11]||'',row[12]||'',
+            row[13]||'',row[14]||'',
+            new Date().toISOString(), p.deletedBy||'', row[15]||''
           ]));
           kuka.deleteRow(i+1);
           result = {status:'ok', version:VERSION}; break;
@@ -253,24 +233,18 @@ function doGet(e) {
       }
       if (!result) result = {status:'ok', msg:'not found', version:VERSION};
     }
-
     else {
       result = {status:'unknown', action, version:VERSION};
     }
 
-    const json = JSON.stringify(result);
-    if (cb) return ContentService.createTextOutput(cb+'('+json+')').setMimeType(ContentService.MimeType.JAVASCRIPT);
-    return ContentService.createTextOutput(json).setMimeType(ContentService.MimeType.JSON);
+    return makeResponse(result, cb);
 
   } catch(err) {
-    const out = JSON.stringify({status:'error', message:err.toString(), version:VERSION});
-    const cb = e.parameter.callback;
-    if (cb) return ContentService.createTextOutput(cb+'('+out+')').setMimeType(ContentService.MimeType.JAVASCRIPT);
-    return ContentService.createTextOutput(out).setMimeType(ContentService.MimeType.JSON);
+    const out = {status:'error', message:err.toString(), version:VERSION};
+    return makeResponse(out, e.parameter.callback);
   }
 }
 
 function doPost(e) {
-  return ContentService.createTextOutput(JSON.stringify({status:'ok',msg:'use GET',version:VERSION}))
-    .setMimeType(ContentService.MimeType.JSON);
+  return makeResponse({status:'ok', msg:'use GET', version:VERSION}, null);
 }
