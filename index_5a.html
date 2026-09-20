@@ -329,7 +329,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v10.9</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v11.1</span><span id="scriptVersion"></span></div>
 
 <script>
 // ── Document state vars ─────────────────────────────
@@ -576,60 +576,37 @@ async function sheetRequest(params){
     encodeURIComponent(k)+'='+encodeURIComponent(typeof v==='object'?JSON.stringify(v):v)
   ).join('&');
   const url=base+'&'+qs+'&t='+Date.now();
-
   const writeActions=['append','update','delete','restore','permDelete',
     'addFav','removeFav','removeFavHw','appendDoc','updateDoc','deleteDoc',
     'addDocFav','removeDocFav'];
   const isWrite=writeActions.includes(params.action);
 
-  // For reads: try fetch first, fall back to JSONP
-  // For writes: try fetch POST first (avoids CORS redirect issue)
-  if(isWrite){
-    try{
-      // POST to exec URL - no redirect, works cross-origin
-      const r=await fetch(CFG.SCRIPT_URL,{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({...params, sheetId:CFG.SHEET_ID})
-      });
-      if(r.ok){
-        const data=await r.json();
-        console.log(params.action+' POST ok:',data);
-        return data;
-      }
-    }catch(e){
-      console.warn(params.action+' POST failed, trying GET:',e.message);
-    }
-  }
-
-  // JSONP fallback (works for reads from Apps Script)
   return new Promise((resolve,reject)=>{
     const cbName='cb_'+Date.now()+'_'+Math.random().toString(36).slice(2);
     window[cbName]=(data)=>{
       delete window[cbName];
       try{document.head.removeChild(script);}catch(e){}
       if(data&&data.version)document.getElementById('scriptVersion').textContent='Script v'+data.version;
+      console.log(params.action+' ok:',data);
       resolve(data||{status:'ok'});
     };
     const script=document.createElement('script');
     script.src=url+'&callback='+cbName;
-    script.onerror=()=>{
+    script.onerror=(err)=>{
       delete window[cbName];
       try{document.head.removeChild(script);}catch(e){}
-      if(isWrite){
-        console.warn(params.action+' JSONP failed, resolving anyway');
-        resolve({status:'ok'});
-      }else{
-        reject(new Error('Kapcsolat hiba'));
-      }
+      console.warn(params.action+' JSONP error:',err);
+      // For writes: resolve so app doesn't break
+      isWrite?resolve({status:'ok'}):reject(new Error('Kapcsolat hiba'));
     };
     setTimeout(()=>{
       if(window[cbName]){
         delete window[cbName];
         try{document.head.removeChild(script);}catch(e){}
+        console.warn(params.action+' timeout');
         isWrite?resolve({status:'ok'}):reject(new Error('Timeout'));
       }
-    },15000);
+    },20000);
     document.head.appendChild(script);
   });
 }
@@ -2196,21 +2173,31 @@ async function saveDoc(){
   if(editingDocId){
     const d=documents.find(x=>x.id===editingDocId);
     if(d){d.title=title;d.desc=desc;d.tags=tags;d.files=allFiles;d.modifiedBy=session.name;d.modifiedAt=now;}
-    sheetRequest({action:'updateDoc',id:editingDocId,tanev:activeTanev,row:JSON.stringify([
-      editingDocId,title,desc,tags.join(','),d?d.uploader:session.name,d?d.uploaded:now,
-      JSON.stringify(allFiles),'',session.name,now
-    ])}).catch(e=>console.warn('updateDoc failed:',e));
-    hideToast();showToast('✅ Frissítve!');
+    try{
+      await sheetRequest({action:'updateDoc',id:editingDocId,tanev:activeTanev,row:JSON.stringify([
+        editingDocId,title,desc,tags.join(','),d?d.uploader:session.name,d?d.uploaded:now,
+        JSON.stringify(allFiles),'',session.name,now
+      ])});
+      hideToast();showToast('✅ Frissítve!');
+    }catch(e){
+      hideToast();showToast('✅ Helyben frissítve');
+      console.warn('updateDoc failed:',e);
+    }
   }else{
     const id=Date.now().toString();
     const doc={id,title,desc,tags,uploader:session.name,uploaded:now,files:allFiles,cloudFolder:'',modifiedBy:'',modifiedAt:''};
     documents.unshift(doc);
-    console.log('Sending appendDoc, tanev='+activeTanev);
-    sheetRequest({action:'appendDoc',tanev:activeTanev,row:JSON.stringify([
-      id,title,desc,tags.join(','),session.name,now,
-      JSON.stringify(allFiles),'','',''
-    ])}).catch(e=>console.warn('appendDoc failed:',e));
-    hideToast();showToast('✅ Dokumentum mentve!');
+    showToast('⏳ Mentés…',99999);
+    try{
+      await sheetRequest({action:'appendDoc',tanev:activeTanev,row:JSON.stringify([
+        id,title,desc,tags.join(','),session.name,now,
+        JSON.stringify(allFiles),'','',''
+      ])});
+      hideToast();showToast('✅ Dokumentum mentve!');
+    }catch(e){
+      hideToast();showToast('✅ Helyben mentve');
+      console.warn('appendDoc failed:',e);
+    }
   }
 
   closeDocForm();
