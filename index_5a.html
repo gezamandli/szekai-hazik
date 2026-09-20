@@ -227,7 +227,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
   <div class="search-bar"><input type="search" id="searchDocs" placeholder="🔍 Keresés dokumentumokban…" oninput="renderDocs()"></div>
   <div class="chips" id="docsTagBar"></div>
   <div id="docsList"></div>
-  <button id="addDocBtn" style="position:fixed;bottom:24px;right:20px;width:52px;height:52px;border-radius:50%;background:#e87722;border:none;color:#fff;font-size:28px;box-shadow:0 4px 16px rgba(232,119,34,.4);cursor:pointer;z-index:200;display:none">+</button>
+
 </div>
 <div id="view-request" class="view"><div id="requestContent"></div></div>
 <div id="view-trash" class="view"><div id="trashList"></div></div>
@@ -327,7 +327,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v9.5</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v9.7</span><span id="scriptVersion"></span></div>
 
 <script>
 const CFG = {
@@ -973,14 +973,25 @@ function openDetail(id){
     
     ${imgs.length?`
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:11px;margin-bottom:6px">
-        <span style="font-size:12px;font-weight:700;color:var(--ink2)">${imgs.length} kép</span>
-        <button id="dlAllBtn" style="background:var(--blue-bg);border:none;color:var(--blue);font-size:12px;font-weight:700;padding:5px 12px;border-radius:8px;cursor:pointer">⬇️ Összes letöltése</button>
+        <span style="font-size:12px;font-weight:700;color:var(--ink2)">${imgs.length} melléklet</span>
+        <button id="dlAllBtn" style="background:var(--blue-bg);border:none;color:var(--blue);font-size:12px;font-weight:700;padding:5px 12px;border-radius:8px;cursor:pointer">⬇️ Összes</button>
       </div>
-      <div class="gallery">${imgs.map((u,i)=>`<div class="gallery-wrap">
-        <img src="${u}" loading="lazy" onerror="this.style.opacity='.3'" data-url="${u}">
-        <button class="gallery-rm" data-url="${u}">×</button>
-        <button class="dl-btn" data-url="${u}" data-idx="${i+1}" style="position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,.55);color:#fff;border:none;border-radius:6px;padding:3px 6px;font-size:11px;cursor:pointer">⬇️</button>
-      </div>`).join('')}</div>`:''}
+      <div class="gallery">${imgs.map((u,i)=>{
+        const ext=(u||'').split('.').pop().toLowerCase().split('?')[0];
+        const isImg=['jpg','jpeg','png','gif','webp'].includes(ext)||u.includes('/image/upload/');
+        const icon=ext==='pdf'?'📕':ext==='doc'||ext==='docx'?'📝':ext==='xls'||ext==='xlsx'?'📊':'📄';
+        const fname=u.split('/').pop().split('?')[0];
+        return isImg
+          ?`<div class="gallery-wrap">
+              <img src="${u}" loading="lazy" onerror="this.style.opacity='.3'" data-url="${u}">
+              <button class="gallery-rm" data-url="${u}">×</button>
+              <button class="dl-btn" data-url="${u}" data-idx="${i+1}" style="position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,.55);color:#fff;border:none;border-radius:6px;padding:3px 6px;font-size:11px;cursor:pointer">⬇️</button>
+            </div>`
+          :`<a href="${u}" target="_blank" class="doc-file" style="margin:4px">
+              <span style="font-size:22px">${icon}</span>
+              <span style="font-size:11px;max-width:80px;word-break:break-all">${decodeURIComponent(fname)}</span>
+            </a>`;
+      }).join('')}</div>`:''}
     <div class="detail-actions">
       <button class="btn btn-primary btn-full" id="detNotifyBtn" style="background:#0084ff">💬 Értesítő küldése Messengerben</button>
       <button class="btn btn-secondary btn-full" id="detCopyBtn">📋 Értesítő másolása</button>
@@ -1089,9 +1100,7 @@ function copyNotify(){
 
 // ── Tab switch ────────────────────────────────────────
 function switchTab(name){
-  // Hide doc add btn when leaving docs tab
-  const addDocBtn=document.getElementById('addDocBtn');
-  if(addDocBtn&&name!=='docs')addDocBtn.style.display='none';
+
   ['list','docs','request','trash','help'].forEach(n=>{
     document.getElementById('tab-'+n).classList.toggle('on',n===name);
     document.getElementById('view-'+n).classList.toggle('on',n===name);
@@ -1873,8 +1882,7 @@ async function convertHeicToJpeg(file){
 
 // ── Documents tab ─────────────────────────────────────
 async function initDocsTab(){
-  document.getElementById('addDocBtn').style.display='flex';
-  document.getElementById('addDocBtn').onclick=openAddDoc;
+
   if(!docsLoaded) await loadDocs();
   else renderDocs();
 }
@@ -1914,10 +1922,6 @@ async function loadDocs(){
 }
 
 function renderDocs(){
-  // Hide add btn if not on docs tab
-  const addBtn=document.getElementById('addDocBtn');
-  if(addBtn) addBtn.style.display='flex';
-
   let items=[...documents];
   const q=document.getElementById('searchDocs')?.value?.toLowerCase()||'';
   if(q) items=items.filter(d=>
@@ -2052,18 +2056,25 @@ function showDocForm(d){
   const modal=document.createElement('div');
   modal.className='overlay on';
   modal.id='docFormModal';
+  const existFiles=d&&Array.isArray(d.files)?d.files:[];
   modal.innerHTML=`<div class="sheet" onclick="event.stopPropagation()" style="max-height:90vh;overflow-y:auto">
     <div class="handle"></div>
     <div class="sheet-title">${d?'Dokumentum szerkesztése':'Új dokumentum'}</div>
     <div class="field"><label>Cím</label><input id="docTitle" type="text" value="${d?d.title:''}" placeholder="Pl. Matek összefoglaló"></div>
-    <div class="field"><label>Leírás (opcionális)</label><textarea id="docDesc" style="min-height:80px">${d?d.desc:''}</textarea></div>
-    <div class="field"><label>Címkék (vesszővel elválasztva)</label><input id="docTags" type="text" value="${d&&d.tags?d.tags.join(', '):''}" placeholder="Pl. matek, összefoglaló"></div>
+    <div class="field"><label>Leírás (opcionális)</label><textarea id="docDesc" style="min-height:70px">${d?d.desc:''}</textarea></div>
+    <div class="field"><label>Címkék (vesszővel)</label><input id="docTags" type="text" value="${d&&d.tags?d.tags.join(', '):''}" placeholder="Pl. matek, összefoglaló, 2. fejezet"></div>
     <div class="field">
       <label>Fájlok</label>
-      ${d&&Array.isArray(d.files)&&d.files.length?`<div id="docExistingFiles" style="margin-bottom:8px">${d.files.map((u,i)=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span class="doc-file">${getFileIcon(u)} ${getFileName(u)}</span><button onclick="removeDocFile(${i})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:16px">×</button></div>`).join('')}</div>`:''}
+      <div id="docExistingFiles">
+        ${existFiles.map((u,i)=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;padding:8px 10px;background:#f3f4f6;border-radius:8px">
+          <span style="font-size:18px">${getFileIcon(u)}</span>
+          <span style="font-size:12px;flex:1;word-break:break-all">${getFileName(u)}</span>
+          <button onclick="removeDocFileByIdx(${i})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:18px;flex-shrink:0">×</button>
+        </div>`).join('')}
+      </div>
       <div id="docFilePreview"></div>
-      <label class="upload-btn" style="display:flex;align-items:center;gap:8px;padding:12px;background:#f3f4f6;border-radius:10px;cursor:pointer;margin-top:8px">
-        📎 Fájl hozzáadása
+      <label style="display:flex;align-items:center;justify-content:center;gap:8px;padding:14px;background:#f3f4f6;border-radius:10px;cursor:pointer;margin-top:8px;font-size:14px;font-weight:700;color:var(--ink2);border:2px dashed var(--line)">
+        📎 Fájl hozzáadása (kép, PDF, Word, Excel)
         <input type="file" id="docFileInput" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" style="display:none" onchange="addDocFiles(this)">
       </label>
     </div>
@@ -2077,7 +2088,7 @@ function showDocForm(d){
 }
 
 let docKeepFiles=[];
-function removeDocFile(i){
+function removeDocFileByIdx(i){
   const d=editingDocId?documents.find(x=>x.id===editingDocId):null;
   if(d&&d.files) d.files.splice(i,1);
   closeDocForm();
@@ -2180,6 +2191,43 @@ async function deleteDoc(id){
     await sheetRequest({action:'deleteDoc',id,tanev:activeTanev,deletedBy:session.name});
     showToast('🗑️ Dokumentum törölve');
   }catch(e){showToast('🗑️ Helyben törölve');}
+}
+
+
+// ── File attachments for homework ────────────────────
+async function handleFileSelect(files){
+  if(!files||!files.length)return;
+  const arr=Array.from(files);
+  showToast('⏳ Fájlok feltöltése…',99999);
+  for(let i=0;i<arr.length;i++){
+    try{
+      showToast(`⏳ Fájl ${i+1}/${arr.length}…`,99999);
+      const url=await uploadHwFile(arr[i]);
+      pendingImgs.push({file:arr[i],url,preview:null,isFile:true});
+      renderPreviews();
+    }catch(e){
+      showToast('⚠️ '+arr[i].name+' feltöltés sikertelen');
+    }
+  }
+  hideToast();
+}
+
+async function uploadHwFile(file){
+  const ext=file.name.split('.').pop().toLowerCase()||'bin';
+  const isImage=['jpg','jpeg','png','gif','webp','heic','heif'].includes(ext);
+  const folder=CFG.CLOUD_FOLDER+'/files';
+  const uploadFile=isImage&&(ext==='heic'||ext==='heif')?await convertHeicToJpeg(file).catch(()=>file):file;
+  const fd=new FormData();
+  fd.append('file',uploadFile);
+  fd.append('upload_preset',CFG.UPLOAD_PRESET);
+  fd.append('folder',folder);
+  const endpoint=isImage
+    ?'https://api.cloudinary.com/v1_1/'+CFG.CLOUD_NAME+'/image/upload'
+    :'https://api.cloudinary.com/v1_1/'+CFG.CLOUD_NAME+'/raw/upload';
+  const r=await fetch(endpoint,{method:'POST',body:fd});
+  const j=await r.json();
+  if(!j.secure_url)throw new Error(j.error?.message||'Upload failed');
+  return j.secure_url;
 }
 
 </script>
