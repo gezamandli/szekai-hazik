@@ -143,7 +143,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 <div class="login-screen on" id="loginScreen">
   <div class="login-box">
     <div class="login-logo">📚</div>
-    <div class="login-title">7.a osztaly</div>
+    <div class="login-title class-name">7.a osztaly</div>
     <div class="login-sub">Írd be a neved és a PIN-kódot</div>
     <div class="field"><label>Neved</label><input type="text" id="pinName" placeholder="Pl. Kiss Eva" autocomplete="name"></div>
     <div class="field"><label>PIN-kod</label><input type="password" id="pinCode" placeholder="••••" inputmode="numeric"></div>
@@ -153,7 +153,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <header class="hdr">
-  <div><h1>📚 Házi Feladatok</h1><div class="sub">7.a osztaly</div></div>
+  <div><h1>📚 Házi Feladatok</h1><div class="sub class-name">7.a osztaly</div></div>
   <div style="display:flex;gap:6px;align-items:center">
     <span id="hdrName" style="font-size:12px;opacity:.85"></span>
     <div id="tanevSwitch" style="position:relative"></div>
@@ -312,7 +312,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v9.1</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v9.2</span><span id="scriptVersion"></span></div>
 
 <script>
 const CFG = {
@@ -442,11 +442,14 @@ async function loadConfig(){
       if(k)cfg[k]=v;
     });
     activeTanev=cfg['aktiv_tanev']||'2026-2027';
-    // Get all Feladatok_* sheet names from tanevek key or just use active
     const tanevStr=cfg['tanevek']||activeTanev;
     allTanevek=tanevStr.split(',').map(s=>s.trim()).filter(Boolean);
     if(!allTanevek.includes(activeTanev))allTanevek.unshift(activeTanev);
     cfgSubjects=(cfg['tantargyak_'+activeTanev]||'').split(',').map(s=>s.trim()).filter(Boolean);
+    // Update class name from config
+    const osztalyNev=cfg['osztaly_nev']||CFG.CNAME;
+    document.querySelectorAll('.class-name').forEach(el=>el.textContent=osztalyNev);
+    document.title='Házi Feladatok – '+osztalyNev;
     renderTanevSwitch();
     updateSubjectSelect();
   }catch(e){
@@ -485,6 +488,21 @@ async function switchTanev(t){
   if(t===activeTanev)return;
   activeTanev=t;
   renderTanevSwitch();
+  // Reload subjects for new tanev from config
+  try{
+    const url='https://docs.google.com/spreadsheets/d/'+CFG.SHEET_ID+'/gviz/tq?tqx=out:json&sheet=Config&t='+Date.now();
+    const r=await fetch(url);
+    const text=await r.text();
+    const json=JSON.parse(text.replace(/^[^(]+\(|\);?$/g,''));
+    const cfg={};
+    (json.table.rows||[]).forEach(row=>{
+      const k=row.c&&row.c[0]&&row.c[0].v?String(row.c[0].v):'';
+      const v=row.c&&row.c[1]&&row.c[1].v?String(row.c[1].v):'';
+      if(k)cfg[k]=v;
+    });
+    cfgSubjects=(cfg['tantargyak_'+t]||'').split(',').map(s=>s.trim()).filter(Boolean);
+    updateSubjectSelect();
+  }catch(e){}
   await loadSheet();
   showToast('📅 '+t+' tanév betöltve');
 }
