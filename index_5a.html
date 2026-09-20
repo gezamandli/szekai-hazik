@@ -329,9 +329,16 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v10.6</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v10.7</span><span id="scriptVersion"></span></div>
 
 <script>
+// ── Document state vars ─────────────────────────────
+let documents = [];
+let docsLoaded = false;
+let activeDocTag = 'all';
+let docFavSet = new Set();
+let editingDocId = null;
+let docPendingFiles = [];
 const CFG = {
   CNAME:         '5.a osztaly',
   PIN:           '2026',
@@ -2050,8 +2057,6 @@ async function toggleDocFav(id){
 }
 
 // Add/Edit doc sheet
-let editingDocId=null;
-let docPendingFiles=[];
 
 function openAddDoc(){
   editingDocId=null;
