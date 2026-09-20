@@ -115,6 +115,17 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 .select-bar .cnt{font-size:14px;font-weight:800}
 .sb-btn{background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:9px;padding:9px 14px;font-size:13px;font-weight:700;cursor:pointer}
 .help-section{display:flex;gap:14px;margin-bottom:18px;align-items:flex-start}
+.doc-card{background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,.07);border:1.5px solid var(--line);cursor:pointer;transition:box-shadow .15s}
+.doc-card:hover{box-shadow:0 2px 12px rgba(0,0,0,.12)}
+.doc-card.selected{outline:3px solid var(--blue);background:#f0f7ff}
+.doc-title{font-size:15px;font-weight:800;margin-bottom:3px}
+.doc-desc{font-size:13px;color:var(--ink2);margin-bottom:6px;line-height:1.5}
+.doc-tags{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px}
+.doc-tag{background:var(--blue-bg);color:var(--blue);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700}
+.doc-files{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.doc-file{display:flex;align-items:center;gap:5px;background:#f3f4f6;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:600;color:var(--ink2);text-decoration:none;cursor:pointer}
+.doc-file:hover{background:var(--blue-bg);color:var(--blue)}
+.doc-meta{font-size:11px;color:var(--ink2)}
 
 
 
@@ -164,6 +175,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 
 <nav class="tabs">
   <div class="tab on" id="tab-list">📋 Feladatok</div>
+  <div class="tab" id="tab-docs">📁 Dokuk</div>
   <div class="tab" id="tab-request">🙋 Kérés</div>
   <div class="tab" id="tab-trash">🗑️ Kuka</div>
   <div class="tab" id="tab-help">❓ Súgó</div>
@@ -211,6 +223,12 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 
 
 
+<div id="view-docs" class="view">
+  <div class="search-bar"><input type="search" id="searchDocs" placeholder="🔍 Keresés dokumentumokban…" oninput="renderDocs()"></div>
+  <div class="chips" id="docsTagBar"></div>
+  <div id="docsList"></div>
+  <button id="addDocBtn" style="position:fixed;bottom:24px;right:20px;width:52px;height:52px;border-radius:50%;background:#e87722;border:none;color:#fff;font-size:28px;box-shadow:0 4px 16px rgba(232,119,34,.4);cursor:pointer;z-index:200;display:none">+</button>
+</div>
 <div id="view-request" class="view"><div id="requestContent"></div></div>
 <div id="view-trash" class="view"><div id="trashList"></div></div>
 
@@ -313,14 +331,14 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v9.4</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v9.5</span><span id="scriptVersion"></span></div>
 
 <script>
 const CFG = {
   CNAME:         '7.a osztaly',
   PIN:           '2026',
   SHEET_ID:      '1XzvvQFt8CpwiXep8BeZb8M59s6R5lBZQEF0DZU2EyGk',
-  SCRIPT_URL:    'https://script.google.com/macros/s/AKfycbyKJdHIuKhR-TbqU6gkHu58Or7BG8PCY6pCmcQSDx0NXvY7KbWkwq8xbkH2WMRVcXaV/exec',
+  SCRIPT_URL:    'https://script.google.com/macros/s/AKfycbyLmAaHhCOBfHWQIJfdnNKARz7cv4YPN92N5s0ZyeOB9ZK2Tj8WiJqeo6LGkrBGYynY/exec',
   CLOUD_NAME:    'g8tinasd',
   UPLOAD_PRESET: 'szekai_hazik',
   CLOUD_FOLDER:  'hazik_7a',
@@ -417,8 +435,8 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
   };
   document.getElementById('notifySheet').onclick=e=>{if(e.target===document.getElementById('notifySheet'))closeSheet('notifySheet');};
-  ['list','request','trash','help'].forEach(name=>{
-    document.getElementById('tab-'+name).onclick=()=>{switchTab(name);if(name==='trash')loadTrash();else if(name==='request')renderRequestTab();else if(name==='help')renderHelpTab();else renderAll();};
+  ['list','docs','request','trash','help'].forEach(name=>{
+    document.getElementById('tab-'+name).onclick=()=>{switchTab(name);if(name==='trash')loadTrash();else if(name==='request')renderRequestTab();else if(name==='help')renderHelpTab();else if(name==='docs')initDocsTab();else renderAll();};
   });
   const s=localStorage.getItem('hz_s_7a');
   if(s){session=JSON.parse(s);showApp();}
@@ -1075,7 +1093,10 @@ function copyNotify(){
 
 // ── Tab switch ────────────────────────────────────────
 function switchTab(name){
-  ['list','request','trash','help'].forEach(n=>{
+  // Hide doc add btn when leaving docs tab
+  const addDocBtn=document.getElementById('addDocBtn');
+  if(addDocBtn&&name!=='docs')addDocBtn.style.display='none';
+  ['list','docs','request','trash','help'].forEach(n=>{
     document.getElementById('tab-'+n).classList.toggle('on',n===name);
     document.getElementById('view-'+n).classList.toggle('on',n===name);
   });
@@ -1851,6 +1872,318 @@ async function convertHeicToJpeg(file){
     img.onerror = ()=>{ URL.revokeObjectURL(url); reject(new Error('Image load failed')); };
     img.src = url;
   });
+}
+
+
+// ── Documents tab ─────────────────────────────────────
+async function initDocsTab(){
+  document.getElementById('addDocBtn').style.display='flex';
+  document.getElementById('addDocBtn').onclick=openAddDoc;
+  if(!docsLoaded) await loadDocs();
+  else renderDocs();
+}
+
+async function loadDocs(){
+  try{
+    showToast('⏳ Dokumentumok betöltése…',99999);
+    const url='https://docs.google.com/spreadsheets/d/'+CFG.SHEET_ID
+      +'/gviz/tq?tqx=out:json&sheet=Dokumentumok_'+encodeURIComponent(activeTanev)+'&t='+Date.now();
+    const r=await fetch(url);
+    const text=await r.text();
+    const json=JSON.parse(text.replace(/^[^(]+\(|\);?$/g,''));
+    documents=json.table.rows.map(row=>{
+      const get=i=>{const c=row.c&&row.c[i];return c&&c.v!=null?String(c.v):'';};
+      return{
+        id:get(0),title:get(1),desc:get(2),
+        tags:get(3)?get(3).split(',').map(s=>s.trim()).filter(Boolean):[],
+        uploader:get(4),uploaded:get(5),
+        files:safeJSON(get(6)),
+        cloudFolder:get(7)||'',
+        modifiedBy:get(8)||'',modifiedAt:get(9)||''
+      };
+    }).filter(d=>d.id&&d.id!=='id');
+    docsLoaded=true;
+    // Load doc favs
+    try{
+      const r2=await sheetRequest({action:'loadDocFavs',userName:session.name});
+      docFavSet=new Set(r2.data||[]);
+    }catch(e){}
+    hideToast();
+    renderDocs();
+  }catch(e){
+    hideToast();
+    showToast('⚠️ Dokumentumok betöltése sikertelen');
+    console.warn('loadDocs error:',e);
+  }
+}
+
+function renderDocs(){
+  // Hide add btn if not on docs tab
+  const addBtn=document.getElementById('addDocBtn');
+  if(addBtn) addBtn.style.display='flex';
+
+  let items=[...documents];
+  const q=document.getElementById('searchDocs')?.value?.toLowerCase()||'';
+  if(q) items=items.filter(d=>
+    d.title.toLowerCase().includes(q)||
+    d.desc.toLowerCase().includes(q)||
+    d.tags.some(t=>t.toLowerCase().includes(q))
+  );
+  if(activeDocTag==='__fav__') items=items.filter(d=>docFavSet.has(d.id));
+  else if(activeDocTag!=='all') items=items.filter(d=>d.tags.includes(activeDocTag));
+
+  // Tag bar
+  const allTags=new Set(documents.flatMap(d=>d.tags));
+  const tagBar=document.getElementById('docsTagBar');
+  if(tagBar){
+    tagBar.innerHTML='';
+    const chips=[{id:'all',label:'Összes'},{id:'__fav__',label:'❤️ Kedvencek'},...[...allTags].map(t=>({id:t,label:t}))];
+    chips.forEach(c=>{
+      const el=document.createElement('div');
+      el.className='chip'+(activeDocTag===c.id?' on':'');
+      el.textContent=c.label;
+      el.onclick=()=>{activeDocTag=c.id;renderDocs();};
+      tagBar.appendChild(el);
+    });
+  }
+
+  const list=document.getElementById('docsList');
+  if(!list) return;
+  if(!items.length){
+    list.innerHTML='<div class="empty"><div class="ico">📁</div><p>Nincs dokumentum</p></div>';
+    return;
+  }
+  list.innerHTML=items.map(d=>docCardHTML(d)).join('');
+  list.querySelectorAll('.doc-card[data-id]').forEach(c=>{
+    c.onclick=()=>openDocDetail(c.dataset.id);
+  });
+}
+
+function getFileIcon(url){
+  if(!url) return '📄';
+  const ext=url.split('.').pop().toLowerCase().split('?')[0];
+  if(['jpg','jpeg','png','gif','webp'].includes(ext)) return '🖼️';
+  if(ext==='pdf') return '📕';
+  if(['doc','docx'].includes(ext)) return '📝';
+  if(['xls','xlsx'].includes(ext)) return '📊';
+  return '📄';
+}
+
+function getFileName(url){
+  try{ return decodeURIComponent(url.split('/').pop().split('?')[0]); }
+  catch(e){ return url.split('/').pop(); }
+}
+
+function docCardHTML(d){
+  const fav=docFavSet.has(d.id)?'❤️':'';
+  const files=Array.isArray(d.files)?d.files:[];
+  return`<div class="doc-card" data-id="${d.id}">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div class="doc-title">${d.title||'Névtelen'} ${fav}</div>
+    </div>
+    ${d.desc?`<div class="doc-desc">${d.desc}</div>`:''}
+    ${d.tags.length?`<div class="doc-tags">${d.tags.map(t=>`<span class="doc-tag">${t}</span>`).join('')}</div>`:''}
+    ${files.length?`<div class="doc-files">${files.map(u=>`<span class="doc-file">${getFileIcon(u)} ${getFileName(u)}</span>`).join('')}</div>`:''}
+    <div class="doc-meta">⬆️ ${d.uploader} · ${fmtDT(d.uploaded)}${d.modifiedBy?' · ✏️ '+d.modifiedBy+' '+fmtDT(d.modifiedAt):''}</div>
+  </div>`;
+}
+
+function openDocDetail(id){
+  const d=documents.find(x=>x.id===id);if(!d)return;
+  const files=Array.isArray(d.files)?d.files:[];
+  const modal=document.createElement('div');
+  modal.className='overlay on';
+  modal.id='docDetailModal';
+  const isFavDoc=docFavSet.has(id);
+  modal.innerHTML=`<div class="sheet" onclick="event.stopPropagation()">
+    <div class="handle"></div>
+    <button onclick="closeDocDetail()" style="position:absolute;top:12px;right:16px;background:var(--bg);border:none;border-radius:50%;width:32px;height:32px;font-size:18px;cursor:pointer;color:var(--ink2)">✕</button>
+    <div style="padding:4px 0 16px">
+      <div style="font-size:20px;font-weight:900;margin-bottom:6px">${d.title||'Névtelen'}</div>
+      ${d.desc?`<div style="font-size:14px;color:var(--ink2);margin-bottom:10px;line-height:1.6">${d.desc}</div>`:''}
+      ${d.tags.length?`<div class="doc-tags" style="margin-bottom:12px">${d.tags.map(t=>`<span class="doc-tag">${t}</span>`).join('')}</div>`:''}
+      ${files.length?`<div style="margin-bottom:14px">
+        <div style="font-size:12px;font-weight:800;color:var(--ink2);text-transform:uppercase;margin-bottom:8px">Fájlok</div>
+        ${files.map(u=>`<a href="${u}" target="_blank" class="doc-file" style="display:inline-flex;margin-bottom:6px;margin-right:6px">${getFileIcon(u)} ${getFileName(u)}</a>`).join('')}
+      </div>`:''}
+      <div style="font-size:12px;color:var(--ink2);margin-bottom:16px">⬆️ ${d.uploader} · ${fmtDT(d.uploaded)}${d.modifiedBy?'<br>✏️ '+d.modifiedBy+' · '+fmtDT(d.modifiedAt):''}</div>
+    </div>
+    <div class="detail-actions">
+      <button class="btn btn-secondary btn-full" id="docFavBtn">${isFavDoc?'❤️ Kedvenc (töröl)':'🤍 Kedvencekhez'}</button>
+      <button class="btn btn-secondary btn-full" id="docEditBtn">✏️ Szerkesztés</button>
+      <button class="btn btn-danger btn-full" id="docDeleteBtn">🗑️ Törlés</button>
+    </div>
+  </div>`;
+  modal.onclick=e=>{if(e.target===modal)closeDocDetail();};
+  document.body.appendChild(modal);
+
+  document.getElementById('docFavBtn').onclick=()=>toggleDocFav(id);
+  document.getElementById('docEditBtn').onclick=()=>{closeDocDetail();openEditDoc(id);};
+  document.getElementById('docDeleteBtn').onclick=()=>deleteDoc(id);
+}
+
+function closeDocDetail(){
+  const m=document.getElementById('docDetailModal');
+  if(m)m.remove();
+}
+
+async function toggleDocFav(id){
+  if(docFavSet.has(id))docFavSet.delete(id);else docFavSet.add(id);
+  closeDocDetail();
+  renderDocs();
+  try{
+    await sheetRequest({action:docFavSet.has(id)?'addDocFav':'removeDocFav',userName:session.name,docId:id});
+  }catch(e){}
+}
+
+// Add/Edit doc sheet
+let editingDocId=null;
+let docPendingFiles=[];
+
+function openAddDoc(){
+  editingDocId=null;
+  docPendingFiles=[];
+  showDocForm(null);
+}
+
+function openEditDoc(id){
+  editingDocId=id;
+  docPendingFiles=[];
+  showDocForm(documents.find(d=>d.id===id));
+}
+
+function showDocForm(d){
+  const modal=document.createElement('div');
+  modal.className='overlay on';
+  modal.id='docFormModal';
+  modal.innerHTML=`<div class="sheet" onclick="event.stopPropagation()" style="max-height:90vh;overflow-y:auto">
+    <div class="handle"></div>
+    <div class="sheet-title">${d?'Dokumentum szerkesztése':'Új dokumentum'}</div>
+    <div class="field"><label>Cím</label><input id="docTitle" type="text" value="${d?d.title:''}" placeholder="Pl. Matek összefoglaló"></div>
+    <div class="field"><label>Leírás (opcionális)</label><textarea id="docDesc" style="min-height:80px">${d?d.desc:''}</textarea></div>
+    <div class="field"><label>Címkék (vesszővel elválasztva)</label><input id="docTags" type="text" value="${d&&d.tags?d.tags.join(', '):''}" placeholder="Pl. matek, összefoglaló"></div>
+    <div class="field">
+      <label>Fájlok</label>
+      ${d&&Array.isArray(d.files)&&d.files.length?`<div id="docExistingFiles" style="margin-bottom:8px">${d.files.map((u,i)=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span class="doc-file">${getFileIcon(u)} ${getFileName(u)}</span><button onclick="removeDocFile(${i})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:16px">×</button></div>`).join('')}</div>`:''}
+      <div id="docFilePreview"></div>
+      <label class="upload-btn" style="display:flex;align-items:center;gap:8px;padding:12px;background:#f3f4f6;border-radius:10px;cursor:pointer;margin-top:8px">
+        📎 Fájl hozzáadása
+        <input type="file" id="docFileInput" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" style="display:none" onchange="addDocFiles(this)">
+      </label>
+    </div>
+    <div class="btn-row" style="margin-top:16px">
+      <button class="btn btn-secondary" style="flex:1" onclick="closeDocForm()">Mégse</button>
+      <button class="btn btn-primary" style="flex:2" onclick="saveDoc()">💾 Mentés</button>
+    </div>
+  </div>`;
+  modal.onclick=e=>{if(e.target===modal)closeDocForm();};
+  document.body.appendChild(modal);
+}
+
+let docKeepFiles=[];
+function removeDocFile(i){
+  const d=editingDocId?documents.find(x=>x.id===editingDocId):null;
+  if(d&&d.files) d.files.splice(i,1);
+  closeDocForm();
+  showDocForm(d);
+}
+
+function addDocFiles(input){
+  const files=Array.from(input.files);
+  docPendingFiles.push(...files);
+  const preview=document.getElementById('docFilePreview');
+  if(preview){
+    preview.innerHTML=docPendingFiles.map((f,i)=>
+      `<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;font-size:13px">
+        ${getFileIcon(f.name)} ${f.name}
+        <button onclick="docPendingFiles.splice(${i},1);addDocFiles({files:[]})" style="background:none;border:none;color:var(--red);cursor:pointer">×</button>
+      </div>`
+    ).join('');
+  }
+}
+
+function closeDocForm(){
+  const m=document.getElementById('docFormModal');
+  if(m)m.remove();
+}
+
+async function saveDoc(){
+  const title=document.getElementById('docTitle').value.trim();
+  if(!title){showToast('⚠️ Adj meg egy címet!');return;}
+  const desc=document.getElementById('docDesc').value.trim();
+  const tags=document.getElementById('docTags').value.split(',').map(s=>s.trim()).filter(Boolean);
+
+  showToast('⏳ Mentés…',99999);
+
+  // Upload new files to Cloudinary
+  const newUrls=[];
+  for(let i=0;i<docPendingFiles.length;i++){
+    try{
+      const url=await uploadDocFile(docPendingFiles[i],title,i+1);
+      newUrls.push(url);
+      showToast(`⏳ Fájl feltöltése ${i+1}/${docPendingFiles.length}…`,99999);
+    }catch(e){showToast('⚠️ Fájl feltöltés sikertelen: '+docPendingFiles[i].name);}
+  }
+
+  const existingFiles=editingDocId?((documents.find(d=>d.id===editingDocId)||{}).files||[]):[];
+  const allFiles=[...existingFiles,...newUrls];
+  const now=new Date().toISOString();
+
+  if(editingDocId){
+    const d=documents.find(x=>x.id===editingDocId);
+    d.title=title;d.desc=desc;d.tags=tags;d.files=allFiles;d.modifiedBy=session.name;d.modifiedAt=now;
+    try{
+      await sheetRequest({action:'updateDoc',id:editingDocId,tanev:activeTanev,row:JSON.stringify([
+        d.id,d.title,d.desc,tags.join(','),d.uploader,d.uploaded,
+        JSON.stringify(allFiles),d.cloudFolder||'',session.name,now
+      ])});
+      showToast('✅ Frissítve!');
+    }catch(e){showToast('✅ Helyben frissítve');}
+  }else{
+    const id=Date.now().toString();
+    const doc={id,title,desc,tags,uploader:session.name,uploaded:now,files:allFiles,cloudFolder:'',modifiedBy:'',modifiedAt:''};
+    documents.unshift(doc);
+    try{
+      await sheetRequest({action:'appendDoc',tanev:activeTanev,row:JSON.stringify([
+        id,title,desc,tags.join(','),session.name,now,
+        JSON.stringify(allFiles),'','',''
+      ])});
+      showToast('✅ Dokumentum mentve!');
+    }catch(e){showToast('✅ Helyben mentve');}
+  }
+
+  closeDocForm();
+  renderDocs();
+}
+
+async function uploadDocFile(file,title,idx){
+  const folder=CFG.CLOUD_FOLDER+'/docs/'+slugify(title);
+  const ext=file.name.split('.').pop().toLowerCase()||'bin';
+  const isImage=['jpg','jpeg','png','gif','webp','heic','heif'].includes(ext);
+  const uploadFile=isImage&&(ext==='heic'||ext==='heif')?await convertHeicToJpeg(file).catch(()=>file):file;
+  const fd=new FormData();
+  fd.append('file',uploadFile);
+  fd.append('upload_preset',CFG.UPLOAD_PRESET);
+  fd.append('folder',folder);
+  if(!isImage) fd.append('resource_type','raw');
+  const endpoint=isImage
+    ?'https://api.cloudinary.com/v1_1/'+CFG.CLOUD_NAME+'/image/upload'
+    :'https://api.cloudinary.com/v1_1/'+CFG.CLOUD_NAME+'/raw/upload';
+  const r=await fetch(endpoint,{method:'POST',body:fd});
+  const j=await r.json();
+  if(!j.secure_url)throw new Error(j.error?.message||'Upload failed');
+  return j.secure_url;
+}
+
+async function deleteDoc(id){
+  if(!confirm('Biztosan törlöd ezt a dokumentumot?'))return;
+  documents=documents.filter(d=>d.id!==id);
+  closeDocDetail();
+  renderDocs();
+  try{
+    await sheetRequest({action:'deleteDoc',id,tanev:activeTanev,deletedBy:session.name});
+    showToast('🗑️ Dokumentum törölve');
+  }catch(e){showToast('🗑️ Helyben törölve');}
 }
 
 </script>
