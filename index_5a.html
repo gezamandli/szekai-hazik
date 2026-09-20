@@ -308,7 +308,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v8.1</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v8.2</span><span id="scriptVersion"></span></div>
 
 <script>
 const CFG = {
@@ -655,14 +655,14 @@ async function saveHW(){
     hw.subject=subject;hw.type=type;hw.desc=desc;hw.due=due;hw.note=note;hw.images=allImages;
     if(cloudFolder)hw.cloudFolder=cloudFolder;
     try{
-      await sheetRequest({action:'update',id:editingId,row:JSON.stringify([hw.id,hw.subject,hw.desc,hw.due,hw.note,hw.uploader,hw.uploaded,JSON.stringify(hw.images),hw.cloudFolder||''])});
+      await sheetRequest({action:'update',id:editingId,tanev:activeTanev,row:JSON.stringify([hw.id,hw.subject,hw.desc,hw.due,hw.note,hw.uploader,hw.uploaded,JSON.stringify(hw.images||[]),hw.cloudFolder||'',hw.ocrText||'',session.name,new Date().toISOString(),hw.type||''])});
       showToast('✅ Frissítve!');
     }catch{showToast('✅ Helyben frissítve');}
   }else{
     const hw={id:Date.now().toString(),subject,type,desc,due,note,uploader:session.name,uploaded:new Date().toISOString(),images:allImages,cloudFolder,ocrText:'',modifiedBy:'',modifiedAt:''};
     homeworks.push(hw);
     try{
-      await sheetRequest({action:'append',tanev:activeTanev,row:JSON.stringify([hw.id,hw.subject,hw.desc,hw.due,hw.note,hw.uploader,hw.uploaded,JSON.stringify(hw.images),hw.cloudFolder||''])});
+      await sheetRequest({action:'append',tanev:activeTanev,row:JSON.stringify([hw.id,hw.subject,hw.desc,hw.due,hw.note,hw.uploader,hw.uploaded,JSON.stringify(hw.images||[]),hw.cloudFolder||'',hw.ocrText||'','',new Date().toISOString(),hw.type||''])});
       showToast('✅ Feltöltve!');
     }catch{showToast('✅ Helyben mentve');}
   }
