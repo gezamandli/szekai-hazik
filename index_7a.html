@@ -333,7 +333,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v12.2</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v12.3</span><span id="scriptVersion"></span></div>
 
 <script>
 // ── Document state vars ─────────────────────────────
@@ -745,7 +745,9 @@ async function saveHW(){
     try{
       document.getElementById('uploadStatus').textContent=`Kép feltöltése ${i+1}/${pendingImgs.length}…`;
       pf.style.width=`${Math.round((i/pendingImgs.length)*80)}%`;
-      const res=await uploadToCloudinary(pendingImgs[i].file,subject,due,i+1);
+      const item=pendingImgs[i];
+      if(item.isFile&&item.url){newUrls.push(item.url);continue;}
+      const res=await uploadToCloudinary(item.file,subject,due,i+1);
       newUrls.push(res.url);
       cloudFolder=`https://console.cloudinary.com/console/media_library/search?q=folder:${encodeURIComponent(res.folder)}`;
     }catch(e){showToast('⚠️ Kép hiba: '+e.message);}
