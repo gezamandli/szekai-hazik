@@ -344,7 +344,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v12.8</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v12.9</span><span id="scriptVersion"></span></div>
 
 <script>
 // ── Document state vars ─────────────────────────────
@@ -2431,7 +2431,8 @@ async function loadCal(){
       const m=String(v).match(/Date\((\d+),(\d+),(\d+)\)/);
       if(m){
         const y=parseInt(m[1]),mo=parseInt(m[2]),d=parseInt(m[3]);
-        return new Date(y,mo,d).toISOString().split('T')[0];
+        // Use local date string to avoid timezone shift
+        return y+'-'+String(mo+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
       }
       return String(v);
     }
@@ -2443,7 +2444,7 @@ async function loadCal(){
         uploader:get(6),uploaded:get(7),
         modifiedBy:get(8),modifiedAt:get(9)};
     }).filter(e=>e.id&&e.id!=='id')
-      .sort((a,b)=>new Date(a.dateFrom)-new Date(b.dateFrom));
+      .sort((a,b)=>ld(a.dateFrom)-ld(b.dateFrom));
     calLoaded=true;calLoadedTanev=activeTanev;
     hideToast();renderCal();
   }catch(e){
@@ -2485,15 +2486,16 @@ function renderCal(){
 
   // Date filter
   const today=new Date();today.setHours(0,0,0,0);
-  if(calDateFrom==='upcoming') items=items.filter(e=>new Date(e.dateFrom)>=today);
+  function ld(s){if(!s)return new Date(0);const p=s.split('-');return p.length===3?new Date(+p[0],+p[1]-1,+p[2]):new Date(s);}
+  if(calDateFrom==='upcoming') items=items.filter(e=>ld(e.dateFrom)>=today);
   else if(calDateFrom==='thismonth'){
     const m=today.getMonth(),y=today.getFullYear();
-    items=items.filter(e=>{const d=new Date(e.dateFrom);return d.getMonth()===m&&d.getFullYear()===y;});
+    items=items.filter(e=>{const d=ld(e.dateFrom);return d.getMonth()===m&&d.getFullYear()===y;});
   } else if(calDateFrom&&!['all','upcoming','thismonth','range'].includes(calDateFrom)){
     const from=new Date(calDateFrom);
     const to=calDateTo?new Date(calDateTo):new Date(calDateFrom);
     to.setHours(23,59,59);
-    items=items.filter(e=>new Date(e.dateFrom)>=from&&new Date(e.dateFrom)<=to);
+    items=items.filter(e=>ld(e.dateFrom)>=from&&ld(e.dateFrom)<=to);
   }
 
   const list=document.getElementById('calList');
@@ -2522,8 +2524,10 @@ function setCalDateFilter(id){
 }
 
 function calCardHTML(e){
-  const d=new Date(e.dateFrom);
-  const isValid=!isNaN(d);
+  // Parse as local date to avoid timezone shift
+  function localDate(s){if(!s)return null;const p=s.split('-');return p.length===3?new Date(+p[0],+p[1]-1,+p[2]):new Date(s);}
+  const d=localDate(e.dateFrom);
+  const isValid=d&&!isNaN(d);
   const day=isValid?d.getDate():'?';
   const mon=isValid?d.toLocaleDateString('hu',{month:'short'}):'';
   const dow=isValid?d.toLocaleDateString('hu',{weekday:'short'}):'';
@@ -2630,7 +2634,7 @@ async function saveCalEvent(){
   if(editingCalId){
     const ev=calEvents.find(x=>x.id===editingCalId);
     if(ev){ev.title=title;ev.type=type;ev.dateFrom=dateFrom;ev.dateTo=dateTo;ev.desc=desc;ev.modifiedBy=session.name;ev.modifiedAt=now;}
-    calEvents.sort((a,b)=>new Date(a.dateFrom)-new Date(b.dateFrom));
+    calEvents.sort((a,b)=>ld(a.dateFrom)-ld(b.dateFrom));
     showToast('⏳ Mentés…',99999);
     try{
       await sheetRequest({action:'updateCal',id:editingCalId,tanev:activeTanev,row:JSON.stringify([editingCalId,title,desc,type,dateFrom,dateTo,ev?ev.uploader:session.name,ev?ev.uploaded:now,session.name,now])});
@@ -2640,7 +2644,7 @@ async function saveCalEvent(){
     const id=Date.now().toString();
     const ev={id,title,desc,type,dateFrom,dateTo,uploader:session.name,uploaded:now,modifiedBy:'',modifiedAt:''};
     calEvents.push(ev);
-    calEvents.sort((a,b)=>new Date(a.dateFrom)-new Date(b.dateFrom));
+    calEvents.sort((a,b)=>ld(a.dateFrom)-ld(b.dateFrom));
     showToast('⏳ Mentés…',99999);
     try{
       await sheetRequest({action:'appendCal',tanev:activeTanev,row:JSON.stringify([id,title,desc,type,dateFrom,dateTo,session.name,now,'',''])});
