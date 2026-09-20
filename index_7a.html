@@ -333,7 +333,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v11.7</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v11.8</span><span id="scriptVersion"></span></div>
 
 <script>
 // ── Document state vars ─────────────────────────────
@@ -2259,9 +2259,15 @@ async function uploadDocFile(file,title,idx){
   fd.append('upload_preset',CFG.UPLOAD_PRESET);
   fd.append('folder',folder);
 
-  // Use image endpoint for all - raw endpoint has ACL restrictions
-  // Cloudinary handles PDF/DOC via image endpoint too
-  const endpoint='https://api.cloudinary.com/v1_1/'+CFG.CLOUD_NAME+'/image/upload';
+  // Correct endpoints by file type
+  const imgExts=['jpg','jpeg','png','gif','webp'];
+  const pdfExts=['pdf'];
+  // image endpoint: images + PDFs (Cloudinary supports PDF as image)
+  // raw endpoint: Word, Excel, PPT, etc (ZIP-based formats)
+  const useImageEndpoint=imgExts.includes(ext)||pdfExts.includes(ext);
+  const endpoint=useImageEndpoint
+    ?'https://api.cloudinary.com/v1_1/'+CFG.CLOUD_NAME+'/image/upload'
+    :'https://api.cloudinary.com/v1_1/'+CFG.CLOUD_NAME+'/raw/upload';
   const r=await fetch(endpoint,{method:'POST',body:fd});
   console.log('Cloudinary response status:',r.status);
   if(!r.ok){
