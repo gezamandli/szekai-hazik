@@ -344,7 +344,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v12.9</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v13.0</span><span id="scriptVersion"></span></div>
 
 <script>
 // ── Document state vars ─────────────────────────────
@@ -2486,7 +2486,6 @@ function renderCal(){
 
   // Date filter
   const today=new Date();today.setHours(0,0,0,0);
-  function ld(s){if(!s)return new Date(0);const p=s.split('-');return p.length===3?new Date(+p[0],+p[1]-1,+p[2]):new Date(s);}
   if(calDateFrom==='upcoming') items=items.filter(e=>ld(e.dateFrom)>=today);
   else if(calDateFrom==='thismonth'){
     const m=today.getMonth(),y=today.getFullYear();
@@ -2525,8 +2524,7 @@ function setCalDateFilter(id){
 
 function calCardHTML(e){
   // Parse as local date to avoid timezone shift
-  function localDate(s){if(!s)return null;const p=s.split('-');return p.length===3?new Date(+p[0],+p[1]-1,+p[2]):new Date(s);}
-  const d=localDate(e.dateFrom);
+  const d=ld(e.dateFrom);
   const isValid=d&&!isNaN(d);
   const day=isValid?d.getDate():'?';
   const mon=isValid?d.toLocaleDateString('hu',{month:'short'}):'';
@@ -2593,6 +2591,7 @@ function shareCalEvent(id){
 }
 
 let editingCalId=null;
+function ld(s){if(!s)return new Date(0);const p=s.split('-');return p.length===3?new Date(+p[0],+p[1]-1,+p[2]):new Date(s);}
 
 function openAddCalEvent(){editingCalId=null;showCalForm(null);}
 function openEditCalEvent(id){editingCalId=id;showCalForm(calEvents.find(e=>e.id===id));}
