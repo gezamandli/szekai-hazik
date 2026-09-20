@@ -329,7 +329,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v11.8</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v11.9</span><span id="scriptVersion"></span></div>
 
 <script>
 // ── Document state vars ─────────────────────────────
@@ -797,7 +797,12 @@ async function deleteImageFromHW(hwId,url){
 
 // ── Trash ─────────────────────────────────────────────
 async function loadTrash(){
-  try{const r=await sheetRequest({action:'loadTrash'});trashItems=r.data||[];}
+  try{const [r1,r2]=await Promise.all([
+      sheetRequest({action:'loadTrash'}),
+      sheetRequest({action:'loadDocTrash'}).catch(()=>({data:[]}))
+    ]);
+    const r=r1;
+    docTrashItems=r2.data||[];trashItems=r.data||[];}
   catch{trashItems=[];}
   renderTrash();
 }
@@ -927,7 +932,14 @@ function cardHTML(h,selMode=false){
       <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">${isFav(h.id)?'<span style="font-size:14px;line-height:1">❤️</span>':''}<div class="badge ${cls}">${text}</div></div>
     </div>
     <div class="desc">${h.desc}</div>
-    ${imgs.length?`<div class="thumbs">${imgs.map(u=>`<img class="thumb" src="${u}" loading="lazy" onerror="this.style.display='none'">`).join('')}${extra>0?`<div class="thumb-more">+${extra}</div>`:''}</div>`:''}
+    ${imgs.length?`<div class="thumbs">${imgs.map(u=>{
+      const ext2=(u||'').split('.').pop().toLowerCase().split('?')[0];
+      const isImg2=['jpg','jpeg','png','gif','webp'].includes(ext2)||(u.includes('/image/upload/')&&ext2!=='pdf');
+      const icon2=ext2==='pdf'?'📕':ext2==='doc'||ext2==='docx'?'📝':ext2==='xls'||ext2==='xlsx'?'📊':ext2==='ppt'||ext2==='pptx'?'📊':'📄';
+      return isImg2
+        ?`<img class="thumb" src="${u}" loading="lazy" onerror="this.style.display='none'">`
+        :`<a href="${u}" target="_blank" style="display:inline-flex;align-items:center;justify-content:center;width:52px;height:52px;background:#f3f4f6;border-radius:8px;border:1.5px solid var(--line);font-size:26px;text-decoration:none">${icon2}</a>`;
+    }).join('')}${extra>0?`<div class="thumb-more">+${extra}</div>`:''}</div>`:''}
     <div class="meta">
       ${h.note?`<span class="tag">📌 ${h.note}</span>`:''}
       ${imgs.length?`<span class="tag">🖼️ ${h.images.length}</span>`:''}
@@ -1017,9 +1029,8 @@ function openDetail(id){
               <button class="gallery-rm" data-url="${u}">×</button>
               <button class="dl-btn" data-url="${u}" data-idx="${i+1}" style="position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,.55);color:#fff;border:none;border-radius:6px;padding:3px 6px;font-size:11px;cursor:pointer">⬇️</button>
             </div>`
-          :`<a href="${u}" target="_blank" class="doc-file" style="margin:4px">
-              <span style="font-size:22px">${icon}</span>
-              <span style="font-size:11px;max-width:80px;word-break:break-all">${decodeURIComponent(fname)}</span>
+          :`<a href="${u}" target="_blank" title="${decodeURIComponent(fname)}" style="display:inline-flex;align-items:center;justify-content:center;width:52px;height:52px;background:#f3f4f6;border-radius:10px;border:1.5px solid var(--line);margin:4px;text-decoration:none;font-size:28px" >
+              ${icon}
             </a>`;
       }).join('')}</div>`:''}
     <div class="detail-actions">
