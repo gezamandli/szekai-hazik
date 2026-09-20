@@ -329,7 +329,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v11.6</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v11.7</span><span id="scriptVersion"></span></div>
 
 <script>
 // ── Document state vars ─────────────────────────────
@@ -358,6 +358,7 @@ let activeFilter = 'all';
 let activeFilterAll = 'all';
 let editingId = null;
 let trashItems = [];
+let docTrashItems = [];
 let activeTanev = "";
 let allTanevek = [];
 let cfgSubjects = [];
@@ -802,17 +803,42 @@ async function loadTrash(){
 }
 function renderTrash(){
   const el=document.getElementById('trashList');
-  if(!trashItems.length){el.innerHTML='<div class="empty"><div class="ico">🗑️</div><p>A Kuka üres.</p></div>';return;}
-  el.innerHTML='<div class="sec-label">Törölt feladatok – visszaállíthatók</div>'+
-    trashItems.map(h=>`<div class="trash-card">
-      <div class="card-head"><div class="subj">${h.subject}</div><div class="badge past">Törölve</div></div>
-      <div class="desc">${h.desc}</div>
-      <div class="trash-meta">📅 ${fmtDate(h.due)}<br>⬆️ ${h.uploader}<br>🗑️ <b>${h.deletedBy}</b> · ${fmtDT(h.deletedAt)}
-      ${safeJSON(h.images).length?`<br>🖼️ ${safeJSON(h.images).length} kép`:''}</div>
-      <div style="display:flex;gap:8px;margin-top:10px">
-        <button class="tbtn tbtn-restore" onclick="restoreHW('${h.id}')">↩️ Visszaállítás</button>
-        <button class="tbtn tbtn-perm" onclick="permDeleteHW('${h.id}')">🗑️ Végleges törlés</button>
-      </div></div>`).join('');
+  if(!el)return;
+  const allItems=[
+    ...trashItems.map(h=>({...h,_type:'hw'})),
+    ...docTrashItems.map(d=>({...d,_type:'doc'}))
+  ].sort((a,b)=>new Date(b.deletedAt||0)-new Date(a.deletedAt||0));
+
+  if(!allItems.length){
+    el.innerHTML='<div class="empty"><div class="ico">🗑️</div><p>A Kuka üres.</p></div>';
+    return;
+  }
+  el.innerHTML=allItems.map(item=>{
+    if(item._type==='doc'){
+      return`<div class="card" style="opacity:.8">
+        <div class="card-head"><div class="subj">📁 ${item.title||'Névtelen'}</div><div class="badge nodue">Dokumentum</div></div>
+        <div class="desc">${item.desc||''}</div>
+        <div class="meta">
+          <span class="tag">🗑️ ${fmtDT(item.deletedAt)} · ${item.deletedBy||''}</span>
+          <span style="margin-left:auto;display:flex;gap:6px">
+            <button onclick="restoreDoc('${item.id}')" style="background:var(--green);border:none;color:#fff;border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer">↩ Vissza</button>
+            <button onclick="permDeleteDoc('${item.id}')" style="background:var(--red);border:none;color:#fff;border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer">🗑️ Végleges</button>
+          </span>
+        </div>
+      </div>`;
+    }
+    return`<div class="card" style="opacity:.8">
+      <div class="card-head"><div class="subj">${item.subject}</div><div class="badge nodue">${fmtDate(item.due)||'Nincs határidő'}</div></div>
+      <div class="desc">${item.desc}</div>
+      <div class="meta">
+        <span class="tag">🗑️ ${fmtDT(item.deletedAt)} · ${item.deletedBy||''}</span>
+        <span style="margin-left:auto;display:flex;gap:6px">
+          <button onclick="restoreHW('${item.id}')" style="background:var(--green);border:none;color:#fff;border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer">↩ Vissza</button>
+          <button onclick="permDeleteHW('${item.id}')" style="background:var(--red);border:none;color:#fff;border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer">🗑️ Végleges</button>
+        </span>
+      </div>
+    </div>`;
+  }).join('');
 }
 async function restoreHW(id){
   if(!confirm('Visszaállítod?'))return;
@@ -2290,6 +2316,29 @@ async function uploadHwFile(file){
   const j=await r.json();
   if(!j.secure_url)throw new Error(j.error?.message||'No URL returned');
   return j.secure_url;
+}
+
+
+async function restoreDoc(id){
+  const d=docTrashItems.find(x=>x.id===id);if(!d)return;
+  docTrashItems=docTrashItems.filter(x=>x.id!==id);
+  d.id=Date.now().toString();
+  documents.unshift(d);
+  renderTrash();
+  try{
+    await sheetRequest({action:'restoreDoc',id,tanev:activeTanev});
+    showToast('✅ Dokumentum visszaállítva!');
+  }catch(e){showToast('✅ Helyben visszaállítva');}
+}
+
+async function permDeleteDoc(id){
+  if(!confirm('Véglegesen törlöd? Ez nem visszaállítható!'))return;
+  docTrashItems=docTrashItems.filter(x=>x.id!==id);
+  renderTrash();
+  try{
+    await sheetRequest({action:'permDeleteDoc',id,deletedBy:session.name});
+    showToast('🗑️ Véglegesen törölve');
+  }catch(e){showToast('🗑️ Törölve');}
 }
 
 </script>

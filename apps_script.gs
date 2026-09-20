@@ -2,9 +2,21 @@
 const VERSION = '5.2';
 
 function ensureSheet(ss, name, headers) {
-  let sh = ss.getSheetByName(name);
-  if (!sh) { sh = ss.insertSheet(name); if (headers) sh.appendRow(headers); }
-  return sh;
+  try {
+    let sh = ss.getSheetByName(name);
+    if (!sh) {
+      sh = ss.insertSheet(name);
+      if (headers) sh.appendRow(headers);
+    } else if (headers && sh.getLastRow() === 0) {
+      sh.appendRow(headers);
+    }
+    return sh;
+  } catch(e) {
+    // Sheet might already exist if concurrent request
+    let sh = ss.getSheetByName(name);
+    if (sh) return sh;
+    throw e;
+  }
 }
 
 function getConfig(ss) {
@@ -162,9 +174,22 @@ function doGet(e) {
       result = {status:'ok', version:VERSION};
     }
     else if (action === 'appendDoc' && sheetId) {
+      console.log('appendDoc start, sheetId='+sheetId+' tanev='+p.tanev);
       const ss = SpreadsheetApp.openById(sheetId);
-      const tanev = p.tanev||getActiveTanev(ss);
-      getDocsSheet(ss,tanev).appendRow(sanitize(JSON.parse(p.row)));
+      console.log('ss opened');
+      const tanev = p.tanev || '2026-2027';
+      const shName = 'Dokumentumok_' + tanev;
+      console.log('looking for sheet: '+shName);
+      let sh = ss.getSheetByName(shName);
+      if (!sh) {
+        console.log('creating sheet');
+        sh = ss.insertSheet(shName);
+        sh.appendRow(['id','title','desc','tags','uploader','uploaded','files','cloudFolder','modifiedBy','modifiedAt']);
+      }
+      console.log('appending row');
+      const row = JSON.parse(p.row);
+      sh.appendRow(sanitize(row));
+      console.log('done');
       result = {status:'ok', version:VERSION};
     }
     else if (action === 'update' && sheetId) {
@@ -207,10 +232,17 @@ function doGet(e) {
     }
     else if (action === 'deleteDoc' && sheetId) {
       const ss = SpreadsheetApp.openById(sheetId);
-      const sh = getDocsSheet(ss, p.tanev||getActiveTanev(ss));
+      const tanev = p.tanev||getActiveTanev(ss);
+      const sh = getDocsSheet(ss, tanev);
+      const kuka = ensureSheet(ss, 'Dokumentumok_Kuka', ['id','title','desc','tags','uploader','uploaded','files','cloudFolder','modifiedBy','modifiedAt','deletedAt','deletedBy','tanev']);
       const vals = sh.getRange('A:A').getValues();
       for (let i=vals.length-1;i>=1;i--) {
-        if (String(vals[i][0])===String(p.id)){sh.deleteRow(i+1);result={status:'ok',version:VERSION};break;}
+        if (String(vals[i][0])===String(p.id)){
+          const row = sh.getRange(i+1,1,1,10).getValues()[0];
+          kuka.appendRow(sanitize([...row, new Date().toISOString(), p.deletedBy||'', tanev]));
+          sh.deleteRow(i+1);
+          result={status:'ok',version:VERSION};break;
+        }
       }
       if (!result) result={status:'ok',msg:'not found',version:VERSION};
     }
@@ -248,6 +280,48 @@ function doGet(e) {
       }
       if (!result) result={status:'ok',msg:'not found',version:VERSION};
     }
+    else if (action === 'loadDocTrash' && sheetId) {
+      const ss = SpreadsheetApp.openById(sheetId);
+      const sh = ss.getSheetByName('Dokumentumok_Kuka');
+      if(!sh){result={status:'ok',version:VERSION,data:[]};} else {
+        const vals=sh.getDataRange().getValues();
+        const rows=vals.slice(1).map(r=>({
+          id:String(r[0]),title:String(r[1]),desc:String(r[2]),
+          tags:String(r[3]),uploader:String(r[4]),uploaded:String(r[5]),
+          files:String(r[6]),deletedAt:String(r[10]),deletedBy:String(r[11]),tanev:String(r[12])
+        })).filter(r=>r.id&&r.id!=='id');
+        result={status:'ok',version:VERSION,data:rows};
+      }
+    }
+    else if (action === 'restoreDoc' && sheetId) {
+      const ss = SpreadsheetApp.openById(sheetId);
+      const kuka = ss.getSheetByName('Dokumentumok_Kuka');
+      if(kuka){
+        const vals=kuka.getRange('A:A').getValues();
+        for(let i=vals.length-1;i>=1;i--){
+          if(String(vals[i][0])===String(p.id)){
+            const row=kuka.getRange(i+1,1,1,10).getValues()[0];
+            const tanev=p.tanev||getActiveTanev(ss);
+            const sh=getDocsSheet(ss,tanev);
+            sh.appendRow(sanitize([String(Date.now()),row[1],row[2],row[3],row[4],row[5],row[6],row[7],row[8],row[9]]));
+            kuka.deleteRow(i+1);
+            result={status:'ok',version:VERSION};break;
+          }
+        }
+      }
+      if(!result)result={status:'ok',msg:'not found',version:VERSION};
+    }
+    else if (action === 'permDeleteDoc' && sheetId) {
+      const ss = SpreadsheetApp.openById(sheetId);
+      const kuka = ss.getSheetByName('Dokumentumok_Kuka');
+      if(kuka){
+        const vals=kuka.getRange('A:A').getValues();
+        for(let i=vals.length-1;i>=1;i--){
+          if(String(vals[i][0])===String(p.id)){kuka.deleteRow(i+1);result={status:'ok',version:VERSION};break;}
+        }
+      }
+      if(!result)result={status:'ok',msg:'not found',version:VERSION};
+    }
     else {
       result = {status:'unknown',action,version:VERSION};
     }
@@ -260,4 +334,22 @@ function doGet(e) {
 
 function doPost(e) {
   return makeResponse({status:'ok',msg:'use GET',version:VERSION}, null);
+}
+
+function doPost(e) {
+  try {
+    // Parse JSON body and merge with URL params
+    let body = {};
+    if (e.postData && e.postData.contents) {
+      body = JSON.parse(e.postData.contents);
+    }
+    // Create fake event with merged params
+    const merged = Object.assign({}, e.parameter, body);
+    const fakeE = {parameter: merged};
+    return doGet(fakeE);
+  } catch(err) {
+    return ContentService.createTextOutput(
+      JSON.stringify({status:'error', message:err.toString(), version:VERSION})
+    ).setMimeType(ContentService.MimeType.JSON);
+  }
 }
