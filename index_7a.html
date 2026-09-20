@@ -251,6 +251,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
       <option value="projekt">🎯 Projekt</option>
       <option value="anyag">📖 Tanulnivaló anyag</option>
       <option value="orai">📝 Órai anyag</option>
+      <option value="vizsga">🎓 Év végi vizsga</option>
     </select>
   </div>
   <div class="field"><label>Határidő (opcionális)</label><input type="date" id="newDue"></div>
@@ -312,7 +313,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v9.3</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v9.4</span><span id="scriptVersion"></span></div>
 
 <script>
 const CFG = {
@@ -876,7 +877,7 @@ function cardHTML(h,selMode=false){
   const extra=Array.isArray(h.images)?h.images.length-3:0;
   const isPast=h.due&&new Date(h.due)<today0();
   const typeLabel=h.type&&TYPE_LABELS[h.type]?`<span class="badge type-${h.type}" style="margin-left:4px">${TYPE_LABELS[h.type]}</span>`:'';
-  return`<div class="card" data-id="${h.id}" style="${isPast?'opacity:.65;':''}${h.type==='temaзaro'?'border-left:4px solid #f59e0b;':''}${h.type==='dolgozat'?'border-left:4px solid #7c3aed;':''}">
+  return`<div class="card" data-id="${h.id}" style="${isPast?'opacity:.65;':''}${h.type==='temaзaro'?'border-left:4px solid #f59e0b;':''}${h.type==='dolgozat'?'border-left:4px solid #7c3aed;':''}${h.type==='vizsga'?'border-left:4px solid #059669;':''}">
     <div class="card-head">
       ${chk}<div class="subj">${h.subject}${typeLabel}</div>
       <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">${isFav(h.id)?'<span style="font-size:14px;line-height:1">❤️</span>':''}<div class="badge ${cls}">${text}</div></div>
@@ -1805,7 +1806,7 @@ const TYPE_FILTER_LABELS = {
   'dolgozat': '📝 Dolgozat',
   'projekt': '🎯 Projekt',
   'anyag': '📖 Anyag',
-  'orai': '📝 Órai anyag'
+  'orai': '📝 Órai anyag', 'vizsga': '🎓 Év végi vizsga'
 };
 
 function renderTypeFilters(){
