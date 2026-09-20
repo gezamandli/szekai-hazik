@@ -175,7 +175,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 
 <nav class="tabs">
   <div class="tab on" id="tab-list">📋 Feladatok</div>
-  <div class="tab" id="tab-docs">📁 Dokuk</div>
+  <div class="tab" id="tab-docs">📁 Dokumentumok</div>
   <div class="tab" id="tab-request">🙋 Kérés</div>
   <div class="tab" id="tab-trash">🗑️ Kuka</div>
   <div class="tab" id="tab-help">❓ Súgó</div>
@@ -327,7 +327,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v9.7</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v9.8</span><span id="scriptVersion"></span></div>
 
 <script>
 const CFG = {
@@ -1099,7 +1099,9 @@ function copyNotify(){
 }
 
 // ── Tab switch ────────────────────────────────────────
+let currentTab="list";
 function switchTab(name){
+  currentTab=name;
 
   ['list','docs','request','trash','help'].forEach(n=>{
     document.getElementById('tab-'+n).classList.toggle('on',n===name);
