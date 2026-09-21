@@ -351,7 +351,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v13.7</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v13.8</span><span id="scriptVersion"></span></div>
 
 <script>
 // ── Document state vars ─────────────────────────────
@@ -2128,7 +2128,8 @@ function openDocDetail(id){
       <div style="font-size:12px;color:var(--ink2);margin-bottom:16px">⬆️ ${d.uploader} · ${fmtDT(d.uploaded)}${d.modifiedBy?'<br>✏️ '+d.modifiedBy+' · '+fmtDT(d.modifiedAt):''}</div>
     </div>
     <div class="detail-actions">
-      <button class="btn btn-secondary btn-full" id="docShareBtn">💬 Értesítő küldése</button>
+      <button class="btn btn-primary btn-full" id="docShareBtn" style="background:#0084ff">💬 Értesítő küldése Messengerben</button>
+      <button class="btn btn-secondary btn-full" id="docCopyBtn">📋 Értesítő másolása</button>
       <button class="btn btn-secondary btn-full" id="docFavBtn">${isFavDoc?'❤️ Kedvenc (töröl)':'🤍 Kedvencekhez'}</button>
       <button class="btn btn-secondary btn-full" id="docEditBtn">✏️ Szerkesztés</button>
       <button class="btn btn-danger btn-full" id="docDeleteBtn">🗑️ Törlés</button>
@@ -2137,7 +2138,10 @@ function openDocDetail(id){
   modal.onclick=e=>{if(e.target===modal)closeDocDetail();};
   document.body.appendChild(modal);
 
-  document.getElementById('docShareBtn').onclick=()=>shareDoc(id);
+  const docText='📁 '+d.title+(d.desc?'\n\n'+d.desc:'')+(d.tags&&d.tags.length?'\n🏷️ '+d.tags.join(', '):'')+
+    (files.length?'\n📎 '+files.length+' fájl':'')+'\n\n– '+session.name;
+  document.getElementById('docShareBtn').onclick=()=>sendToMessenger(docText);
+  document.getElementById('docCopyBtn').onclick=()=>{navigator.clipboard?.writeText(docText);showToast('📋 Másolva!');};
   document.getElementById('docFavBtn').onclick=()=>toggleDocFav(id);
   document.getElementById('docEditBtn').onclick=()=>{closeDocDetail();openEditDoc(id);};
   document.getElementById('docDeleteBtn').onclick=()=>deleteDoc(id);
