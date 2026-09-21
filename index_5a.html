@@ -351,7 +351,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v13.5</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v13.6</span><span id="scriptVersion"></span></div>
 
 <script>
 // ── Document state vars ─────────────────────────────
@@ -2634,33 +2634,8 @@ function closeCalDetail(){const m=document.getElementById('calDetailModal');if(m
 function shareCalEvent(id){
   const e=calEvents.find(x=>x.id===id);if(!e)return;
   const dateStr=fmtDate(e.dateFrom)+(e.dateTo&&e.dateTo!==e.dateFrom?' – '+fmtDate(e.dateTo):'');
-  const text=`📅 ${e.title}\n🗓️ ${dateStr}\n${e.desc?'\n'+e.desc:''}\n\n– ${session.name}`;
-  const encoded=encodeURIComponent(text);
-  const messengerUrl=`fb-messenger://share?link=https%3A%2F%2Fm.me%2F&app_id=966242223397117`;
-  const modal=document.createElement('div');
-  modal.className='overlay on';
-  modal.innerHTML=`<div class="sheet" onclick="event.stopPropagation()" style="padding:20px">
-    <div class="handle"></div>
-    <div style="font-size:16px;font-weight:800;margin-bottom:12px">📅 Értesítő küldése</div>
-    <div style="background:#f3f4f6;border-radius:10px;padding:12px;font-size:13px;line-height:1.6;margin-bottom:16px;white-space:pre-wrap">${text}</div>
-    <div style="display:flex;flex-direction:column;gap:8px">
-      <button onclick="navigator.clipboard?.writeText(${JSON.stringify(text)});showToast('📋 Vágólapra másolva');this.closest('.overlay').remove()" 
-        style="padding:12px;background:var(--blue);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer">
-        📋 Szöveg másolása
-      </button>
-      <a href="https://www.messenger.com/t/" target="_blank" 
-        onclick="navigator.clipboard?.writeText(${JSON.stringify(text)})" 
-        style="padding:12px;background:#0084ff;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;text-align:center;text-decoration:none;display:block">
-        💬 Küldés Messengerben
-      </a>
-      <button onclick="this.closest('.overlay').remove()" 
-        style="padding:10px;background:var(--bg);border:1.5px solid var(--line);border-radius:10px;font-size:14px;cursor:pointer">
-        Mégse
-      </button>
-    </div>
-  </div>`;
-  modal.onclick=ev=>{if(ev.target===modal)modal.remove();};
-  document.body.appendChild(modal);
+  const text='📅 '+e.title+'\n🗓️ '+dateStr+(e.desc?'\n\n'+e.desc:'')+'\n\n– '+session.name;
+  sendToMessenger(text);
 }
 
 let editingCalId=null;
@@ -2740,32 +2715,9 @@ async function deleteCalEvent(id){
 function shareDoc(id){
   const d=documents.find(x=>x.id===id);if(!d)return;
   const files=Array.isArray(d.files)?d.files:[];
-  const text='📁 '+d.title+(d.desc?'\n'+d.desc:'')+(d.tags&&d.tags.length?'\n🏷️ '+d.tags.join(', '):'')+
+  const text='📁 '+d.title+(d.desc?'\n\n'+d.desc:'')+(d.tags&&d.tags.length?'\n🏷️ '+d.tags.join(', '):'')+
     (files.length?'\n📎 '+files.length+' fájl':'')+'\n\n– '+session.name;
-  const modal=document.createElement('div');
-  modal.className='overlay on';
-  modal.innerHTML=`<div class="sheet" onclick="event.stopPropagation()" style="padding:20px">
-    <div class="handle"></div>
-    <div style="font-size:16px;font-weight:800;margin-bottom:12px">💬 Értesítő küldése</div>
-    <div style="background:#f3f4f6;border-radius:10px;padding:12px;font-size:13px;line-height:1.6;margin-bottom:16px;white-space:pre-wrap">${text}</div>
-    <div style="display:flex;flex-direction:column;gap:8px">
-      <button onclick="navigator.clipboard?.writeText(${JSON.stringify(text)});showToast('📋 Vágólapra másolva');this.closest('.overlay').remove()"
-        style="padding:12px;background:var(--blue);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer">
-        📋 Szöveg másolása
-      </button>
-      <a href="https://www.messenger.com/t/" target="_blank"
-        onclick="navigator.clipboard?.writeText(${JSON.stringify(text)})"
-        style="padding:12px;background:#0084ff;color:#fff;border-radius:10px;font-size:15px;font-weight:700;text-align:center;text-decoration:none;display:block">
-        💬 Küldés Messengerben
-      </a>
-      <button onclick="this.closest('.overlay').remove()"
-        style="padding:10px;background:var(--bg);border:1.5px solid var(--line);border-radius:10px;font-size:14px;cursor:pointer">
-        Mégse
-      </button>
-    </div>
-  </div>`;
-  modal.onclick=ev=>{if(ev.target===modal)modal.remove();};
-  document.body.appendChild(modal);
+  sendToMessenger(text);
 }
 
 </script>
