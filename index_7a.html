@@ -355,7 +355,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v13.3</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v13.4</span><span id="scriptVersion"></span></div>
 
 <script>
 // ── Document state vars ─────────────────────────────
@@ -493,7 +493,9 @@ function signIn(){
   if(pin!==CFG.PIN){err.textContent='Hibás PIN-kód!';err.style.display='block';return;}
   session={name};
   localStorage.setItem('hz_s_7a',JSON.stringify(session));
-  err.style.display='none';showApp();
+  err.style.display='none';
+  sheetRequest({action:'logUser',userName:name,lastLogin:new Date().toISOString()}).catch(()=>{});
+  showApp();
 }
 function showApp(){
   document.getElementById('loginScreen').classList.remove('on');
@@ -2129,6 +2131,7 @@ function openDocDetail(id){
       <div style="font-size:12px;color:var(--ink2);margin-bottom:16px">⬆️ ${d.uploader} · ${fmtDT(d.uploaded)}${d.modifiedBy?'<br>✏️ '+d.modifiedBy+' · '+fmtDT(d.modifiedAt):''}</div>
     </div>
     <div class="detail-actions">
+      <button class="btn btn-secondary btn-full" id="docShareBtn">💬 Értesítő küldése</button>
       <button class="btn btn-secondary btn-full" id="docFavBtn">${isFavDoc?'❤️ Kedvenc (töröl)':'🤍 Kedvencekhez'}</button>
       <button class="btn btn-secondary btn-full" id="docEditBtn">✏️ Szerkesztés</button>
       <button class="btn btn-danger btn-full" id="docDeleteBtn">🗑️ Törlés</button>
@@ -2137,6 +2140,7 @@ function openDocDetail(id){
   modal.onclick=e=>{if(e.target===modal)closeDocDetail();};
   document.body.appendChild(modal);
 
+  document.getElementById('docShareBtn').onclick=()=>shareDoc(id);
   document.getElementById('docFavBtn').onclick=()=>toggleDocFav(id);
   document.getElementById('docEditBtn').onclick=()=>{closeDocDetail();openEditDoc(id);};
   document.getElementById('docDeleteBtn').onclick=()=>deleteDoc(id);
@@ -2733,6 +2737,38 @@ async function deleteCalEvent(id){
     await sheetRequest({action:'deleteCal',id,tanev:activeTanev,deletedBy:session.name});
     showToast('🗑️ Esemény törölve');
   }catch(e){showToast('🗑️ Helyben törölve');}
+}
+
+
+function shareDoc(id){
+  const d=documents.find(x=>x.id===id);if(!d)return;
+  const files=Array.isArray(d.files)?d.files:[];
+  const text='📁 '+d.title+(d.desc?'\n'+d.desc:'')+(d.tags&&d.tags.length?'\n🏷️ '+d.tags.join(', '):'')+
+    (files.length?'\n📎 '+files.length+' fájl':'')+'\n\n– '+session.name;
+  const modal=document.createElement('div');
+  modal.className='overlay on';
+  modal.innerHTML=`<div class="sheet" onclick="event.stopPropagation()" style="padding:20px">
+    <div class="handle"></div>
+    <div style="font-size:16px;font-weight:800;margin-bottom:12px">💬 Értesítő küldése</div>
+    <div style="background:#f3f4f6;border-radius:10px;padding:12px;font-size:13px;line-height:1.6;margin-bottom:16px;white-space:pre-wrap">${text}</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button onclick="navigator.clipboard?.writeText(${JSON.stringify(text)});showToast('📋 Vágólapra másolva');this.closest('.overlay').remove()"
+        style="padding:12px;background:var(--blue);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer">
+        📋 Szöveg másolása
+      </button>
+      <a href="https://www.messenger.com/t/" target="_blank"
+        onclick="navigator.clipboard?.writeText(${JSON.stringify(text)})"
+        style="padding:12px;background:#0084ff;color:#fff;border-radius:10px;font-size:15px;font-weight:700;text-align:center;text-decoration:none;display:block">
+        💬 Küldés Messengerben
+      </a>
+      <button onclick="this.closest('.overlay').remove()"
+        style="padding:10px;background:var(--bg);border:1.5px solid var(--line);border-radius:10px;font-size:14px;cursor:pointer">
+        Mégse
+      </button>
+    </div>
+  </div>`;
+  modal.onclick=ev=>{if(ev.target===modal)modal.remove();};
+  document.body.appendChild(modal);
 }
 
 </script>
