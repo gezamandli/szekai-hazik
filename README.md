@@ -1,1 +1,1 @@
-# szekai-hazik
+# Szekai Hazik Project Manifest
