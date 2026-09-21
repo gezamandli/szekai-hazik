@@ -355,7 +355,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v13.4</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v13.5</span><span id="scriptVersion"></span></div>
 
 <script>
 // ── Document state vars ─────────────────────────────
@@ -494,12 +494,13 @@ function signIn(){
   session={name};
   localStorage.setItem('hz_s_7a',JSON.stringify(session));
   err.style.display='none';
-  sheetRequest({action:'logUser',userName:name,lastLogin:new Date().toISOString()}).catch(()=>{});
   showApp();
 }
 function showApp(){
   document.getElementById('loginScreen').classList.remove('on');
   document.getElementById('hdrName').textContent=session.name;
+  // Log every app open (works for both fresh login and returning users)
+  sheetRequest({action:'logUser',userName:session.name,lastLogin:new Date().toISOString()}).catch(()=>{});
   // Load config and sheet in parallel for speed
   Promise.all([loadConfig(), loadSheet()]).then(()=>{
     loadFavs(); // async, don't wait
