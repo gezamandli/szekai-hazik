@@ -351,7 +351,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v13.2</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v13.3</span><span id="scriptVersion"></span></div>
 
 <script>
 // ── Document state vars ─────────────────────────────
@@ -372,7 +372,7 @@ const CFG = {
   CNAME:         '5.a osztaly',
   PIN:           '2026',
   SHEET_ID:      '1KopuaNCn1nUn8JHDBYEjEqKp3EXaLErX8qvkeOu8ndk',
-  SCRIPT_URL:    'https://script.google.com/macros/s/AKfycbzVA9AgfBnY2Jygd8iLvzGWQywN5BV_mvre3Xxe174pD4xsuAu6E4j4Cv5TiQtY4cYZ/exec',
+  SCRIPT_URL:    'https://script.google.com/macros/s/AKfycbxC5wNEisU85NCK4SV5D8lUoY-aJrreXLNt_GH8b3mQGYvDrBvHYe86cQAiTkoI_Dry/exec',
   CLOUD_NAME:    'g8tinasd',
   UPLOAD_PRESET: 'szekai_hazik',
   CLOUD_FOLDER:  'hazik_5a',
@@ -2628,9 +2628,34 @@ function closeCalDetail(){const m=document.getElementById('calDetailModal');if(m
 
 function shareCalEvent(id){
   const e=calEvents.find(x=>x.id===id);if(!e)return;
-  const text=`📅 ${e.title}\n🗓️ ${fmtDate(e.dateFrom)}${e.dateTo&&e.dateTo!==e.dateFrom?' – '+fmtDate(e.dateTo):''}\n${e.desc?'\n'+e.desc:''}`;
-  if(navigator.share){navigator.share({title:e.title,text});}
-  else{navigator.clipboard?.writeText(text);showToast('📋 Vágólapra másolva');}
+  const dateStr=fmtDate(e.dateFrom)+(e.dateTo&&e.dateTo!==e.dateFrom?' – '+fmtDate(e.dateTo):'');
+  const text=`📅 ${e.title}\n🗓️ ${dateStr}\n${e.desc?'\n'+e.desc:''}\n\n– ${session.name}`;
+  const encoded=encodeURIComponent(text);
+  const messengerUrl=`fb-messenger://share?link=https%3A%2F%2Fm.me%2F&app_id=966242223397117`;
+  const modal=document.createElement('div');
+  modal.className='overlay on';
+  modal.innerHTML=`<div class="sheet" onclick="event.stopPropagation()" style="padding:20px">
+    <div class="handle"></div>
+    <div style="font-size:16px;font-weight:800;margin-bottom:12px">📅 Értesítő küldése</div>
+    <div style="background:#f3f4f6;border-radius:10px;padding:12px;font-size:13px;line-height:1.6;margin-bottom:16px;white-space:pre-wrap">${text}</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button onclick="navigator.clipboard?.writeText(${JSON.stringify(text)});showToast('📋 Vágólapra másolva');this.closest('.overlay').remove()" 
+        style="padding:12px;background:var(--blue);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer">
+        📋 Szöveg másolása
+      </button>
+      <a href="https://www.messenger.com/t/" target="_blank" 
+        onclick="navigator.clipboard?.writeText(${JSON.stringify(text)})" 
+        style="padding:12px;background:#0084ff;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;text-align:center;text-decoration:none;display:block">
+        💬 Küldés Messengerben
+      </a>
+      <button onclick="this.closest('.overlay').remove()" 
+        style="padding:10px;background:var(--bg);border:1.5px solid var(--line);border-radius:10px;font-size:14px;cursor:pointer">
+        Mégse
+      </button>
+    </div>
+  </div>`;
+  modal.onclick=ev=>{if(ev.target===modal)modal.remove();};
+  document.body.appendChild(modal);
 }
 
 let editingCalId=null;
