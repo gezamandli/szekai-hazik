@@ -1027,10 +1027,13 @@ function cardHTML(h,selMode=false){
   const extra=Array.isArray(h.images)?h.images.length-3:0;
   const isPast=new Date(effectiveDue(h))<today0();
   const isDone=doneSet.has(h.id);
+  const dEff=new Date(effectiveDue(h));dEff.setHours(0,0,0,0);
+  const diffDays=Math.round((dEff-today0())/864e5);
+  const urgentBg=!isDone&&diffDays===0?'background:#fff7ed;':!isDone&&diffDays===1?'background:#fefce8;':'';
   const typeLabel=h.type&&TYPE_LABELS[h.type]?`<span class="badge type-${h.type}" style="margin-left:4px">${TYPE_LABELS[h.type]}</span>`:'';
   const borderLeft=h.type==='temaзaro'?'border-left:4px solid #f59e0b;':h.type==='dolgozat'?'border-left:4px solid #7c3aed;':h.type==='vizsga'?'border-left:4px solid #059669;':`border-left:4px solid ${subjectColor(h.subject||'')};`;
   const doneBtn=`<button class="done-btn${isDone?' active':''}" onclick="toggleDone('${h.id}',event)" title="${isDone?'Visszaállítás':'Megcsináltam'}">✓</button>`;
-  return`<div class="card${isDone?' done':''}" data-id="${h.id}" style="${isPast&&!isDone?'opacity:.65;':''}${borderLeft}">
+  return`<div class="card${isDone?' done':''}" data-id="${h.id}" style="${isPast&&!isDone?'opacity:.65;':''}${urgentBg}${borderLeft}">
     <div class="card-head">
       ${chk}<div class="subj">${h.subject}${typeLabel}</div>
       <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">${isFav(h.id)?'<span style="font-size:14px;line-height:1">❤️</span>':''}${doneBtn}<div class="badge ${cls}">${text}</div></div>
