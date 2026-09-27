@@ -1094,7 +1094,7 @@ function renderList(){
     c.onclick=()=>openDetail(c.dataset.id);
   });
   renderUrgentBanner(items);
-  const hasToday=items.some(h=>{if(doneSet.has(h.id))return false;const d=new Date(effectiveDue(h));d.setHours(0,0,0,0);return Math.round((d-today0())/864e5)===0;});
+  const hasToday=items.some(h=>{if(doneSet.has(h.id))return false;const d=new Date(effectiveDue(h));d.setHours(0,0,0,0);const diff=Math.round((d-today0())/864e5);return diff>=0&&diff<=1;});
   document.getElementById('tab-list').textContent='📋 Feladatok'+(items.length?' ('+items.length+')':'')+(hasToday?' 🔴':'');
 }
 
