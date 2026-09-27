@@ -36,7 +36,11 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 .subj{font-weight:800;font-size:15px}
 .badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap;flex-shrink:0}
 .ok{background:#d1fae5;color:var(--green)}.soon{background:#fef3c7;color:var(--amber)}.past{background:#fee2e2;color:var(--red)}.nodue{background:#f3f4f6;color:var(--ink2)}
-.group-header{font-size:11px;font-weight:800;color:var(--ink2);text-transform:uppercase;letter-spacing:.6px;padding:10px 2px 4px;border-bottom:1.5px solid var(--line);margin-bottom:6px;margin-top:4px}.type-temaзaro{background:#fef3c7;color:#92400e;border:1.5px solid #f59e0b}.type-dolgozat{background:#ede9fe;color:#5b21b6}.type-projekt{background:#d1fae5;color:#065f46}.type-anyag{background:#e0f2fe;color:#075985}
+.group-header{font-size:11px;font-weight:800;color:var(--ink2);text-transform:uppercase;letter-spacing:.6px;padding:10px 2px 4px;border-bottom:1.5px solid var(--line);margin-bottom:6px;margin-top:4px}
+.card.done{opacity:.5}.card.done .subj{text-decoration:line-through}
+.done-btn{background:none;border:1.5px solid var(--line);border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:12px;transition:all .15s}
+.done-btn.active{background:#d1fae5;border-color:var(--green);color:var(--green)}
+#urgentBanner{display:none;background:linear-gradient(135deg,#ff6b35,#f59e0b);color:#fff;padding:11px 14px;border-radius:10px;margin-bottom:10px;cursor:pointer;font-size:13px;font-weight:700;box-shadow:0 2px 10px rgba(245,158,11,.35)}.type-temaзaro{background:#fef3c7;color:#92400e;border:1.5px solid #f59e0b}.type-dolgozat{background:#ede9fe;color:#5b21b6}.type-projekt{background:#d1fae5;color:#065f46}.type-anyag{background:#e0f2fe;color:#075985}
 .desc{font-size:14px;color:#374151;margin-top:6px;line-height:1.45}
 .meta{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;align-items:center}
 .tag{font-size:11px;background:var(--blue-bg);color:var(--blue);padding:2px 8px;border-radius:10px;font-weight:600}
@@ -210,6 +214,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
     <button id="groupedViewBtn" onclick="toggleGroupedView()" title="Csoportos nézet" style="padding:6px 10px;border-radius:8px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink2);font-size:12px;font-weight:700;cursor:pointer">⚡ Csop.</button>
   </div>
   <div id="selectHint" style="font-size:11px;color:var(--ink2);margin-bottom:4px;display:none">📱 Mobilon: tartsd nyomva a kártyát</div>
+  <div id="urgentBanner"></div>
   <div id="hwList"></div>
 </div>
 <div id="view-help" class="view"><div id="helpContent"></div></div>
@@ -353,12 +358,13 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v14.9</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v15.0</span><span id="scriptVersion"></span></div>
 
 <script>
 let sortBy=localStorage.getItem('hz_sort_by_5a')||'due';
 let sortAsc=localStorage.getItem('hz_sort_asc_5a')!==null?localStorage.getItem('hz_sort_asc_5a')==='true':true;
 let groupedView=localStorage.getItem('hz_view_5a')==='true';
+let doneSet=new Set(JSON.parse(localStorage.getItem('hz_done_5a')||'[]'));
 
 // ── Document state vars ─────────────────────────────
 let documents = [];
@@ -419,6 +425,35 @@ function effectiveDue(h){
   const d=new Date(h.uploaded||Date.now());
   d.setDate(d.getDate()+7);
   return d.toISOString().slice(0,10);
+}
+function subjectColor(s){
+  let h=0;
+  for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))&0xffff;
+  return`hsl(${h%360},65%,45%)`;
+}
+function toggleDone(id,e){
+  e.stopPropagation();
+  if(doneSet.has(id))doneSet.delete(id);else doneSet.add(id);
+  localStorage.setItem('hz_done_5a',JSON.stringify([...doneSet]));
+  renderList();
+}
+function renderUrgentBanner(items){
+  const banner=document.getElementById('urgentBanner');
+  const t0=today0();
+  const urgent=items.filter(h=>{
+    if(doneSet.has(h.id))return false;
+    const d=new Date(effectiveDue(h));d.setHours(0,0,0,0);
+    return Math.round((d-t0)/864e5)<=1&&Math.round((d-t0)/864e5)>=0;
+  }).sort((a,b)=>new Date(effectiveDue(a))-new Date(effectiveDue(b)));
+  if(!urgent.length){banner.style.display='none';return;}
+  const top=urgent[0];
+  const{text}=dueInfo(effectiveDue(top));
+  banner.style.display='block';
+  banner.textContent=`⚡ ${top.subject} – ${text} · kattints a kártyára`;
+  banner.onclick=()=>{
+    const card=document.querySelector('[data-id="'+top.id+'"]');
+    if(card)card.scrollIntoView({behavior:'smooth',block:'center'});
+  };
 }
 function dueInfo(ds){
   const d=new Date(ds);if(isNaN(d))return{text:'?',cls:'nodue'};
@@ -987,11 +1022,14 @@ function cardHTML(h,selMode=false){
   const imgs=Array.isArray(h.images)?h.images.slice(0,3):[];
   const extra=Array.isArray(h.images)?h.images.length-3:0;
   const isPast=new Date(effectiveDue(h))<today0();
+  const isDone=doneSet.has(h.id);
   const typeLabel=h.type&&TYPE_LABELS[h.type]?`<span class="badge type-${h.type}" style="margin-left:4px">${TYPE_LABELS[h.type]}</span>`:'';
-  return`<div class="card" data-id="${h.id}" style="${isPast?'opacity:.65;':''}${h.type==='temaзaro'?'border-left:4px solid #f59e0b;':''}${h.type==='dolgozat'?'border-left:4px solid #7c3aed;':''}${h.type==='vizsga'?'border-left:4px solid #059669;':''}">
+  const borderLeft=h.type==='temaзaro'?'border-left:4px solid #f59e0b;':h.type==='dolgozat'?'border-left:4px solid #7c3aed;':h.type==='vizsga'?'border-left:4px solid #059669;':`border-left:4px solid ${subjectColor(h.subject||'')};`;
+  const doneBtn=`<button class="done-btn${isDone?' active':''}" onclick="toggleDone('${h.id}',event)" title="${isDone?'Visszaállítás':'Megcsináltam'}">${isDone?'✓':''}</button>`;
+  return`<div class="card${isDone?' done':''}" data-id="${h.id}" style="${isPast&&!isDone?'opacity:.65;':''}${borderLeft}">
     <div class="card-head">
       ${chk}<div class="subj">${h.subject}${typeLabel}</div>
-      <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">${isFav(h.id)?'<span style="font-size:14px;line-height:1">❤️</span>':''}<div class="badge ${cls}">${text}</div></div>
+      <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">${isFav(h.id)?'<span style="font-size:14px;line-height:1">❤️</span>':''}${doneBtn}<div class="badge ${cls}">${text}</div></div>
     </div>
     <div class="desc">${h.desc}</div>
     ${imgs.length?`<div class="thumbs">${imgs.map(u=>{
@@ -1021,8 +1059,10 @@ function renderList(){
   if(activeTypeFilter!=='all')items=items.filter(h=>(h.type||'')===activeTypeFilter);
   items=items.filter(passesDateFilter);
   items=filterSearch(items,'searchList');
-  // Sort by user preference
+  // Sort by user preference; done items always last
   items.sort((a,b)=>{
+    const doneA=doneSet.has(a.id),doneB=doneSet.has(b.id);
+    if(doneA!==doneB)return doneA?1:-1;
     if(sortBy==='due'){
       const t0=today0();
       const da=new Date(effectiveDue(a));
@@ -1049,7 +1089,9 @@ function renderList(){
     c.ontouchend=c.ontouchmove=()=>{clearTimeout(pressTimer);pressTimer=null;};
     c.onclick=()=>openDetail(c.dataset.id);
   });
-  document.getElementById('tab-list').textContent='📋 Feladatok'+(items.length?' ('+items.length+')':'');
+  renderUrgentBanner(items);
+  const hasToday=items.some(h=>{if(doneSet.has(h.id))return false;const d=new Date(effectiveDue(h));d.setHours(0,0,0,0);return Math.round((d-today0())/864e5)===0;});
+  document.getElementById('tab-list').textContent='📋 Feladatok'+(items.length?' ('+items.length+')':'')+(hasToday?' 🔴':'');
 }
 
 function renderGrouped(items,el){
@@ -1194,7 +1236,8 @@ function openAddSheet(id){
     document.getElementById('addSheetTitle').textContent='Új házi feladat';
     document.getElementById('newDesc').value='';
     document.getElementById('newNote').value='';
-    document.getElementById('newDue').value='';
+    const tmr=new Date();tmr.setDate(tmr.getDate()+1);
+    document.getElementById('newDue').value=tmr.toISOString().slice(0,10);
     document.getElementById('existingImgs').style.display='none';
   }
   openSheet('addSheet');
