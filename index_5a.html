@@ -1024,8 +1024,11 @@ function renderList(){
   // Sort by user preference
   items.sort((a,b)=>{
     if(sortBy==='due'){
+      const t0=today0();
       const da=new Date(effectiveDue(a));
       const db=new Date(effectiveDue(b));
+      const pastA=da<t0,pastB=db<t0;
+      if(pastA!==pastB)return pastA?1:-1;
       return sortAsc?da-db:db-da;
     }else{
       const da=new Date(a.uploaded||0);
