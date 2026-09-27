@@ -202,12 +202,12 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
     <button onclick="applyDateRange()" style="padding:7px 10px;border:2px solid var(--blue);border-radius:10px;font-size:12px;font-weight:700;background:var(--blue);color:#fff;cursor:pointer">Szűrés</button>
     <button onclick="clearDateRange()" style="padding:7px 10px;border:2px solid var(--line);border-radius:10px;font-size:12px;font-weight:700;background:#fff;color:var(--ink2);cursor:pointer">✕ Törlés</button>
   </div>
-  <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
-    <div>
+  <div style="display:flex;gap:8px;margin-bottom:6px;align-items:center">
     <button class="sel-btn" id="selectModeBtn" onclick="toggleSelectMode()">☑️ Kijelölés</button>
-    <div id="selectHint" style="font-size:11px;color:var(--ink2);margin-top:3px;display:none">📱 Mobilon: tartsd nyomva a kártyát</div>
+    <button id="sortUploadedBtn" onclick="setSortBy('uploaded')" title="Feltöltés szerint" style="padding:6px 10px;border-radius:8px;border:1.5px solid var(--blue);background:var(--blue);color:#fff;font-size:12px;font-weight:700;cursor:pointer;margin-left:auto">⬆️ Feltöltés ↓</button>
+    <button id="sortDueBtn" onclick="setSortBy('due')" title="Határidő szerint" style="padding:6px 10px;border-radius:8px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink2);font-size:12px;font-weight:700;cursor:pointer">📅 Határidő ↓</button>
   </div>
-  </div>
+  <div id="selectHint" style="font-size:11px;color:var(--ink2);margin-bottom:4px;display:none">📱 Mobilon: tartsd nyomva a kártyát</div>
   <div id="hwList"></div>
 </div>
 <div id="view-help" class="view"><div id="helpContent"></div></div>
@@ -351,9 +351,12 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v14.0</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v14.7</span><span id="scriptVersion"></span></div>
 
 <script>
+let sortBy="uploaded";
+let sortAsc=false;
+
 // ── Document state vars ─────────────────────────────
 let documents = [];
 let calEvents = [];
@@ -449,6 +452,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     }catch(e){}
   })();
   document.getElementById('loginBtn').onclick=signIn;
+  updateSortBtns();
   document.getElementById('pinCode').addEventListener('keydown',e=>{if(e.key==='Enter')signIn();});
   document.getElementById('logoutBtn').onclick=logout;
   document.getElementById('fabBtn').onclick=()=>{ if(currentTab==='docs') openAddDoc(); else if(currentTab==='cal') openAddCalEvent(); else openAddSheet(null); };
@@ -1008,8 +1012,18 @@ function renderList(){
   if(activeTypeFilter!=='all')items=items.filter(h=>(h.type||'')===activeTypeFilter);
   items=items.filter(passesDateFilter);
   items=filterSearch(items,'searchList');
-  // Sort: newest upload first
-  items.sort((a,b)=>new Date(b.uploaded)-new Date(a.uploaded));
+  // Sort by user preference
+  items.sort((a,b)=>{
+    if(sortBy==='due'){
+      const da=a.due?new Date(a.due):new Date('9999-12-31');
+      const db=b.due?new Date(b.due):new Date('9999-12-31');
+      return sortAsc?da-db:db-da;
+    }else{
+      const da=new Date(a.uploaded||0);
+      const db=new Date(b.uploaded||0);
+      return sortAsc?da-db:db-da;
+    }
+  });
   const el=document.getElementById('hwList');
   el.innerHTML=items.length?items.map(h=>cardHTML(h,selectMode)).join(''):`<div class="empty"><div class="ico">🎉</div><p>Nincs feladat!</p></div>`;
   // Wire clicks - openDetail handles selectMode internally
@@ -2760,6 +2774,28 @@ function shareDoc(id){
   const text='📁 '+d.title+(d.desc?'\n\n'+d.desc:'')+(d.tags&&d.tags.length?'\n🏷️ '+d.tags.join(', '):'')+
     (files.length?'\n📎 '+files.length+' fájl':'')+'\n\n– '+session.name;
   sendToMessenger(text);
+}
+
+
+function setSortBy(by){
+  if(sortBy===by) sortAsc=!sortAsc;
+  else {sortBy=by;sortAsc=by==='due';}
+  updateSortBtns();
+  renderAll();
+}
+function updateSortBtns(){
+  const upBtn=document.getElementById('sortUploadedBtn');
+  const dueBtn=document.getElementById('sortDueBtn');
+  if(!upBtn||!dueBtn)return;
+  const arrow=sortAsc?'↑':'↓';
+  upBtn.style.background=sortBy==='uploaded'?'var(--blue)':'var(--bg)';
+  upBtn.style.color=sortBy==='uploaded'?'#fff':'var(--ink2)';
+  upBtn.style.borderColor=sortBy==='uploaded'?'var(--blue)':'var(--line)';
+  upBtn.textContent='⬆️ Feltöltés '+(sortBy==='uploaded'?arrow:'↓');
+  dueBtn.style.background=sortBy==='due'?'var(--blue)':'var(--bg)';
+  dueBtn.style.color=sortBy==='due'?'#fff':'var(--ink2)';
+  dueBtn.style.borderColor=sortBy==='due'?'var(--blue)':'var(--line)';
+  dueBtn.textContent='📅 Határidő '+(sortBy==='due'?arrow:'↓');
 }
 
 </script>
