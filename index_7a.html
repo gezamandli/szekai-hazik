@@ -1063,10 +1063,8 @@ function renderList(){
   if(activeTypeFilter!=='all')items=items.filter(h=>(h.type||'')===activeTypeFilter);
   items=items.filter(passesDateFilter);
   items=filterSearch(items,'searchList');
-  // Sort by user preference; done items always last
+  // Sort by user preference
   items.sort((a,b)=>{
-    const doneA=doneSet.has(a.id),doneB=doneSet.has(b.id);
-    if(doneA!==doneB)return doneA?1:-1;
     if(sortBy==='due'){
       const t0=today0();
       const da=new Date(effectiveDue(a));
