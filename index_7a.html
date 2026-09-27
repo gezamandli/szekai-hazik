@@ -36,6 +36,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 .subj{font-weight:800;font-size:15px}
 .badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap;flex-shrink:0}
 .ok{background:#d1fae5;color:var(--green)}.soon{background:#fef3c7;color:var(--amber)}.past{background:#fee2e2;color:var(--red)}.nodue{background:#f3f4f6;color:var(--ink2)}.type-temaзaro{background:#fef3c7;color:#92400e;border:1.5px solid #f59e0b}.type-dolgozat{background:#ede9fe;color:#5b21b6}.type-projekt{background:#d1fae5;color:#065f46}.type-anyag{background:#e0f2fe;color:#075985}
+.group-header{font-size:11px;font-weight:800;color:var(--ink2);text-transform:uppercase;letter-spacing:.6px;padding:10px 2px 4px;border-bottom:1.5px solid var(--line);margin-bottom:6px;margin-top:4px}
 .desc{font-size:14px;color:#374151;margin-top:6px;line-height:1.45}
 .meta{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;align-items:center}
 .tag{font-size:11px;background:var(--blue-bg);color:var(--blue);padding:2px 8px;border-radius:10px;font-weight:600}
@@ -206,6 +207,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
     <button class="sel-btn" id="selectModeBtn" onclick="toggleSelectMode()">☑️ Kijelölés</button>
     <button id="sortUploadedBtn" onclick="setSortBy('uploaded')" title="Feltöltés szerint" style="padding:6px 10px;border-radius:8px;border:1.5px solid var(--blue);background:var(--blue);color:#fff;font-size:12px;font-weight:700;cursor:pointer;margin-left:auto">⬆️ Feltöltés ↓</button>
     <button id="sortDueBtn" onclick="setSortBy('due')" title="Határidő szerint" style="padding:6px 10px;border-radius:8px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink2);font-size:12px;font-weight:700;cursor:pointer">📅 Határidő ↓</button>
+    <button id="groupedViewBtn" onclick="toggleGroupedView()" title="Csoportos nézet" style="padding:6px 10px;border-radius:8px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink2);font-size:12px;font-weight:700;cursor:pointer">⚡ Csop.</button>
   </div>
   <div id="selectHint" style="font-size:11px;color:var(--ink2);margin-bottom:4px;display:none">📱 Mobilon: tartsd nyomva a kártyát</div>
   <div id="hwList"></div>
@@ -358,8 +360,9 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 <div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v14.7</span><span id="scriptVersion"></span></div>
 
 <script>
-let sortBy="uploaded";
-let sortAsc=false;
+let sortBy=localStorage.getItem('hz_sort_by_7a')||'due';
+let sortAsc=localStorage.getItem('hz_sort_asc_7a')!==null?localStorage.getItem('hz_sort_asc_7a')==='true':true;
+let groupedView=localStorage.getItem('hz_view_7a')==='true';
 
 // ── Document state vars ─────────────────────────────
 let documents = [];
@@ -415,8 +418,13 @@ function safeJSON(s){
   try{const r=JSON.parse(str);return Array.isArray(r)?r:[];}catch{return[];}
 }
 function today0(){const d=new Date();d.setHours(0,0,0,0);return d;}
+function effectiveDue(h){
+  if(h.due)return h.due;
+  const d=new Date(h.uploaded||Date.now());
+  d.setDate(d.getDate()+7);
+  return d.toISOString().slice(0,10);
+}
 function dueInfo(ds){
-  if(!ds||ds==='')return{text:'Nincs határidő',cls:'nodue'};
   const d=new Date(ds);if(isNaN(d))return{text:'?',cls:'nodue'};
   d.setHours(0,0,0,0);
   const diff=Math.round((d-today0())/864e5);
@@ -783,7 +791,8 @@ async function saveHW(){
   const subject=document.getElementById('newSubject').value;
   const type=document.getElementById('newType')?document.getElementById('newType').value:'';
   const desc=document.getElementById('newDesc').value.trim();
-  const due=document.getElementById('newDue').value;
+  const dueRaw=document.getElementById('newDue').value;
+  const due=dueRaw||effectiveDue({uploaded:new Date().toISOString()});
   const note=document.getElementById('newNote').value.trim();
   if(!desc){showToast('⚠️ Írd le a feladatot!');return;}
   const btn=document.getElementById('saveBtn');
@@ -964,7 +973,7 @@ function renderFilters(){
   });
 }
 
-function activeHW(){return homeworks.filter(h=>{if(!h.due)return true;const d=new Date(h.due);d.setHours(0,0,0,0);return d>=today0();});}
+function activeHW(){return homeworks.filter(h=>{const d=new Date(effectiveDue(h));d.setHours(0,0,0,0);return d>=today0();});}
 
 function filterSearch(items, searchId){
   const q=document.getElementById(searchId)?.value?.toLowerCase()||'';
@@ -978,10 +987,10 @@ function cardHTML(h,selMode=false){
   const checked = selectedIds.has(h.id);
   const chk = selMode ? `<span style="width:22px;height:22px;border-radius:6px;border:2px solid ${checked?'var(--blue)':'var(--line)'};background:${checked?'var(--blue)':'#fff'};display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;margin-right:8px;transition:all .15s">${checked?'<svg width=\"13\" height=\"13\" viewBox=\"0 0 13 13\"><polyline points=\"2,7 5,10 11,3\" fill=\"none\" stroke=\"white\" stroke-width=\"2\" stroke-linecap=\"round\"/></svg>':''}</span>` : '';
 
-  const{text,cls}=dueInfo(h.due);
+  const{text,cls}=dueInfo(effectiveDue(h));
   const imgs=Array.isArray(h.images)?h.images.slice(0,3):[];
   const extra=Array.isArray(h.images)?h.images.length-3:0;
-  const isPast=h.due&&new Date(h.due)<today0();
+  const isPast=new Date(effectiveDue(h))<today0();
   const typeLabel=h.type&&TYPE_LABELS[h.type]?`<span class="badge type-${h.type}" style="margin-left:4px">${TYPE_LABELS[h.type]}</span>`:'';
   return`<div class="card" data-id="${h.id}" style="${isPast?'opacity:.65;':''}${h.type==='temaзaro'?'border-left:4px solid #f59e0b;':''}${h.type==='dolgozat'?'border-left:4px solid #7c3aed;':''}${h.type==='vizsga'?'border-left:4px solid #059669;':''}">
     <div class="card-head">
@@ -1019,8 +1028,8 @@ function renderList(){
   // Sort by user preference
   items.sort((a,b)=>{
     if(sortBy==='due'){
-      const da=a.due?new Date(a.due):new Date('9999-12-31');
-      const db=b.due?new Date(b.due):new Date('9999-12-31');
+      const da=new Date(effectiveDue(a));
+      const db=new Date(effectiveDue(b));
       return sortAsc?da-db:db-da;
     }else{
       const da=new Date(a.uploaded||0);
@@ -1029,7 +1038,11 @@ function renderList(){
     }
   });
   const el=document.getElementById('hwList');
-  el.innerHTML=items.length?items.map(h=>cardHTML(h,selectMode)).join(''):`<div class="empty"><div class="ico">🎉</div><p>Nincs feladat!</p></div>`;
+  if(groupedView){
+    renderGrouped(items,el);
+  }else{
+    el.innerHTML=items.length?items.map(h=>cardHTML(h,selectMode)).join(''):`<div class="empty"><div class="ico">🎉</div><p>Nincs feladat!</p></div>`;
+  }
   // Wire clicks - openDetail handles selectMode internally
   el.querySelectorAll('.card[data-id]').forEach(c=>{
     let pressTimer=null;
@@ -1044,7 +1057,7 @@ function renderAll2(){
   let items=[...homeworks];
   if(activeFilterAll!=='all')items=items.filter(h=>h.subject===activeFilterAll);
   items=filterSearch(items,'searchAll');
-  items.sort((a,b)=>{if(!a.due)return 1;if(!b.due)return -1;return new Date(b.due)-new Date(a.due);});
+  items.sort((a,b)=>new Date(effectiveDue(b))-new Date(effectiveDue(a)));
   const el=document.getElementById('hwListAll');
   el.innerHTML=items.length?items.map(h=>cardHTML(h,selectMode)).join(''):`<div class="empty"><div class="ico">📦</div><p>Nincs feladat.</p></div>`;
   attachClicks('hwListAll');
@@ -1052,9 +1065,9 @@ function renderAll2(){
 }
 
 function renderNotifyList(){
-  const items=activeHW().sort((a,b)=>{if(!a.due)return 1;if(!b.due)return -1;return new Date(a.due)-new Date(b.due);});
+  const items=activeHW().sort((a,b)=>new Date(effectiveDue(a))-new Date(effectiveDue(b)));
   const el=document.getElementById('notifyList');
-  el.innerHTML=items.length?items.map(h=>{const{text,cls}=dueInfo(h.due);return`<div class="card" data-id="${h.id}">
+  el.innerHTML=items.length?items.map(h=>{const{text,cls}=dueInfo(effectiveDue(h));return`<div class="card" data-id="${h.id}">
     <div class="card-head"><div class="subj">${h.subject}</div>
       <div style="display:flex;align-items:center;gap:5px;flex-shrink:0">${isFav(h.id)?'<span style="font-size:15px">❤️</span>':''}<div class="badge ${cls}">${text}</div></div>
     <div class="desc">${h.desc}</div>
@@ -1068,7 +1081,7 @@ function openDetail(id){
   if(selectMode){ toggleSelect(id, {stopPropagation:function(){}}); return; }
   const h=homeworks.find(x=>x.id===id);if(!h)return;
   history.replaceState(null,'','#'+id);
-  const{text,cls}=dueInfo(h.due);
+  const{text,cls}=dueInfo(effectiveDue(h));
   const imgs=Array.isArray(h.images)?h.images:[];
   document.getElementById('detailContent').innerHTML=`
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:11px">
@@ -1637,7 +1650,7 @@ async function removeFavFromCloud(hwId){
 function printCard(id){
   const h=homeworks.find(x=>x.id===id);if(!h)return;
   const imgs=h.images||[];
-  const{text}=dueInfo(h.due);
+  const{text}=dueInfo(effectiveDue(h));
   const imgPages=imgs.map((u,idx)=>{
     return '<div style="page-break-before:always;page-break-inside:avoid;margin:0;padding:0;'
       +'width:100vw;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden">'
@@ -1700,7 +1713,7 @@ function printSelected(){
   <button class="no-print" onclick="window.print()" style="margin-bottom:16px;padding:8px 16px;background:#2f6de1;color:#fff;border:none;border-radius:8px;cursor:pointer">🖨️ Nyomtatás (${items.length} feladat)</button>
   ${items.map(h=>{
     const imgs=h.images||[];
-    const{text}=dueInfo(h.due);
+    const{text}=dueInfo(effectiveDue(h));
     const imgPgs=imgs.map((u,i)=>`
       <div class="img-page">
         <div class="img-label">${h.subject} – ${i+1}/${imgs.length}. kép</div>
@@ -2784,12 +2797,15 @@ function shareDoc(id){
 function setSortBy(by){
   if(sortBy===by) sortAsc=!sortAsc;
   else {sortBy=by;sortAsc=by==='due';}
+  localStorage.setItem('hz_sort_by_7a',sortBy);
+  localStorage.setItem('hz_sort_asc_7a',String(sortAsc));
   updateSortBtns();
   renderAll();
 }
 function updateSortBtns(){
   const upBtn=document.getElementById('sortUploadedBtn');
   const dueBtn=document.getElementById('sortDueBtn');
+  const grpBtn=document.getElementById('groupedViewBtn');
   if(!upBtn||!dueBtn)return;
   const arrow=sortAsc?'↑':'↓';
   upBtn.style.background=sortBy==='uploaded'?'var(--blue)':'var(--bg)';
@@ -2800,6 +2816,41 @@ function updateSortBtns(){
   dueBtn.style.color=sortBy==='due'?'#fff':'var(--ink2)';
   dueBtn.style.borderColor=sortBy==='due'?'var(--blue)':'var(--line)';
   dueBtn.textContent='📅 Határidő '+(sortBy==='due'?arrow:'↓');
+  if(grpBtn){
+    grpBtn.style.background=groupedView?'var(--blue)':'var(--bg)';
+    grpBtn.style.color=groupedView?'#fff':'var(--ink2)';
+    grpBtn.style.borderColor=groupedView?'var(--blue)':'var(--line)';
+  }
+}
+
+function toggleGroupedView(){
+  groupedView=!groupedView;
+  localStorage.setItem('hz_view_7a',String(groupedView));
+  updateSortBtns();
+  renderList();
+}
+
+function renderGrouped(items,el){
+  const t0=today0();
+  const sections=[
+    {label:'🔴 Ma & Holnap',items:[]},
+    {label:'📅 Ezen a héten',items:[]},
+    {label:'📦 Később',items:[]},
+    {label:'⬛ Lejárt',items:[]},
+  ];
+  items.forEach(h=>{
+    const d=new Date(effectiveDue(h));d.setHours(0,0,0,0);
+    const diff=Math.round((d-t0)/864e5);
+    if(diff<0)sections[3].items.push(h);
+    else if(diff<=1)sections[0].items.push(h);
+    else if(diff<=7)sections[1].items.push(h);
+    else sections[2].items.push(h);
+  });
+  const html=sections.filter(s=>s.items.length).map(s=>{
+    const cards=s.items.sort((a,b)=>new Date(effectiveDue(a))-new Date(effectiveDue(b))).map(h=>cardHTML(h,selectMode)).join('');
+    return`<div class="group-header">${s.label} (${s.items.length})</div>${cards}`;
+  }).join('');
+  el.innerHTML=html||`<div class="empty"><div class="ico">🎉</div><p>Nincs feladat!</p></div>`;
 }
 
 </script>
