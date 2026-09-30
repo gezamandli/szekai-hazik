@@ -300,8 +300,8 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
     <div style="font-size:11px;font-weight:800;color:var(--blue);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px" id="tplFillLabel"></div>
     <div id="tplFillFields" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px"></div>
     <div style="display:flex;gap:8px">
-      <button onclick="confirmTemplate()" style="flex:1;padding:10px;background:var(--blue);color:#fff;border:none;border-radius:9px;font-size:14px;font-weight:800;cursor:pointer">✓ OK</button>
-      <button onclick="cancelTemplate()" style="padding:10px 14px;background:#fff;color:var(--ink2);border:2px solid var(--line);border-radius:9px;font-size:14px;font-weight:700;cursor:pointer">✕</button>
+      <button onclick="confirmTemplate()" style="flex:1;padding:10px;background:var(--blue);color:#fff;border:none;border-radius:9px;font-size:14px;font-weight:800;cursor:pointer">＋ Hozzáad</button>
+      <button onclick="cancelTemplate()" style="padding:10px 14px;background:#fff;color:var(--ink2);border:2px solid var(--line);border-radius:9px;font-size:14px;font-weight:700;cursor:pointer">✕ Kész</button>
     </div>
   </div>
   <div class="field"><label>Típus</label>
@@ -1329,19 +1329,28 @@ function openSpecFill(i){
   setTimeout(()=>{const f=flds.querySelector('input');if(f)f.focus();},80);
 }
 
+function appendDesc(line){
+  const ta=document.getElementById('newDesc');
+  ta.value=ta.value.trim()?ta.value.trim()+'\n'+line:line;
+}
+
 function confirmTemplate(){
   if(_tplMode==='unified'){
     const forrasok=getForrasok();
     const f=forrasok.find(x=>x.id===_activeForrás);
-    if(!f){hideTplFill();return;}
+    if(!f)return;
     const oldal=document.getElementById('tplOldal').value.trim();
     const feladat=document.getElementById('tplFeladat').value.trim();
-    let desc=f.full;
-    if(oldal)desc+=` ${oldal}. oldal`;
-    if(feladat==='teljes')desc+=' – teljes';
-    else if(feladat)desc+=`, ${feladat} feladat`;
-    desc+=` – ${_activeMit}`;
-    document.getElementById('newDesc').value=desc;
+    let line=f.full;
+    if(oldal)line+=` ${oldal}. oldal`;
+    if(feladat==='teljes')line+=' – teljes';
+    else if(feladat)line+=`, ${feladat} feladat`;
+    line+=` – ${_activeMit}`;
+    appendDesc(line);
+    // Mezők törlése, panel nyitva marad a következő bejegyzéshez
+    document.getElementById('tplOldal').value='';
+    document.getElementById('tplFeladat').value='';
+    setTimeout(()=>{const f=document.getElementById('tplOldal');if(f)f.focus();},50);
   }else if(_tplMode==='spec'){
     const t=SPEC_SABLONOK[_specIdx];if(!t){hideTplFill();return;}
     const vals={};
@@ -1349,10 +1358,10 @@ function confirmTemplate(){
       vals[el.dataset.key]=el.tagName==='SELECT'?el.value:(el.value.trim()||el.placeholder);
     });
     const compose=str=>str.replace(/\{(\w+)\}/g,(_,k)=>vals[k]||'');
-    document.getElementById('newDesc').value=compose(t.template||'');
+    appendDesc(compose(t.template||''));
     if(t.noteTemplate)document.getElementById('newNote').value=compose(t.noteTemplate);
+    hideTplFill();
   }
-  hideTplFill();
 }
 
 function cancelTemplate(){hideTplFill();}
