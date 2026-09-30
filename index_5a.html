@@ -194,6 +194,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 <nav class="tabs">
   <div class="tab on" id="tab-list">📋 Feladatok</div>
   <div class="tab" id="tab-cal">📅 Naptár</div>
+  <div class="tab" id="tab-orarend">📆 Órarend</div>
   <div class="tab" id="tab-docs">📁 Dokumentumok</div>
   <div class="tab" id="tab-request">🙋 Kérés</div>
   <div class="tab" id="tab-trash">🗑️ Kuka</div>
@@ -257,6 +258,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
   </div>
   <div id="calList"></div>
 </div>
+<div id="view-orarend" class="view"><div id="orarendContent" style="padding:8px 0"></div></div>
 <div id="view-docs" class="view">
   <div class="search-bar"><input type="search" id="searchDocs" placeholder="🔍 Keresés dokumentumokban…" oninput="renderDocs()"></div>
   <div class="chips" id="docsTagBar"></div>
@@ -545,9 +547,9 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
   };
   document.getElementById('notifySheet').onclick=e=>{if(e.target===document.getElementById('notifySheet'))closeSheet('notifySheet');};
-  ['list','cal','docs','request','trash','help'].forEach(name=>{
+  ['list','cal','orarend','docs','request','trash','help'].forEach(name=>{
     document.getElementById('tab-'+name).onclick=()=>{switchTab(name);if(name==='trash')loadTrash();else if(name==='request')renderRequestTab();else if(name==='help')renderHelpTab();else if(name==='cal')initCalTab();
-    else if(name==='docs')initDocsTab();else renderAll();};
+    else if(name==='docs')initDocsTab();else if(name==='orarend')renderOrarend();else renderAll();};
   });
   const s=localStorage.getItem('hz_s_5a');
   if(s){session=JSON.parse(s);showApp();}
@@ -1478,11 +1480,55 @@ function copyNotify(){
 let currentTab="list";
 function switchTab(name){
   currentTab=name;
-
-  ['list','cal','docs','request','trash','help'].forEach(n=>{
-    document.getElementById('tab-'+n).classList.toggle('on',n===name);
-    document.getElementById('view-'+n).classList.toggle('on',n===name);
+  ['list','cal','orarend','docs','request','trash','help'].forEach(n=>{
+    document.getElementById('tab-'+n)?.classList.toggle('on',n===name);
+    document.getElementById('view-'+n)?.classList.toggle('on',n===name);
   });
+  const fab=document.getElementById('fabBtn');
+  if(fab)fab.style.display=name==='orarend'?'none':'';
+  if(name==='orarend')renderOrarend();
+}
+function simplifyTargy(s){
+  if(!s)return s;
+  if(s.toLowerCase().startsWith('hittan'))return'Hittan';
+  if(s==='Angol'||s==='Né met'||s==='Angol nyelv'||s==='Né met nyelv')return'Angol / Né met';
+  return s;
+}
+function renderOrarend(){
+  const el=document.getElementById('orarendContent');
+  if(!el)return;
+  const napok=[
+    {key:'hetfo',label:'Hétfő'},
+    {key:'kedd',label:'Kedd'},
+    {key:'szerda',label:'Szerda'},
+    {key:'csutortok',label:'Csüt.'},
+    {key:'pentek',label:'Péntek'},
+  ];
+  if(!orarend_hasData()){
+    el.innerHTML='<div class="empty"><div class="ico">📆</div><p>Nincs feltöltött órarend.<br>A Kréta letöltő segítségével töltheted fel a Config sheetbe.</p></div>';
+    return;
+  }
+  const maxLen=Math.max(...napok.map(n=>(cfgOrarend[n.key]||[]).length));
+  let html=`<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">`;
+  html+=`<tr><th style="width:28px;padding:5px 4px;color:var(--ink2);font-weight:600;font-size:11px;text-align:right;border-bottom:2px solid var(--line)"></th>`;
+  napok.forEach(n=>html+=`<th style="padding:6px 4px;background:var(--blue);color:#fff;font-size:12px;font-weight:700;text-align:center">${n.label}</th>`);
+  html+=`</tr>`;
+  for(let i=0;i<maxLen;i++){
+    html+=`<tr style="background:${i%2===0?'var(--bg)':'#fff'}">`;
+    html+=`<td style="padding:5px 4px;color:var(--ink2);font-size:11px;font-weight:700;text-align:right;border-right:2px solid var(--line)">${i+1}.</td>`;
+    napok.forEach(n=>{
+      const subs=cfgOrarend[n.key]||[];
+      const raw=subs[i]||'';
+      const label=raw?simplifyTargy(raw):'';
+      const isLang=label==='Angol / Né met';
+      const isHittan=label==='Hittan';
+      const color=isLang?'#7e3af2':isHittan?'#057a55':'var(--ink)';
+      html+=`<td style="padding:6px 4px;text-align:center;color:${color};font-size:12px;font-weight:${label?'600':'400'}">${label||'<span style="color:var(--line)">–</span>'}</td>`;
+    });
+    html+=`</tr>`;
+  }
+  html+=`</table></div>`;
+  el.innerHTML=html;
 }
 
 // ── Download images ───────────────────────────────────
