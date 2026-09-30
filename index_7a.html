@@ -160,6 +160,11 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 .req-chip.on{background:var(--blue);border-color:var(--blue);color:#fff}
 .req-preview{background:#f0f2f5;border-radius:11px;padding:14px;font-size:14px;line-height:1.65;white-space:pre-wrap;word-break:break-word;color:#1c1e21;margin-bottom:12px;border:1px solid #dde0e4;min-height:80px}
 .export-btn:active{border-color:var(--blue);color:var(--blue)}
+.tpl-row{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:14px;scrollbar-width:none}
+.tpl-row::-webkit-scrollbar{display:none}
+.tpl-chip{white-space:nowrap;padding:6px 13px;border-radius:20px;font-size:12px;font-weight:700;border:2px solid var(--blue);background:var(--blue-bg);color:var(--blue);cursor:pointer;flex-shrink:0;transition:background .12s}
+.tpl-chip:active{background:var(--blue);color:#fff}
+.tpl-chip.active{background:var(--blue);border-color:var(--blue);color:#fff}
 </style>
 </head>
 <body>
@@ -268,6 +273,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 <div class="sheet">
   <div class="handle"></div>
   <div class="sheet-title" id="addSheetTitle">Új házi feladat</div>
+  <div id="tplRow" class="tpl-row"></div>
   <div class="field"><label>Tantárgy</label><select id="newSubject">      <option>Magyar irodalom</option>
       <option>Magyar nyelv</option>
       <option>Matematika</option>
@@ -290,6 +296,14 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
       <option>Közösségi nevelés</option>
       <option>Egyéb</option></select></div>
   <div class="field"><label>Feladat leírása</label><textarea id="newDesc" placeholder="Pl. Munkafüzet 34. oldal, 2-5. feladat"></textarea></div>
+  <div id="tplFillRow" style="display:none;background:var(--blue-bg);border:2px solid var(--blue);border-radius:11px;padding:11px 12px;margin-top:-8px;margin-bottom:12px">
+    <div style="font-size:11px;font-weight:800;color:var(--blue);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px" id="tplFillLabel"></div>
+    <div id="tplFillFields" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px"></div>
+    <div style="display:flex;gap:8px">
+      <button onclick="confirmTemplate()" style="flex:1;padding:10px;background:var(--blue);color:#fff;border:none;border-radius:9px;font-size:14px;font-weight:800;cursor:pointer">＋ Hozzáad</button>
+      <button onclick="cancelTemplate()" style="padding:10px 14px;background:#fff;color:var(--ink2);border:2px solid var(--line);border-radius:9px;font-size:14px;font-weight:700;cursor:pointer">✕ Kész</button>
+    </div>
+  </div>
   <div class="field"><label>Típus</label>
     <select id="newType">
       <option value="">Házi feladat</option>
@@ -1191,12 +1205,105 @@ function openDetail(id){
   openSheet('detailSheet');
 }
 
+// ── Sablonok ──────────────────────────────────────────
+const FORRASOK_DEFAULT=[
+  {id:'mf',   label:'📖 MF',          full:'Munkafüzet'},
+  {id:'tk',   label:'📚 Tk',          full:'Tankönyv'},
+  {id:'feny', label:'📄 Fénymásolat', full:'Fénymásolat'},
+  {id:'flat', label:'✏️ Feladatlap',  full:'Feladatlap'},
+];
+const MIT_OPTIONS=['megoldani','elolvasni','megtanulni','átismételni','vázlatot készíteni'];
+const SPEC_SABLONOK=[
+  {label:'🎓 Témazáró', type:'temaзaro',template:'Témazáróra tanulás: {anyag}',fields:[{key:'anyag',label:'Anyag',placeholder:'3. fejezet'}]},
+  {label:'📝 Dolgozat',type:'dolgozat',template:'Dolgozat: {anyag}',fields:[{key:'anyag',label:'Anyag',placeholder:'igeidők'}]},
+  {label:'📌 Hozni kell',template:'',noteTemplate:'Hozd be: {mit}',fields:[{key:'mit',label:'Mit',placeholder:'füzet, vonalzó'}]},
+  {label:'✏️ Saját',template:'{desc}',fields:[{key:'desc',label:'Leírás',placeholder:'Írd be a feladatot…'}]},
+];
+let _tplMode=null,_activeForrás=null,_activeMit=MIT_OPTIONS[0],_specIdx=null;
+const _iStyle=`width:100%;padding:9px 11px;border:2px solid var(--line);border-radius:9px;font-size:15px;font-family:inherit;color:var(--ink);background:#fff;-webkit-appearance:none`;
+function getForrasok(){return[...FORRASOK_DEFAULT,...JSON.parse(localStorage.getItem('hz_forrasok_7a')||'[]')];}
+function renderTplRow(){
+  const row=document.getElementById('tplRow');if(!row)return;
+  const forrasok=getForrasok();
+  row.innerHTML=forrasok.map(f=>`<div class="tpl-chip" onclick="openUnifiedFill('${f.id}')">${f.label}</div>`).join('')
+    +`<div class="tpl-chip" onclick="addForrás()" style="border-style:dashed" title="Új forrás">＋</div>`
+    +SPEC_SABLONOK.map((s,i)=>`<div class="tpl-chip" onclick="openSpecFill(${i})">${s.label}</div>`).join('');
+}
+function addForrás(){
+  const nev=prompt('Új forrás neve:');if(!nev||!nev.trim())return;
+  const extra=JSON.parse(localStorage.getItem('hz_forrasok_7a')||'[]');
+  const id='custom_'+Date.now();extra.push({id,label:nev.trim(),full:nev.trim()});
+  localStorage.setItem('hz_forrasok_7a',JSON.stringify(extra));renderTplRow();openUnifiedFill(id);
+}
+function openUnifiedFill(forrásId){
+  _tplMode='unified';_activeForrás=forrásId;_activeMit=MIT_OPTIONS[0];
+  const forrasok=getForrasok();
+  document.getElementById('tplFillLabel').textContent='Sablon kitöltése:';
+  const flds=document.getElementById('tplFillFields');
+  const fChips=forrasok.map(f=>`<div class="tpl-chip tpl-forrás-chip${f.id===forrásId?' active':''}" data-id="${f.id}" onclick="selectForrás('${f.id}')">${f.label}</div>`).join('')
+    +`<div class="tpl-chip" onclick="addForrás()" style="border-style:dashed">＋</div>`;
+  const mChips=MIT_OPTIONS.map(m=>`<div class="tpl-chip tpl-mit-chip${m===_activeMit?' active':''}" data-mit="${m}" onclick="selectMit('${m}')">${m}</div>`).join('');
+  flds.innerHTML=`<div style="width:100%"><div style="font-size:11px;font-weight:700;color:var(--ink2);margin-bottom:6px">Forrás</div><div style="display:flex;flex-wrap:wrap;gap:6px">${fChips}</div></div>
+    <div style="display:flex;gap:8px;width:100%;margin-top:4px">
+      <div style="flex:1"><div style="font-size:11px;font-weight:700;color:var(--ink2);margin-bottom:4px">Oldal (opcionális)</div>
+        <input id="tplOldal" inputmode="numeric" placeholder="pl. 34" style="${_iStyle}" onfocus="this.style.borderColor='var(--blue)'" onblur="this.style.borderColor='var(--line)'"></div>
+      <div style="flex:1"><div style="font-size:11px;font-weight:700;color:var(--ink2);margin-bottom:4px">Feladat</div>
+        <div style="display:flex;gap:5px">
+          <input id="tplFeladat" inputmode="text" placeholder="pl. 2-5." style="${_iStyle};flex:1" onfocus="this.style.borderColor='var(--blue)'" onblur="this.style.borderColor='var(--line)'">
+          <button onclick="document.getElementById('tplFeladat').value='teljes'" style="padding:9px 10px;border:2px solid var(--line);border-radius:9px;font-size:13px;font-weight:700;background:#fff;color:var(--ink2);cursor:pointer;white-space:nowrap;flex-shrink:0">teljes</button>
+        </div></div>
+    </div>
+    <div style="width:100%;margin-top:4px"><div style="font-size:11px;font-weight:700;color:var(--ink2);margin-bottom:6px">Mit</div><div style="display:flex;flex-wrap:wrap;gap:6px">${mChips}</div></div>`;
+  document.getElementById('tplFillRow').style.display='block';
+  setTimeout(()=>{const f=document.getElementById('tplOldal');if(f)f.focus();},80);
+}
+function selectForrás(id){_activeForrás=id;document.querySelectorAll('.tpl-forrás-chip').forEach(c=>c.classList.toggle('active',c.dataset.id===id));}
+function selectMit(m){_activeMit=m;document.querySelectorAll('.tpl-mit-chip').forEach(c=>c.classList.toggle('active',c.dataset.mit===m));}
+function openSpecFill(i){
+  _tplMode='spec';_specIdx=i;const t=SPEC_SABLONOK[i];
+  if(t.type&&document.getElementById('newType'))document.getElementById('newType').value=t.type;
+  if(!t.fields||!t.fields.length){document.getElementById('newDesc').value=t.template||'';hideTplFill();return;}
+  document.getElementById('tplFillLabel').textContent=t.label+' – töltsd ki:';
+  const flds=document.getElementById('tplFillFields');
+  flds.innerHTML=t.fields.map(f=>`<div style="flex:1;min-width:120px"><div style="font-size:11px;font-weight:700;color:var(--ink2);margin-bottom:4px">${f.label}</div>
+    <input data-key="${f.key}" inputmode="text" placeholder="${f.placeholder}" style="${_iStyle}" onfocus="this.style.borderColor='var(--blue)'" onblur="this.style.borderColor='var(--line)'"></div>`).join('');
+  document.getElementById('tplFillRow').style.display='block';
+  setTimeout(()=>{const f=flds.querySelector('input');if(f)f.focus();},80);
+}
+function appendDesc(line){const ta=document.getElementById('newDesc');ta.value=ta.value.trim()?ta.value.trim()+'\n'+line:line;}
+function confirmTemplate(){
+  if(_tplMode==='unified'){
+    const f=getForrasok().find(x=>x.id===_activeForrás);if(!f)return;
+    const oldal=document.getElementById('tplOldal').value.trim();
+    const feladat=document.getElementById('tplFeladat').value.trim();
+    let line=f.full;
+    if(oldal)line+=` ${oldal}. oldal`;
+    if(feladat==='teljes')line+=' – teljes';else if(feladat)line+=`, ${feladat} feladat`;
+    line+=` – ${_activeMit}`;
+    appendDesc(line);
+    document.getElementById('tplOldal').value='';document.getElementById('tplFeladat').value='';
+    setTimeout(()=>{const f=document.getElementById('tplOldal');if(f)f.focus();},50);
+  }else if(_tplMode==='spec'){
+    const t=SPEC_SABLONOK[_specIdx];if(!t){hideTplFill();return;}
+    const vals={};
+    document.getElementById('tplFillFields').querySelectorAll('input,select').forEach(el=>{vals[el.dataset.key]=el.tagName==='SELECT'?el.value:(el.value.trim()||el.placeholder);});
+    const compose=str=>str.replace(/\{(\w+)\}/g,(_,k)=>vals[k]||'');
+    appendDesc(compose(t.template||''));
+    if(t.noteTemplate)document.getElementById('newNote').value=compose(t.noteTemplate);
+    hideTplFill();
+  }
+}
+function cancelTemplate(){hideTplFill();}
+function hideTplFill(){document.getElementById('tplFillRow').style.display='none';_tplMode=null;_activeForrás=null;_specIdx=null;}
+
 // ── Add/Edit ──────────────────────────────────────────
 function openAddSheet(id){
   editingId=id;pendingImgs=[];keepImgs=[];removedImgs=[];
   renderNewPreviews();
   document.getElementById('progressWrap').style.display='none';
   document.getElementById('uploadStatus').textContent='';
+  hideTplFill();
+  const tplRow=document.getElementById('tplRow');
   if(id){
     const h=homeworks.find(x=>x.id===id);
     document.getElementById('addSheetTitle').textContent='Szerkesztés';
@@ -1207,6 +1314,7 @@ function openAddSheet(id){
     if(document.getElementById('newType'))document.getElementById('newType').value=h.type||'';
     keepImgs=[...(Array.isArray(h.images)?h.images:[])];
     renderExistingPreviews();
+    if(tplRow)tplRow.style.display='none';
   }else{
     document.getElementById('addSheetTitle').textContent='Új házi feladat';
     document.getElementById('newDesc').value='';
@@ -1214,6 +1322,7 @@ function openAddSheet(id){
     const tmr=new Date();tmr.setDate(tmr.getDate()+7);
     document.getElementById('newDue').value=tmr.toISOString().slice(0,10);
     document.getElementById('existingImgs').style.display='none';
+    if(tplRow){tplRow.style.display='';renderTplRow();}
   }
   openSheet('addSheet');
 }
