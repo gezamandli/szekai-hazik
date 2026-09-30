@@ -1212,8 +1212,9 @@ const SABLONOK=[
    fields:[{key:'oldal',label:'Oldal',inputmode:'numeric',placeholder:'34'},
            {key:'feladat',label:'Feladat',inputmode:'text',placeholder:'2–5.'}]},
   {label:'📚 Tankönyv', type:'', note:'',
-   template:'Tankönyv {oldal}. oldal elolvasni',
-   fields:[{key:'oldal',label:'Oldal(ak)',inputmode:'numeric',placeholder:'45–48'}]},
+   template:'Tankönyv {oldal}. oldal – {mit}',
+   fields:[{key:'oldal',label:'Oldal(ak)',inputmode:'numeric',placeholder:'45–48'},
+           {key:'mit',label:'Mit',fieldType:'select',options:['elolvasni','megtanulni','átismételni','vázlatot készíteni']}]},
   {label:'📄 Fénymásolt', type:'', note:'',
    template:'Fénymásolt lap – {feladat}. feladat megoldása',
    fields:[{key:'feladat',label:'Feladat',inputmode:'text',placeholder:'1–4.'}]},
@@ -1230,6 +1231,9 @@ const SABLONOK=[
    template:'',
    noteTemplate:'Hozd be: {mit}',
    fields:[{key:'mit',label:'Mit hozzon',inputmode:'text',placeholder:'füzet, vonalzó'}]},
+  {label:'✏️ Saját', type:'', note:'',
+   template:'{desc}',
+   fields:[{key:'desc',label:'Leírás',inputmode:'text',placeholder:'Írd be a feladatot…'}]},
 ];
 
 let _activeTpl=null;
@@ -1255,24 +1259,27 @@ function applyTemplate(i){
   // Mutasd a fill-row-t
   document.getElementById('tplFillLabel').textContent=t.label+' – töltsd ki:';
   const flds=document.getElementById('tplFillFields');
-  flds.innerHTML=t.fields.map(f=>
-    `<div style="flex:1;min-width:120px">
+  flds.innerHTML=t.fields.map(f=>{
+    const style=`width:100%;padding:9px 11px;border:2px solid var(--line);border-radius:9px;font-size:15px;font-family:inherit;color:var(--ink);background:#fff;-webkit-appearance:none`;
+    const field=f.fieldType==='select'
+      ?`<select data-key="${f.key}" style="${style}">${(f.options||[]).map(o=>`<option>${o}</option>`).join('')}</select>`
+      :`<input data-key="${f.key}" inputmode="${f.inputmode||'text'}" placeholder="${f.placeholder||''}"
+          style="${style}" onfocus="this.style.borderColor='var(--blue)'" onblur="this.style.borderColor='var(--line)'">`;
+    return`<div style="flex:1;min-width:120px">
       <div style="font-size:11px;font-weight:700;color:var(--ink2);margin-bottom:4px">${f.label}</div>
-      <input data-key="${f.key}" inputmode="${f.inputmode}" placeholder="${f.placeholder}"
-        style="width:100%;padding:9px 11px;border:2px solid var(--line);border-radius:9px;font-size:15px;font-family:inherit;color:var(--ink);background:#fff;-webkit-appearance:none"
-        onfocus="this.style.borderColor='var(--blue)'" onblur="this.style.borderColor='var(--line)'">
-    </div>`
-  ).join('');
+      ${field}
+    </div>`;
+  }).join('');
   document.getElementById('tplFillRow').style.display='block';
   // Fókusz az első inputra
-  setTimeout(()=>{const f=flds.querySelector('input');if(f)f.focus();},80);
+  setTimeout(()=>{const f=flds.querySelector('input,select');if(f)f.focus();},80);
 }
 
 function confirmTemplate(){
   const t=SABLONOK[_activeTpl];if(!t)return;
   const vals={};
-  document.getElementById('tplFillFields').querySelectorAll('input').forEach(inp=>{
-    vals[inp.dataset.key]=inp.value.trim()||inp.placeholder;
+  document.getElementById('tplFillFields').querySelectorAll('input,select').forEach(el=>{
+    vals[el.dataset.key]=el.tagName==='SELECT'?el.value:(el.value.trim()||el.placeholder);
   });
   const compose=str=>str.replace(/\{(\w+)\}/g,(_,k)=>vals[k]||'');
   document.getElementById('newDesc').value=compose(t.template||'');
