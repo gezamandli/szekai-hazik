@@ -711,8 +711,13 @@ function applyNapFilter(sel,cur){
       napKey=['all','hetfo','kedd','szerda','csutortok','pentek','all'][d];
     }
     const napSubs=cfgOrarend[napKey]||[];
-    const expanded=expandCsoportok(napSubs);
-    const filtered=cfgSubjects.filter(s=>expanded.includes(s));
+    // prefix match: "Hittan" matches "Hittan – katolikus", "Angol nyelv" matches "Angol"
+    const matched=cfgSubjects.filter(cfgS=>napSubs.some(orS=>{
+      const a=orS.toLowerCase().trim(),b=cfgS.toLowerCase().trim();
+      return a===b||b.startsWith(a)||a.startsWith(b);
+    }));
+    const expanded=new Set(expandCsoportok(matched));
+    const filtered=cfgSubjects.filter(s=>expanded.has(s));
     if(filtered.length)subjects=filtered;
   }
   sel.innerHTML=subjects.map(s=>'<option>'+s+'</option>').join('');
