@@ -274,7 +274,17 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
   <div class="handle"></div>
   <div class="sheet-title" id="addSheetTitle">Új házi feladat</div>
   <div id="tplRow" class="tpl-row"></div>
-  <div class="field"><label>Tantárgy</label><select id="newSubject">      <option>Magyar irodalom</option>
+  <div class="field"><label>Tantárgy</label>
+    <div id="napFilter" style="display:none;flex-wrap:wrap;gap:5px;margin-bottom:8px">
+      <div class="chip on" data-nap="all" onclick="filterTantargyNap('all')">Összes</div>
+      <div class="chip" data-nap="ma" onclick="filterTantargyNap('ma')">Ma</div>
+      <div class="chip" data-nap="hetfo" onclick="filterTantargyNap('hetfo')">Hétfő</div>
+      <div class="chip" data-nap="kedd" onclick="filterTantargyNap('kedd')">Kedd</div>
+      <div class="chip" data-nap="szerda" onclick="filterTantargyNap('szerda')">Szerda</div>
+      <div class="chip" data-nap="csutortok" onclick="filterTantargyNap('csutortok')">Csüt.</div>
+      <div class="chip" data-nap="pentek" onclick="filterTantargyNap('pentek')">Péntek</div>
+    </div>
+    <select id="newSubject">      <option>Magyar irodalom</option>
       <option>Magyar nyelv</option>
       <option>Matematika</option>
       <option>Természettudomány</option>
@@ -417,6 +427,8 @@ let docTrashItems = [];
 let activeTanev = "";
 let allTanevek = [];
 let cfgSubjects = [];
+let cfgOrarend = {};
+let activeNapFilter = 'all';
 let selectMode = false;
 let selectedIds = new Set();
 let activeDateFilter = "all";
@@ -586,6 +598,13 @@ async function loadConfig(){
     allTanevek=tanevStr.split(',').map(s=>s.trim()).filter(Boolean);
     if(!allTanevek.includes(activeTanev))allTanevek.unshift(activeTanev);
     cfgSubjects=(cfg['tantargyak_'+activeTanev]||'').split(',').map(s=>s.trim()).filter(Boolean);
+    cfgOrarend={
+      hetfo:(cfg['orarend_hetfo']||'').split('|').map(s=>s.trim()).filter(Boolean),
+      kedd:(cfg['orarend_kedd']||'').split('|').map(s=>s.trim()).filter(Boolean),
+      szerda:(cfg['orarend_szerda']||'').split('|').map(s=>s.trim()).filter(Boolean),
+      csutortok:(cfg['orarend_csutortok']||'').split('|').map(s=>s.trim()).filter(Boolean),
+      pentek:(cfg['orarend_pentek']||'').split('|').map(s=>s.trim()).filter(Boolean),
+    };
     // Update class name from config
     const osztalyNev=cfg['osztaly_nev']||CFG.CNAME;
     document.querySelectorAll('.class-name').forEach(el=>el.textContent=osztalyNev);
@@ -642,18 +661,63 @@ async function switchTanev(t){
       if(k)cfg[k]=v;
     });
     cfgSubjects=(cfg['tantargyak_'+t]||'').split(',').map(s=>s.trim()).filter(Boolean);
+    cfgOrarend={
+      hetfo:(cfg['orarend_hetfo']||'').split('|').map(s=>s.trim()).filter(Boolean),
+      kedd:(cfg['orarend_kedd']||'').split('|').map(s=>s.trim()).filter(Boolean),
+      szerda:(cfg['orarend_szerda']||'').split('|').map(s=>s.trim()).filter(Boolean),
+      csutortok:(cfg['orarend_csutortok']||'').split('|').map(s=>s.trim()).filter(Boolean),
+      pentek:(cfg['orarend_pentek']||'').split('|').map(s=>s.trim()).filter(Boolean),
+    };
     updateSubjectSelect();
   }catch(e){}
   await loadSheet();
   showToast('📅 '+t+' tanév betöltve');
 }
 
+const CSOPORT_TARSAK={
+  'Német':['Angol'],'Angol':['Német'],
+  'Hittan – katolikus':['Hittan – református','Hittan – evangélikus'],
+  'Hittan – református':['Hittan – katolikus','Hittan – evangélikus'],
+  'Hittan – evangélikus':['Hittan – katolikus','Hittan – református'],
+};
+function expandCsoportok(subjects){
+  const set=new Set(subjects);
+  for(const s of [...set]){(CSOPORT_TARSAK[s]||[]).forEach(t=>set.add(t));}
+  return [...set];
+}
+function orarend_hasData(){
+  return Object.values(cfgOrarend).some(arr=>arr.length>0);
+}
 function updateSubjectSelect(){
   const sel=document.getElementById('newSubject');
   if(!sel||!cfgSubjects.length)return;
   const cur=sel.value;
-  sel.innerHTML=cfgSubjects.map(s=>'<option>'+s+'</option>').join('');
-  if(cur&&cfgSubjects.includes(cur))sel.value=cur;
+  const nf=document.getElementById('napFilter');
+  if(nf)nf.style.display=orarend_hasData()?'flex':'none';
+  applyNapFilter(sel,cur);
+}
+function applyNapFilter(sel,cur){
+  if(!sel)return;
+  cur=cur||sel.value;
+  let subjects=cfgSubjects;
+  if(activeNapFilter!=='all'&&orarend_hasData()){
+    let napKey=activeNapFilter;
+    if(activeNapFilter==='ma'){
+      const d=new Date().getDay();
+      napKey=['all','hetfo','kedd','szerda','csutortok','pentek','all'][d];
+    }
+    const napSubs=cfgOrarend[napKey]||[];
+    const expanded=expandCsoportok(napSubs);
+    const filtered=cfgSubjects.filter(s=>expanded.includes(s));
+    if(filtered.length)subjects=filtered;
+  }
+  sel.innerHTML=subjects.map(s=>'<option>'+s+'</option>').join('');
+  if(cur&&subjects.includes(cur))sel.value=cur;
+}
+function filterTantargyNap(nap){
+  activeNapFilter=nap;
+  document.querySelectorAll('#napFilter .chip').forEach(c=>c.classList.toggle('on',c.dataset.nap===nap));
+  applyNapFilter(document.getElementById('newSubject'));
 }
 
 window.addEventListener('hashchange', ()=>{
@@ -1333,6 +1397,8 @@ function openAddSheet(id){
   if(id){
     const h=homeworks.find(x=>x.id===id);
     document.getElementById('addSheetTitle').textContent='Szerkesztés';
+    activeNapFilter='all';
+    updateSubjectSelect();
     document.getElementById('newSubject').value=h.subject;
     document.getElementById('newDesc').value=h.desc;
     document.getElementById('newDue').value=h.due||'';
@@ -1348,6 +1414,8 @@ function openAddSheet(id){
     const tmr=new Date();tmr.setDate(tmr.getDate()+7);
     document.getElementById('newDue').value=tmr.toISOString().slice(0,10);
     document.getElementById('existingImgs').style.display='none';
+    activeNapFilter=orarend_hasData()?'ma':'all';
+    updateSubjectSelect();
     if(tplRow){tplRow.style.display='';renderTplRow();}
   }
   openSheet('addSheet');
@@ -2746,11 +2814,12 @@ function renderCal(){
 
   // Date filter
   const today=new Date();today.setHours(0,0,0,0);
-  if(calDateFrom==='upcoming') items=items.filter(e=>ld(e.dateFrom)>=today);
+  const effEnd=e=>e.dateTo&&e.dateTo!==e.dateFrom?ld(e.dateTo):ld(e.dateFrom);
+  if(calDateFrom==='upcoming') items=items.filter(e=>effEnd(e)>=today);
   else if(calDateFrom==='today') items=items.filter(e=>{const d=ld(e.dateFrom);return d.toDateString()===today.toDateString();});
   else if(calDateFrom==='week'){
     const weekAgo=new Date(today);weekAgo.setDate(today.getDate()-7);
-    items=items.filter(e=>ld(e.dateFrom)>=weekAgo&&ld(e.dateFrom)<=new Date());
+    items=items.filter(e=>ld(e.dateFrom)>=weekAgo&&effEnd(e)<=new Date());
   } else if(calDateFrom==='range'||calDateFrom&&!['all','upcoming','today','week'].includes(calDateFrom)){
     const fromVal=document.getElementById('calFrom')?.value||calDateFrom;
     const toVal=document.getElementById('calTo')?.value||calDateTo;
@@ -2758,7 +2827,7 @@ function renderCal(){
       const from=ld(fromVal);
       const to=toVal?ld(toVal):ld(fromVal);
       to.setHours(23,59,59);
-      items=items.filter(e=>ld(e.dateFrom)>=from&&ld(e.dateFrom)<=to);
+      items=items.filter(e=>ld(e.dateFrom)>=from&&effEnd(e)<=to);
     }
   }
 
