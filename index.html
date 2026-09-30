@@ -809,7 +809,7 @@ function openAddSheet() {
   document.getElementById('newDesc').value='';
   document.getElementById('newNote').value='';
   document.getElementById('progressWrap').style.display='none';
-  const t=new Date(); t.setDate(t.getDate()+1);
+  const t=new Date(); t.setDate(t.getDate()+7);
   document.getElementById('newDue').value=t.toISOString().split('T')[0];
   // Show info about image upload
   const infoEl=document.getElementById('imgAuthInfo');
