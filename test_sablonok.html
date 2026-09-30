@@ -295,6 +295,14 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
       <option>Közösségi nevelés</option>
       <option>Egyéb</option></select></div>
   <div class="field"><label>Feladat leírása</label><textarea id="newDesc" placeholder="Pl. Munkafüzet 34. oldal, 2-5. feladat"></textarea></div>
+  <div id="tplFillRow" style="display:none;background:var(--blue-bg);border:2px solid var(--blue);border-radius:11px;padding:11px 12px;margin-top:-8px;margin-bottom:12px">
+    <div style="font-size:11px;font-weight:800;color:var(--blue);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px" id="tplFillLabel"></div>
+    <div id="tplFillFields" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px"></div>
+    <div style="display:flex;gap:8px">
+      <button onclick="confirmTemplate()" style="flex:1;padding:10px;background:var(--blue);color:#fff;border:none;border-radius:9px;font-size:14px;font-weight:800;cursor:pointer">✓ OK</button>
+      <button onclick="cancelTemplate()" style="padding:10px 14px;background:#fff;color:var(--ink2);border:2px solid var(--line);border-radius:9px;font-size:14px;font-weight:700;cursor:pointer">✕</button>
+    </div>
+  </div>
   <div class="field"><label>Típus</label>
     <select id="newType">
       <option value="">Házi feladat</option>
@@ -1199,14 +1207,32 @@ function openDetail(id){
 // ── Add/Edit ──────────────────────────────────────────
 // ── Sablonok ──────────────────────────────────────────
 const SABLONOK=[
-  {label:'📖 Munkafüzet', subject:'', type:'', desc:'Munkafüzet .. oldal, .. feladat', note:''},
-  {label:'📚 Tankönyv',   subject:'', type:'', desc:'Tankönyv .. oldal elolvasni',     note:''},
-  {label:'📄 Fénymásolt', subject:'', type:'', desc:'Fénymásolt lap – .. feladat megoldása', note:''},
-  {label:'✏️ Feladatlap', subject:'', type:'', desc:'Feladatlap kitöltése',             note:''},
-  {label:'🎓 Témazáró',  subject:'', type:'temaзaro', desc:'Témazáróra tanulás: ..', note:''},
-  {label:'📝 Dolgozat',  subject:'', type:'dolgozat',  desc:'Dolgozat: ..',            note:''},
-  {label:'📌 Hozni kell',subject:'', type:'', desc:'',                                 note:'Hozd be: ..'},
+  {label:'📖 Munkafüzet', type:'', note:'',
+   template:'Munkafüzet {oldal}. oldal, {feladat}. feladat',
+   fields:[{key:'oldal',label:'Oldal',inputmode:'numeric',placeholder:'34'},
+           {key:'feladat',label:'Feladat',inputmode:'text',placeholder:'2–5.'}]},
+  {label:'📚 Tankönyv', type:'', note:'',
+   template:'Tankönyv {oldal}. oldal elolvasni',
+   fields:[{key:'oldal',label:'Oldal(ak)',inputmode:'numeric',placeholder:'45–48'}]},
+  {label:'📄 Fénymásolt', type:'', note:'',
+   template:'Fénymásolt lap – {feladat}. feladat megoldása',
+   fields:[{key:'feladat',label:'Feladat',inputmode:'text',placeholder:'1–4.'}]},
+  {label:'✏️ Feladatlap', type:'', note:'',
+   template:'Feladatlap kitöltése',
+   fields:[]},
+  {label:'🎓 Témazáró', type:'temaзaro', note:'',
+   template:'Témazáróra tanulás: {anyag}',
+   fields:[{key:'anyag',label:'Anyag',inputmode:'text',placeholder:'3. fejezet'}]},
+  {label:'📝 Dolgozat', type:'dolgozat', note:'',
+   template:'Dolgozat: {anyag}',
+   fields:[{key:'anyag',label:'Anyag',inputmode:'text',placeholder:'igeidők'}]},
+  {label:'📌 Hozni kell', type:'', note:'',
+   template:'',
+   noteTemplate:'Hozd be: {mit}',
+   fields:[{key:'mit',label:'Mit hozzon',inputmode:'text',placeholder:'füzet, vonalzó'}]},
 ];
+
+let _activeTpl=null;
 
 function renderTplRow(){
   const row=document.getElementById('tplRow');
@@ -1218,17 +1244,47 @@ function renderTplRow(){
 
 function applyTemplate(i){
   const t=SABLONOK[i];
-  if(t.subject){
-    const sel=document.getElementById('newSubject');
-    for(let o of sel.options)if(o.value===t.subject||o.text===t.subject){sel.value=o.value;break;}
-  }
+  _activeTpl=i;
   if(t.type!==undefined&&document.getElementById('newType'))document.getElementById('newType').value=t.type;
-  document.getElementById('newDesc').value=t.desc;
-  document.getElementById('newNote').value=t.note;
-  // Kurzort az első ".." elé pozicionál
-  const ta=document.getElementById('newDesc');
-  const pos=ta.value.indexOf('..');
-  if(pos>=0){ta.focus();ta.setSelectionRange(pos,pos+2);}
+  if(!t.fields||t.fields.length===0){
+    // Nincs változó — direkt tölt
+    document.getElementById('newDesc').value=t.template||'';
+    if(t.noteTemplate)document.getElementById('newNote').value=t.noteTemplate.replace(/\{[^}]+\}/g,'');
+    hideTplFill();return;
+  }
+  // Mutasd a fill-row-t
+  document.getElementById('tplFillLabel').textContent=t.label+' – töltsd ki:';
+  const flds=document.getElementById('tplFillFields');
+  flds.innerHTML=t.fields.map(f=>
+    `<div style="flex:1;min-width:120px">
+      <div style="font-size:11px;font-weight:700;color:var(--ink2);margin-bottom:4px">${f.label}</div>
+      <input data-key="${f.key}" inputmode="${f.inputmode}" placeholder="${f.placeholder}"
+        style="width:100%;padding:9px 11px;border:2px solid var(--line);border-radius:9px;font-size:15px;font-family:inherit;color:var(--ink);background:#fff;-webkit-appearance:none"
+        onfocus="this.style.borderColor='var(--blue)'" onblur="this.style.borderColor='var(--line)'">
+    </div>`
+  ).join('');
+  document.getElementById('tplFillRow').style.display='block';
+  // Fókusz az első inputra
+  setTimeout(()=>{const f=flds.querySelector('input');if(f)f.focus();},80);
+}
+
+function confirmTemplate(){
+  const t=SABLONOK[_activeTpl];if(!t)return;
+  const vals={};
+  document.getElementById('tplFillFields').querySelectorAll('input').forEach(inp=>{
+    vals[inp.dataset.key]=inp.value.trim()||inp.placeholder;
+  });
+  const compose=str=>str.replace(/\{(\w+)\}/g,(_,k)=>vals[k]||'');
+  document.getElementById('newDesc').value=compose(t.template||'');
+  if(t.noteTemplate)document.getElementById('newNote').value=compose(t.noteTemplate);
+  hideTplFill();
+}
+
+function cancelTemplate(){hideTplFill();}
+
+function hideTplFill(){
+  document.getElementById('tplFillRow').style.display='none';
+  _activeTpl=null;
 }
 
 function openAddSheet(id){
