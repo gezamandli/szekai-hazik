@@ -715,7 +715,7 @@ function applyNapFilter(sel,cur){
     const napSubs=cfgOrarend[napKey]||[];
     // prefix match: "Hittan" matches "Hittan – katolikus", "Angol nyelv" matches "Angol"
     const matched=cfgSubjects.filter(cfgS=>napSubs.some(orS=>{
-      const a=orS.toLowerCase().trim(),b=cfgS.toLowerCase().trim();
+      const a=orS.split('@')[0].toLowerCase().trim(),b=cfgS.toLowerCase().trim();
       return a===b||b.startsWith(a)||a.startsWith(b);
     }));
     const expanded=new Set(expandCsoportok(matched));
@@ -1465,7 +1465,7 @@ function switchTab(name){
 function simplifyTargy(s){
   if(!s)return s;
   if(s.toLowerCase().startsWith('hittan'))return'Hittan';
-  if(s==='Angol'||s==='Né met'||s==='Angol nyelv'||s==='Né met nyelv')return'Angol / Né met';
+  if(s==='Angol'||s==='Német'||s==='Angol nyelv'||s==='Német nyelv')return'Angol / Német';
   return s;
 }
 function renderOrarend(){
@@ -1483,22 +1483,31 @@ function renderOrarend(){
     return;
   }
   const maxLen=Math.max(...napok.map(n=>(cfgOrarend[n.key]||[]).length));
-  const colW=Math.floor(100/napok.length);
+  const sep='border-right:1px solid var(--line)';
   let html=`<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">`;
-  html+=`<tr><th style="width:28px;padding:5px 4px;color:var(--ink2);font-weight:600;font-size:11px;text-align:right;border-bottom:2px solid var(--line)"></th>`;
-  napok.forEach(n=>html+=`<th style="padding:6px 4px;background:var(--blue);color:#fff;font-size:12px;font-weight:700;text-align:center;border-radius:0">${n.label}</th>`);
+  html+=`<tr><th style="width:28px;padding:5px 4px;color:var(--ink2);font-size:11px;text-align:right;border-bottom:2px solid var(--line)"></th>`;
+  napok.forEach((n,i)=>html+=`<th style="padding:6px 4px;background:var(--blue);color:#fff;font-size:12px;font-weight:700;text-align:center;${i<napok.length-1?sep:''}">${n.label}</th>`);
   html+=`</tr>`;
   for(let i=0;i<maxLen;i++){
     html+=`<tr style="background:${i%2===0?'var(--bg)':'#fff'}">`;
     html+=`<td style="padding:5px 4px;color:var(--ink2);font-size:11px;font-weight:700;text-align:right;border-right:2px solid var(--line)">${i+1}.</td>`;
-    napok.forEach(n=>{
+    napok.forEach((n,ni)=>{
       const subs=cfgOrarend[n.key]||[];
       const raw=subs[i]||'';
-      const label=raw?simplifyTargy(raw):'';
-      const isLang=label==='Angol / Né met';
+      const [subjRaw,ido]=(raw+'@').split('@');
+      const label=subjRaw?simplifyTargy(subjRaw):'';
+      const isLang=label==='Angol / Német';
       const isHittan=label==='Hittan';
       const color=isLang?'#7e3af2':isHittan?'#057a55':'var(--ink)';
-      html+=`<td style="padding:6px 4px;text-align:center;color:${color};font-size:12px;font-weight:${label?'600':'400'}">${label||'<span style="color:var(--line)">–</span>'}</td>`;
+      const bdR=ni<napok.length-1?sep:'';
+      html+=`<td style="padding:5px 3px;text-align:center;${bdR}">`;
+      if(label){
+        html+=`<div style="color:${color};font-size:12px;font-weight:600">${label}</div>`;
+        if(ido)html+=`<div style="color:var(--ink2);font-size:10px;margin-top:1px">${ido}</div>`;
+      }else{
+        html+=`<span style="color:var(--line)">–</span>`;
+      }
+      html+=`</td>`;
     });
     html+=`</tr>`;
   }
