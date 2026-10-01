@@ -391,7 +391,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v15.2</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v15.3</span><span id="scriptVersion"></span></div>
 
 <script>
 let sortBy=localStorage.getItem('hz_sort_by_7a')||'due';
@@ -1471,6 +1471,26 @@ function simplifyTargy(s){
   if(s==='Angol'||s==='Német'||s==='Angol nyelv'||s==='Német nyelv')return'Angol / Német';
   return s;
 }
+function subjectChipStyle(label){
+  const l=label.toLowerCase();
+  const t=(bg,color)=>`background:${bg};color:${color};padding:2px 5px;border-radius:5px;display:inline-block`;
+  if(l.startsWith('magyar'))return t('#dbeafe','#1e40af');
+  if(l.startsWith('matem'))return t('#fee2e2','#b91c1c');
+  if(l==='angol / német'||l.startsWith('angol')||l.startsWith('német'))return t('#ede9fe','#6d28d9');
+  if(l.startsWith('fizika'))return t('#ffedd5','#c2410c');
+  if(l.startsWith('kémia'))return t('#ccfbf1','#0f766e');
+  if(l.startsWith('biol'))return t('#dcfce7','#166534');
+  if(l.startsWith('földr'))return t('#fef9c3','#854d0e');
+  if(l.startsWith('történ'))return t('#fef3c7','#92400e');
+  if(l.startsWith('hittan'))return t('#d1fae5','#065f46');
+  if(l.startsWith('ének'))return t('#fce7f3','#9d174d');
+  if(l.startsWith('testn'))return t('#ecfccb','#3f6212');
+  if(l.startsWith('inform'))return t('#cffafe','#155e75');
+  if(l.startsWith('rajz')||l.startsWith('vizuális'))return t('#ffe4e6','#881337');
+  if(l.startsWith('technika')||l.startsWith('életvitel'))return t('#e0f2fe','#1e3a5f');
+  if(l.startsWith('osztály'))return t('#e0e7ff','#3730a3');
+  return t('#f3f4f6','#374151');
+}
 function renderOrarend(){
   const el=document.getElementById('orarendContent');
   if(!el)return;
@@ -1499,14 +1519,12 @@ function renderOrarend(){
       const raw=subs[i]||'';
       const [subjRaw,ido]=(raw+'@').split('@');
       const label=subjRaw?simplifyTargy(subjRaw):'';
-      const isLang=label==='Angol / Német';
-      const isHittan=label==='Hittan';
-      const color=isLang?'#7e3af2':isHittan?'#057a55':'var(--ink)';
+      const chip=subjectChipStyle(label);
       const bdR=ni<napok.length-1?sep:'';
       html+=`<td style="padding:5px 3px;text-align:center;${bdR}">`;
       if(label){
-        html+=`<div style="color:${color};font-size:12px;font-weight:600">${label}</div>`;
-        if(ido)html+=`<div style="color:var(--ink2);font-size:10px;margin-top:1px">${ido}</div>`;
+        html+=`<div style="${chip};font-size:12px;font-weight:600">${label}</div>`;
+        if(ido)html+=`<div style="color:var(--ink2);font-size:10px;margin-top:2px">${ido}</div>`;
       }else{
         html+=`<span style="color:var(--line)">–</span>`;
       }
