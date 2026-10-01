@@ -7,6 +7,8 @@ Futtatás:  ./kreta_orarend.py
 
 import io
 import json
+import re
+import zipfile
 import threading
 import webbrowser
 from datetime import date, timedelta, datetime
@@ -18,6 +20,62 @@ from bs4 import BeautifulSoup as bs
 from flask import Flask, jsonify, render_template_string, request, send_file
 
 CONFIG_FILE = Path(__file__).parent / "kreta_config.json"
+SESSIONS_DIR = Path(__file__).parent / ".kreta_sessions"
+
+# In-memory session cache (survives within one server run)
+_session_cache: dict[str, requests.Session] = {}
+
+def _session_file(school_code: str, username: str) -> Path:
+    safe = f"{school_code}_{username}".replace("/", "_")
+    return SESSIONS_DIR / f"{safe}.json"
+
+def _save_session(sess: requests.Session, school_code: str, username: str) -> None:
+    SESSIONS_DIR.mkdir(exist_ok=True)
+    cookies = {c.name: {"value": c.value, "domain": c.domain, "path": c.path}
+               for c in sess.cookies}
+    _session_file(school_code, username).write_text(json.dumps(cookies))
+
+def _load_session(school_code: str, username: str) -> requests.Session | None:
+    f = _session_file(school_code, username)
+    if not f.exists():
+        return None
+    try:
+        data = json.loads(f.read_text())
+        sess = requests.Session()
+        for name, info in data.items():
+            sess.cookies.set(name, info["value"], domain=info.get("domain"), path=info.get("path"))
+        return sess
+    except Exception:
+        return None
+
+def get_cached_session(school_code: str, username: str, password: str) -> requests.Session:
+    key = f"{school_code}|{username}"
+    base = f"https://{school_code}.e-kreta.hu"
+
+    def _is_alive(sess: requests.Session) -> bool:
+        try:
+            r = sess.get(f"{base}/Tanulo/TanuloHaziFeladat", allow_redirects=False, timeout=8)
+            loc = r.headers.get("Location", "")
+            return r.status_code == 200 or (r.status_code in (301, 302) and "Login" not in loc)
+        except Exception:
+            return False
+
+    # 1. In-memory cache
+    sess = _session_cache.get(key)
+    if sess and _is_alive(sess):
+        return sess
+
+    # 2. Persisted cookies from disk (avoids re-login after server restart)
+    sess = _load_session(school_code, username)
+    if sess and _is_alive(sess):
+        _session_cache[key] = sess
+        return sess
+
+    # 3. Full re-login
+    sess = web_login(school_code, username, password)
+    _session_cache[key] = sess
+    _save_session(sess, school_code, username)
+    return sess
 
 NAP_HU   = {0: "hetfo", 1: "kedd", 2: "szerda", 3: "csutortok", 4: "pentek"}
 NAP_NEVO = ["Hétfő", "Kedd", "Szerda", "Csütörtök", "Péntek"]
@@ -107,6 +165,205 @@ def web_login(school_code: str, username: str, password: str) -> requests.Sessio
     if "e-kreta.hu" not in final.url or "Login" in final.url:
         raise Exception("Visszairányítás sikertelen – ellenőrizd a jelszót!")
     return session
+
+
+def get_tanulo_id(html: str) -> str:
+    for pattern in [
+        r'[Tt]anuloId["\']?\s*[:=]\s*["\']?(\d+)',
+        r'data-tanulo-id=["\'](\d+)["\']',
+        r'"TanuloId"\s*:\s*(\d+)',
+    ]:
+        m = re.search(pattern, html, re.IGNORECASE)
+        if m:
+            return m.group(1)
+    return ""
+
+
+def get_tanev_headers(session: requests.Session, base: str) -> dict:
+    """Fetch the házi feladat page and extract tanév selection headers."""
+    try:
+        resp = session.get(f"{base}/Tanulo/TanuloHaziFeladat", allow_redirects=True, timeout=15)
+        html = resp.text
+        tanev_id = tanev_sorsz = tanev_nev = None
+        for pattern in [
+            r'"selectedTanevId"\s*:\s*(\d+)',
+            r'selectedTanevId\s*=\s*(\d+)',
+            r'data-tanev-id=["\'](\d+)["\']',
+            r'TanevId["\']?\s*:\s*(\d+)',
+        ]:
+            m = re.search(pattern, html, re.IGNORECASE)
+            if m:
+                tanev_id = m.group(1)
+                break
+        for pattern in [
+            r'"selectedTanevSorszam"\s*:\s*(\d+)',
+            r'selectedTanevSorszam\s*=\s*(\d+)',
+            r'TanevSorszam["\']?\s*:\s*(\d+)',
+        ]:
+            m = re.search(pattern, html, re.IGNORECASE)
+            if m:
+                tanev_sorsz = m.group(1)
+                break
+        for pattern in [
+            r'"selectedTanevNev"\s*:\s*"([^"]+)"',
+            r'selectedTanevNev\s*=\s*["\']([^"\']+)["\']',
+            r'TanevNev["\']?\s*:\s*["\']([^"\']+)["\']',
+            r'(\d{4}/\d{4})',
+        ]:
+            m = re.search(pattern, html, re.IGNORECASE)
+            if m:
+                tanev_nev = m.group(1)
+                break
+        # Fallback: check session cookies for TanevId
+        if not tanev_id:
+            for cname in ["SelectedTanevId", "selectedTanevId", "TanevId", "tanev_id"]:
+                cval = session.cookies.get(cname)
+                if cval and str(cval).isdigit():
+                    tanev_id = str(cval)
+                    break
+        hdrs = {}
+        if tanev_id:
+            hdrs["X-Selected-TanevId"] = tanev_id
+        if tanev_sorsz:
+            hdrs["X-Selected-TanevSorszam"] = tanev_sorsz
+        if tanev_nev:
+            hdrs["X-Selected-TanevNev"] = tanev_nev
+        tanulo_id = get_tanulo_id(html)
+        if tanulo_id:
+            hdrs["_TanuloId"] = tanulo_id
+        return hdrs
+    except Exception as e:
+        app.logger.error(f"get_tanev_headers error: {e}")
+        return {}
+
+
+def fetch_hazifeladatok_all(school_code: str, username: str, password: str,
+                             logs: list | None = None) -> dict:
+    if logs is None:
+        logs = []
+    def log(msg): logs.append(msg)
+
+    base = f"https://{school_code}.e-kreta.hu"
+    log(f"Session ellenőrzés... ({username} @ {school_code})")
+    session = get_cached_session(school_code, username, password)
+    log("Session OK.")
+
+    tanev_hdrs = get_tanev_headers(session, base)
+    if tanev_hdrs:
+        log(f"Tanév: {tanev_hdrs.get('X-Selected-TanevNev','?')} (id={tanev_hdrs.get('X-Selected-TanevId','?')})")
+    else:
+        log("Figyelem: tanév fejlécek nem találhatók, próbálkozás fejlécek nélkül.")
+
+    req_hdrs = {**tanev_hdrs, "X-Requested-With": "XMLHttpRequest", "Accept": "application/json"}
+
+    import json as _json
+    log("Házi feladatok lekérése...")
+    resp = session.get(
+        f"{base}/api/TanuloHaziFeladatApi/GetTanulotHaziFeladatGrid",
+        params={
+            "sort": "HaziFeladatHatarido-asc",
+            "page": "1",
+            "pageSize": "100",
+            "group": "",
+            "filter": "",
+            "data": _json.dumps({"RegiHaziFeladatokElrejtese": False}),
+        },
+        headers=req_hdrs,
+    )
+    if not resp.ok:
+        log(f"API hiba {resp.status_code}: {resp.text[:400]}")
+        resp.raise_for_status()
+
+    raw = resp.json()
+    hazi_lista = raw.get("Data", raw) if isinstance(raw, dict) else raw
+    log(f"{len(hazi_lista)} házi feladat találva.")
+    if hazi_lista:
+        log(f"[debug] 1. item mezők: {list(hazi_lista[0].keys())}")
+        log(f"[debug] HaziFeladatId={hazi_lista[0].get('HaziFeladatId')}, ID={hazi_lista[0].get('ID')}")
+
+    tanulo_id = tanev_hdrs.get("_TanuloId", "")
+    # Fallback: try to get TanuloId from the homework list items themselves
+    if not tanulo_id and hazi_lista:
+        for field in ["TanuloId", "tanuloId", "Tanuloid"]:
+            v = hazi_lista[0].get(field)
+            if v:
+                tanulo_id = str(v)
+                break
+    log(f"TanuloId: {tanulo_id or 'NEM TALÁLTUNK – csonkított szövegek maradnak'}")
+
+    truncated = 0
+    for hf in hazi_lista:
+        hf_id = hf.get("HaziFeladatId") or hf.get("ID")
+        event_id = hf.get("EventId") or hf.get("TanitasiOraId", "")  # calendar event ID for tab
+        szoveg = hf.get("HaziFeladatSzoveg", "") or ""
+
+        # Fetch full text from detail tab if we have the calendar event ID
+        if event_id and tanulo_id:
+            ora_datum = hf.get("OraDatuma", "")
+            try:
+                # Convert ISO date to Kréta format: "2026. 09. 18. 0:00:00"
+                from datetime import datetime as _dt
+                d = _dt.fromisoformat(ora_datum[:19])
+                date_str = d.strftime("%-Y. %m. %d. %-H:%M:%S")
+            except Exception:
+                date_str = ora_datum
+            megoldva = "T" if hf.get("MegoldottHF_BOOL") else "F"
+            tab_resp = session.get(
+                f"{base}/Orarend/InformaciokOrarend/GetHaziFeladat_Tab",
+                params={"Id": event_id, "EventType": 2, "Date": date_str,
+                        "TanuloId": tanulo_id, "Megoldva": megoldva},
+                headers={"X-Requested-With": "XMLHttpRequest",
+                         "Referer": f"{base}/Orarend/InformaciokOrarend"},
+            )
+            if tab_resp.ok and tab_resp.text.strip():
+                soup = bs(tab_resp.text, "html.parser")
+                # Remove script/style noise, then grab the longest text block
+                for tag in soup(["script", "style", "button", "a"]):
+                    tag.decompose()
+                best = ""
+                for sel in [".hazifeladat-szoveg", "p.hazi-leiras", "div.leiras",
+                             "p", "div.content", "td", "div"]:
+                    for el in soup.select(sel):
+                        t = el.get_text(" ", strip=True)
+                        if len(t) > len(best):
+                            best = t
+                if best and len(best) >= len(szoveg):
+                    hf["HaziFeladatSzoveg"] = best
+                    truncated += 1
+            sleep(0.1)
+
+        if not hf_id:
+            hf["_Csatolmanyok"] = []
+            continue
+        cs_resp = session.get(
+            f"{base}/api/InformaciokOrarendApi/GetHFCsatolmanyokGridForHazi",
+            params={
+                "haziFeladatId": hf_id,
+                "sort": "FeltoltesDatum-asc",
+                "page": "1",
+                "pageSize": "100",
+                "group": "",
+                "filter": "",
+                "data": "{}",
+            },
+            headers=req_hdrs,
+        )
+        if cs_resp.ok:
+            cs_raw = cs_resp.json()
+            cs_list = cs_raw.get("Data", cs_raw) if isinstance(cs_raw, dict) else cs_raw
+            hf["_Csatolmanyok"] = cs_list if isinstance(cs_list, list) else []
+            if hf["_Csatolmanyok"]:
+                log(f"  {hf.get('TantargyNev','?')}: {len(hf['_Csatolmanyok'])} melléklet")
+        else:
+            hf["_Csatolmanyok"] = []
+            log(f"  Melléklet API hiba: {cs_resp.status_code} (haziFeladatId={hf_id})")
+        sleep(0.1)
+
+    if truncated:
+        log(f"{truncated} feladatnál teljes szöveget töltöttük le.")
+    total_cs = sum(len(hf.get("_Csatolmanyok", [])) for hf in hazi_lista)
+    log(f"Összesen {total_cs} melléklet.")
+    return {"hazi_lista": hazi_lista, "logs": logs}
 
 
 def fetch_orarend(school_code: str, username: str, password: str, hetek: int,
@@ -377,6 +634,9 @@ table.tt td.ora-num{background:#f1f5f9;text-align:center;font-weight:700;font-si
   <div class="row">
     <button class="btn-primary" id="fetchBtn" onclick="doFetch()">⬇ Órarend letöltése</button>
   </div>
+  <div class="row" style="margin-top:8px">
+    <button class="btn-secondary" id="haziBtn" onclick="doFetchHazi()" style="display:none">📚 Házi feladatok letöltése</button>
+  </div>
   <div id="log"></div>
 </div>
 
@@ -389,6 +649,12 @@ table.tt td.ora-num{background:#f1f5f9;text-align:center;font-weight:700;font-si
   <div class="tt-wrap"><table class="tt" id="ttTable"></table></div>
   <div style="margin-top:16px;font-size:12px;font-weight:700;color:#555">Config sheet sorok:</div>
   <div id="configOut"></div>
+</div>
+
+<div class="card" id="haziCard" style="display:none">
+  <div class="section-title">📚 Házi feladatok</div>
+  <div id="haziLog" style="background:#1e293b;color:#94a3b8;border-radius:9px;padding:12px;font-size:12px;font-family:monospace;white-space:pre-wrap;max-height:120px;overflow-y:auto;margin-bottom:12px;display:none"></div>
+  <div id="haziList"></div>
 </div>
 
 <script>
@@ -415,6 +681,7 @@ function selectProfile(i) {
   document.getElementById('selectedLabel').textContent = profiles[i].name;
   document.getElementById('resultCard').style.display = 'none';
   document.getElementById('log').style.display = 'none';
+  document.getElementById('haziBtn').style.display = '';
 }
 
 function newProfile() {
@@ -456,6 +723,8 @@ async function deleteProfile() {
   document.getElementById('editCard').style.display='none';
   document.getElementById('fetchCard').style.display='none';
   document.getElementById('resultCard').style.display='none';
+  document.getElementById('haziCard').style.display='none';
+  document.getElementById('haziBtn').style.display='none';
   await loadProfiles();
 }
 
@@ -526,6 +795,84 @@ async function downloadExcel() {
 function copyConfig() {
   const text = document.getElementById('configOut').textContent;
   navigator.clipboard.writeText(text).then(()=>alert('Config másolva!'));
+}
+
+async function doFetchHazi() {
+  if (activeIdx < 0) return;
+  const btn = document.getElementById('haziBtn');
+  btn.innerHTML = '<span class="spinner"></span>Letöltés...'; btn.disabled = true;
+  const logEl = document.getElementById('haziLog');
+  logEl.style.display = 'block'; logEl.textContent = '';
+  document.getElementById('haziCard').style.display = 'block';
+  document.getElementById('haziList').innerHTML = '<div style="color:#888;padding:12px">Betöltés...</div>';
+
+  const r = await fetch('/api/fetch_hazi', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({idx: activeIdx})});
+  const data = await r.json();
+  logEl.textContent = data.logs.join('\\n');
+  if (data.error) { logEl.textContent += '\\nHIBA: ' + data.error; }
+  else { renderHaziList(data.hazi_lista); }
+  btn.innerHTML = '📚 Házi feladatok letöltése'; btn.disabled = false;
+}
+
+function renderHaziList(lista) {
+  const el = document.getElementById('haziList');
+  if (!lista || !lista.length) {
+    el.innerHTML = '<div style="color:#888;padding:12px">Nincs házi feladat.</div>';
+    return;
+  }
+  const allCs = [];
+  lista.forEach(hf => (hf._Csatolmanyok||[]).forEach(cs => allCs.push({cs_id: cs.ID, fajlnev: cs.FajlNev, kiterjesztes: cs.FajlKiterjesztes})));
+
+  let html = '';
+  if (allCs.length > 0) {
+    html += `<div style="margin-bottom:12px"><button class="btn-primary" onclick="downloadAllCsatolmanyok(event)">📥 Összes melléklet letöltése (${allCs.length} fájl)</button></div>`;
+  }
+  html += '<table style="width:100%;border-collapse:collapse;font-size:13px">';
+  html += '<thead><tr style="background:#1a56db;color:#fff"><th style="padding:8px 6px;text-align:left">Tantárgy</th><th style="padding:8px 6px;text-align:left">Feladat</th><th style="padding:8px 6px;text-align:left">Határidő</th><th style="padding:8px 6px;text-align:left">Tanár</th><th style="padding:8px 6px;text-align:left">Mellékletek</th></tr></thead><tbody>';
+  lista.forEach((hf, i) => {
+    const bg = i % 2 === 0 ? '#f8fafc' : '#fff';
+    const hatarido = hf.HaziFeladatHatarido ? hf.HaziFeladatHatarido.slice(0,10) : '–';
+    const done = hf.MegoldottHF_BOOL ? '✅ ' : '';
+    const csHtml = (hf._Csatolmanyok||[]).map(cs => {
+      const mb = cs.FajlMeret ? `(${(cs.FajlMeret/1024/1024).toFixed(1)}MB)` : '';
+      const fname = encodeURIComponent(`${cs.FajlNev}.${cs.FajlKiterjesztes}`);
+      const url = `/api/download_csatolmany_one/${activeIdx}/${cs.ID}?fname=${fname}`;
+      return `<a href="${url}" download style="display:inline-flex;align-items:center;gap:4px;background:#dbeafe;color:#1e40af;padding:3px 8px;border-radius:5px;margin:2px;font-size:11px;font-weight:600;text-decoration:none">📎 ${cs.FajlNev}.${cs.FajlKiterjesztes} ${mb}</a>`;
+    }).join('');
+    html += `<tr style="background:${bg};border-bottom:1px solid #e0e7ef">
+      <td style="padding:8px 6px;font-weight:700;color:#1a56db">${hf.TantargyNev||'–'}</td>
+      <td style="padding:8px 6px">${done}${hf.HaziFeladatSzoveg||'–'}</td>
+      <td style="padding:8px 6px;color:#374151;white-space:nowrap">${hatarido}</td>
+      <td style="padding:8px 6px;font-size:12px;color:#64748b">${hf.TanarNeve||'–'}</td>
+      <td style="padding:8px 6px">${csHtml||'–'}</td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  el.innerHTML = html;
+  window._haziCsatolmanyok = allCs;
+}
+
+async function downloadAllCsatolmanyok(event) {
+  if (!window._haziCsatolmanyok || !window._haziCsatolmanyok.length) return;
+  const btn = event.target;
+  btn.innerHTML = '<span class="spinner" style="border-color:#fff;border-top-color:transparent"></span>Letöltés...';
+  btn.disabled = true;
+  const r = await fetch('/api/download_csatolmanyok/' + activeIdx, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({items: window._haziCsatolmanyok})
+  });
+  if (r.ok) {
+    const blob = await r.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'hazifeladat_mellekeletek.zip';
+    a.click();
+  } else {
+    alert('Hiba a letöltésnél: ' + await r.text());
+  }
+  btn.innerHTML = `📥 Összes melléklet letöltése (${window._haziCsatolmanyok.length} fájl)`;
+  btn.disabled = false;
 }
 
 loadProfiles();
@@ -599,6 +946,94 @@ def download_excel(idx):
         )
     except Exception as e:
         return str(e), 500
+
+
+@app.route("/api/fetch_hazi", methods=["POST"])
+def do_fetch_hazi():
+    data = request.get_json()
+    profiles = load_config()
+    idx = data.get("idx", 0)
+    if idx < 0 or idx >= len(profiles):
+        return jsonify({"error": "Érvénytelen profil", "logs": []})
+    p = profiles[idx]
+    logs = []
+    try:
+        result = fetch_hazifeladatok_all(p["school_code"], p["username"], p["password"], logs)
+        return jsonify({"hazi_lista": result["hazi_lista"], "logs": logs})
+    except Exception as e:
+        logs.append(f"KIVÉTEL: {e}")
+        return jsonify({"error": str(e), "logs": logs})
+
+
+@app.route("/api/download_csatolmanyok/<int:idx>", methods=["POST"])
+def download_csatolmanyok_zip(idx):
+    data = request.get_json()
+    items = data.get("items", [])
+    profiles = load_config()
+    if idx < 0 or idx >= len(profiles):
+        return "Érvénytelen profil", 404
+    p = profiles[idx]
+    try:
+        session = get_cached_session(p["school_code"], p["username"], p["password"])
+        base = f"https://{p['school_code']}.e-kreta.hu"
+
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+            for item in items:
+                cs_id = item["cs_id"]
+                fname = f"{item['fajlnev']}.{item['kiterjesztes']}"
+                dl_resp = session.post(
+                    f"{base}/api/HaziFeladatCsatolmanyokApi/DownloadCsatolmanyFile",
+                    data={"Id": cs_id},
+                    headers={"Referer": f"{base}/Tanulo/TanuloHaziFeladat"},
+                )
+                if dl_resp.ok and len(dl_resp.content) > 0:
+                    zf.writestr(fname, dl_resp.content)
+        buf.seek(0)
+        return send_file(
+            buf,
+            mimetype="application/zip",
+            as_attachment=True,
+            download_name=f"hazifeladat_mellekeletek_{p['name'].replace(' ','_')}.zip",
+        )
+    except Exception as e:
+        return str(e), 500
+
+
+@app.route("/api/download_csatolmany_one/<int:idx>/<int:cs_id>")
+def download_csatolmany_one(idx, cs_id):
+    """Download a single attachment file, streamed through Flask."""
+    from flask import Response
+    profiles = load_config()
+    if idx < 0 or idx >= len(profiles):
+        return Response("Érvénytelen profil", status=404)
+    p = profiles[idx]
+    fname = request.args.get("fname", f"csatolmany_{cs_id}")
+    try:
+        session = get_cached_session(p["school_code"], p["username"], p["password"])
+        base = f"https://{p['school_code']}.e-kreta.hu"
+
+        dl_resp = session.post(
+            f"{base}/api/HaziFeladatCsatolmanyokApi/DownloadCsatolmanyFile",
+            data={"Id": cs_id},
+            headers={"Referer": f"{base}/Tanulo/TanuloHaziFeladat"},
+            allow_redirects=True,
+            timeout=30,
+        )
+        app.logger.info(f"Download cs_id={cs_id}: status={dl_resp.status_code} "
+                        f"ct={dl_resp.headers.get('Content-Type')} len={len(dl_resp.content)}")
+
+        if not dl_resp.ok:
+            return Response(f"Letöltési hiba: {dl_resp.status_code}\n{dl_resp.text[:300]}",
+                            status=502, content_type="text/plain; charset=utf-8")
+
+        ct = dl_resp.headers.get("Content-Type", "application/octet-stream")
+        cd = dl_resp.headers.get("Content-Disposition") or f'attachment; filename="{fname}"'
+        return Response(dl_resp.content, content_type=ct,
+                        headers={"Content-Disposition": cd})
+    except Exception as e:
+        app.logger.error(f"Download exception cs_id={cs_id}: {e}")
+        return Response(str(e), status=500, content_type="text/plain; charset=utf-8")
 
 
 if __name__ == "__main__":
