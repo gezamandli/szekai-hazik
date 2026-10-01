@@ -852,27 +852,10 @@ function renderHaziList(lista) {
   window._haziCsatolmanyok = allCs;
 }
 
-async function downloadAllCsatolmanyok(event) {
+function downloadAllCsatolmanyok(event) {
   if (!window._haziCsatolmanyok || !window._haziCsatolmanyok.length) return;
-  const btn = event.target;
-  btn.innerHTML = '<span class="spinner" style="border-color:#fff;border-top-color:transparent"></span>Letöltés...';
-  btn.disabled = true;
-  const r = await fetch('/api/download_csatolmanyok/' + activeIdx, {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({items: window._haziCsatolmanyok})
-  });
-  if (r.ok) {
-    const blob = await r.blob();
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'hazifeladat_mellekeletek.zip';
-    a.click();
-  } else {
-    alert('Hiba a letöltésnél: ' + await r.text());
-  }
-  btn.innerHTML = `📥 Összes melléklet letöltése (${window._haziCsatolmanyok.length} fájl)`;
-  btn.disabled = false;
+  const ids = window._haziCsatolmanyok.map(c => c.cs_id).join(',');
+  window.location.href = `/api/download_zip/${activeIdx}?ids=${ids}`;
 }
 
 loadProfiles();
@@ -963,6 +946,42 @@ def do_fetch_hazi():
     except Exception as e:
         logs.append(f"KIVÉTEL: {e}")
         return jsonify({"error": str(e), "logs": logs})
+
+
+@app.route("/api/download_zip/<int:idx>")
+def download_zip_get(idx):
+    """GET endpoint for ZIP download – iOS Safari compatible (browser navigates to URL)."""
+    ids_str = request.args.get("ids", "")
+    cs_ids = [int(x) for x in ids_str.split(",") if x.strip().isdigit()]
+    profiles = load_config()
+    if idx < 0 or idx >= len(profiles) or not cs_ids:
+        return "Érvénytelen paraméter", 400
+    p = profiles[idx]
+    try:
+        session = get_cached_session(p["school_code"], p["username"], p["password"])
+        base = f"https://{p['school_code']}.e-kreta.hu"
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+            for cs_id in cs_ids:
+                dl_resp = session.post(
+                    f"{base}/api/HaziFeladatCsatolmanyokApi/DownloadCsatolmanyFile",
+                    data={"Id": cs_id},
+                    headers={"Referer": f"{base}/Tanulo/TanuloHaziFeladat"},
+                )
+                if dl_resp.ok and len(dl_resp.content) > 0:
+                    cd = dl_resp.headers.get("Content-Disposition", "")
+                    fname = re.search(r'filename="?([^"]+)"?', cd)
+                    fname = fname.group(1) if fname else f"csatolmany_{cs_id}"
+                    zf.writestr(fname, dl_resp.content)
+        buf.seek(0)
+        return send_file(
+            buf,
+            mimetype="application/zip",
+            as_attachment=True,
+            download_name=f"hazifeladat_mellekeletek_{p['name'].replace(' ','_')}.zip",
+        )
+    except Exception as e:
+        return str(e), 500
 
 
 @app.route("/api/download_csatolmanyok/<int:idx>", methods=["POST"])
