@@ -838,7 +838,7 @@ function renderSzamonkeresek(lista) {
     if (daysLeft <= 2) urgency = 'color:#dc2626;font-weight:700';
     else if (daysLeft <= 5) urgency = 'color:#d97706;font-weight:600';
     html += `<tr style="background:${bg};border-bottom:1px solid #e9d5ff">
-      <td style="padding:8px 6px;${urgency};white-space:nowrap">${dateStr}${daysLeft >= 0 ? ' <span style="font-size:11px;opacity:.7">(${daysLeft}n)</span>' : ''}</td>
+      <td style="padding:8px 6px;${urgency};white-space:nowrap">${dateStr}${daysLeft >= 0 ? ` <span style="font-size:11px;opacity:.7">(${daysLeft}n)</span>` : ''}</td>
       <td style="padding:8px 6px;color:#6b21a8;font-size:12px">${it.HetNapjaNev||'–'} ${it.Oraszam||''}. óra</td>
       <td style="padding:8px 6px;font-weight:700;color:#7c3aed">${it.TargyNev||'–'}</td>
       <td style="padding:8px 6px;font-size:12px;background:#ede9fe;border-radius:5px">${it.ErtekelesModNev||'–'}</td>
