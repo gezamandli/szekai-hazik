@@ -636,6 +636,7 @@ table.tt td.ora-num{background:#f1f5f9;text-align:center;font-weight:700;font-si
   </div>
   <div class="row" style="margin-top:8px">
     <button class="btn-secondary" id="haziBtn" onclick="doFetchHazi()" style="display:none">📚 Házi feladatok letöltése</button>
+    <button class="btn-secondary" id="szamonBtn" onclick="doFetchSzamonkeresek()" style="display:none;margin-left:8px">📝 Számonkérések letöltése</button>
   </div>
   <div id="log"></div>
 </div>
@@ -655,6 +656,11 @@ table.tt td.ora-num{background:#f1f5f9;text-align:center;font-weight:700;font-si
   <div class="section-title">📚 Házi feladatok</div>
   <div id="haziLog" style="background:#1e293b;color:#94a3b8;border-radius:9px;padding:12px;font-size:12px;font-family:monospace;white-space:pre-wrap;max-height:120px;overflow-y:auto;margin-bottom:12px;display:none"></div>
   <div id="haziList"></div>
+</div>
+
+<div class="card" id="szamonCard" style="display:none">
+  <div class="section-title">📝 Bejelentett számonkérések</div>
+  <div id="szamonList"></div>
 </div>
 
 <script>
@@ -682,6 +688,7 @@ function selectProfile(i) {
   document.getElementById('resultCard').style.display = 'none';
   document.getElementById('log').style.display = 'none';
   document.getElementById('haziBtn').style.display = '';
+  document.getElementById('szamonBtn').style.display = '';
 }
 
 function newProfile() {
@@ -725,6 +732,8 @@ async function deleteProfile() {
   document.getElementById('resultCard').style.display='none';
   document.getElementById('haziCard').style.display='none';
   document.getElementById('haziBtn').style.display='none';
+  document.getElementById('szamonCard').style.display='none';
+  document.getElementById('szamonBtn').style.display='none';
   await loadProfiles();
 }
 
@@ -795,6 +804,50 @@ async function downloadExcel() {
 function copyConfig() {
   const text = document.getElementById('configOut').textContent;
   navigator.clipboard.writeText(text).then(()=>alert('Config másolva!'));
+}
+
+async function doFetchSzamonkeresek() {
+  if (activeIdx < 0) return;
+  const btn = document.getElementById('szamonBtn');
+  btn.innerHTML = '<span class="spinner"></span>Letöltés...'; btn.disabled = true;
+  document.getElementById('szamonCard').style.display = 'block';
+  try {
+    const r = await fetch('/api/fetch_szamonkeresek', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({idx: activeIdx})});
+    const d = await r.json();
+    if (d.error) { alert('Hiba: ' + d.error); }
+    else { renderSzamonkeresek(d.lista); }
+  } catch(e) { alert('Hálózati hiba: ' + e); }
+  btn.innerHTML = '📝 Számonkérések letöltése'; btn.disabled = false;
+}
+
+function renderSzamonkeresek(lista) {
+  const el = document.getElementById('szamonList');
+  if (!lista || !lista.length) {
+    el.innerHTML = '<div style="color:#888;padding:12px">Nincs bejelentett számonkérés.</div>';
+    return;
+  }
+  const today = new Date(); today.setHours(0,0,0,0);
+  let html = '<table style="width:100%;border-collapse:collapse;font-size:13px">';
+  html += '<thead><tr style="background:#7c3aed;color:#fff"><th style="padding:8px 6px;text-align:left">Dátum</th><th style="padding:8px 6px;text-align:left">Nap</th><th style="padding:8px 6px;text-align:left">Tantárgy</th><th style="padding:8px 6px;text-align:left">Típus</th><th style="padding:8px 6px;text-align:left">Megnevezés</th><th style="padding:8px 6px;text-align:left">Tanár</th></tr></thead><tbody>';
+  lista.forEach((it, i) => {
+    const dt = new Date(it.SzamonkeresDatuma);
+    const daysLeft = Math.round((dt - today) / 86400000);
+    const dateStr = dt.toLocaleDateString('hu-HU', {month:'short', day:'numeric', weekday:'short'});
+    const bg = i % 2 === 0 ? '#faf5ff' : '#fff';
+    let urgency = '';
+    if (daysLeft <= 2) urgency = 'color:#dc2626;font-weight:700';
+    else if (daysLeft <= 5) urgency = 'color:#d97706;font-weight:600';
+    html += `<tr style="background:${bg};border-bottom:1px solid #e9d5ff">
+      <td style="padding:8px 6px;${urgency};white-space:nowrap">${dateStr}${daysLeft >= 0 ? ' <span style="font-size:11px;opacity:.7">(${daysLeft}n)</span>' : ''}</td>
+      <td style="padding:8px 6px;color:#6b21a8;font-size:12px">${it.HetNapjaNev||'–'} ${it.Oraszam||''}. óra</td>
+      <td style="padding:8px 6px;font-weight:700;color:#7c3aed">${it.TargyNev||'–'}</td>
+      <td style="padding:8px 6px;font-size:12px;background:#ede9fe;border-radius:5px">${it.ErtekelesModNev||'–'}</td>
+      <td style="padding:8px 6px">${it.SzamonkeresMegnevezes||'–'}</td>
+      <td style="padding:8px 6px;font-size:12px;color:#64748b">${it.TanarNev||'–'}</td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  el.innerHTML = html;
 }
 
 async function doFetchHazi() {
@@ -946,6 +999,50 @@ def do_fetch_hazi():
     except Exception as e:
         logs.append(f"KIVÉTEL: {e}")
         return jsonify({"error": str(e), "logs": logs})
+
+
+@app.route("/api/fetch_szamonkeresek", methods=["POST"])
+def fetch_szamonkeresek_route():
+    import json as _json
+    data = request.get_json()
+    idx = data.get("idx", 0)
+    profiles = load_config()
+    if idx < 0 or idx >= len(profiles):
+        return jsonify({"error": "Érvénytelen profil"})
+    p = profiles[idx]
+    def _do_fetch(session):
+        tanev_hdrs = get_tanev_headers(session, base)
+        req_hdrs = {**tanev_hdrs, "X-Requested-With": "XMLHttpRequest", "Accept": "application/json"}
+        resp = session.get(
+            f"{base}/api/TanuloBejelentettSzamonkeresekApi/GetBejelentettSzamonkeresekGrid",
+            params={
+                "sort": "SzamonkeresDatuma-asc~Oraszam-asc",
+                "page": "1", "pageSize": "200",
+                "group": "", "filter": "",
+                "data": _json.dumps({"RegiSzamonkeresekElrejtese": False}),
+            },
+            headers=req_hdrs,
+        )
+        return resp
+    try:
+        base = f"https://{p['school_code']}.e-kreta.hu"
+        session = get_cached_session(p["school_code"], p["username"], p["password"])
+        resp = _do_fetch(session)
+        # Ha a session lejárt (HTML login oldal jön vissza 200-zal), újra loginolunk
+        if "application/json" not in resp.headers.get("Content-Type", ""):
+            app.logger.info("Session lejárt számonkérésnél, fresh login...")
+            session = web_login(p["school_code"], p["username"], p["password"])
+            _save_session(session, p["school_code"], p["username"])
+            _session_cache[f"{p['school_code']}|{p['username']}"] = session
+            resp = _do_fetch(session)
+        if not resp.ok:
+            return jsonify({"error": f"API hiba {resp.status_code}"})
+        raw = resp.json()
+        lista = raw.get("Data", raw) if isinstance(raw, dict) else raw
+        return jsonify({"lista": lista if isinstance(lista, list) else []})
+    except Exception as e:
+        app.logger.error(f"fetch_szamonkeresek error: {e}")
+        return jsonify({"error": str(e)})
 
 
 @app.route("/api/download_zip/<int:idx>")
