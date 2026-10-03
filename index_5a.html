@@ -1393,7 +1393,11 @@ function confirmTemplate(){
     hideTplFill();
   }
 }
-function cancelTemplate(){hideTplFill();}
+function cancelTemplate(){
+  if(_tplMode==='unified'){confirmTemplate();hideTplFill();}
+  else if(_tplMode==='spec'){confirmTemplate();}
+  else{hideTplFill();}
+}
 function hideTplFill(){document.getElementById('tplFillRow').style.display='none';_tplMode=null;_activeForrás=null;_specIdx=null;}
 
 // ── Add/Edit ──────────────────────────────────────────
