@@ -391,7 +391,7 @@ body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg)
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v15.3</span><span id="scriptVersion"></span></div>
+<div style="position:fixed;bottom:4px;left:50%;transform:translateX(-50%);font-size:10px;color:rgba(0,0,0,.25);z-index:50;pointer-events:none;display:flex;gap:8px"><span>App v18</span><span id="scriptVersion"></span></div>
 
 <script>
 let sortBy=localStorage.getItem('hz_sort_by_7a')||'due';
@@ -502,6 +502,11 @@ function dueInfo(ds){
 }
 function fmtDate(s){if(!s)return'–';const d=new Date(s);if(isNaN(d))return s;return d.toLocaleDateString('hu-HU',{month:'short',day:'numeric',weekday:'short'});}
 function fmtDT(s){if(!s)return'';const d=new Date(s);if(isNaN(d))return s;return d.toLocaleString('hu-HU',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});}
+function linkifyDesc(text){
+  if(!text)return'';
+  const esc=String(text).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  return esc.replace(/(https?:\/\/[^\s<>"']+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>');
+}
 let _tt;
 function showToast(msg,dur=2700){clearTimeout(_tt);const t=document.getElementById('toast');t.textContent=msg;t.classList.add('on');if(dur<99999)_tt=setTimeout(()=>t.classList.remove('on'),dur);}
 function hideToast(){document.getElementById('toast').classList.remove('on');}
@@ -1011,7 +1016,7 @@ function renderTrash(){
     if(item._type==='doc'){
       return`<div class="card" style="opacity:.8">
         <div class="card-head"><div class="subj">📁 ${item.title||'Névtelen'}</div><div class="badge nodue">Dokumentum</div></div>
-        <div class="desc">${item.desc||''}</div>
+        <div class="desc">${linkifyDesc(item.desc)}</div>
         <div class="meta">
           <span class="tag">🗑️ ${fmtDT(item.deletedAt)} · ${item.deletedBy||''}</span>
           <span style="margin-left:auto;display:flex;gap:6px">
@@ -1023,7 +1028,7 @@ function renderTrash(){
     }
     return`<div class="card" style="opacity:.8">
       <div class="card-head"><div class="subj">${item.subject}</div><div class="badge nodue">${fmtDate(item.due)||'Nincs határidő'}</div></div>
-      <div class="desc">${item.desc}</div>
+      <div class="desc">${linkifyDesc(item.desc)}</div>
       <div class="meta">
         <span class="tag">🗑️ ${fmtDT(item.deletedAt)} · ${item.deletedBy||''}</span>
         <span style="margin-left:auto;display:flex;gap:6px">
@@ -1126,7 +1131,7 @@ function cardHTML(h,selMode=false){
       ${chk}<div class="subj">${h.subject}${typeLabel}</div>
       <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">${isFav(h.id)?'<span style="font-size:14px;line-height:1">❤️</span>':''}${doneBtn}<div class="badge ${cls}">${text}</div></div>
     </div>
-    <div class="desc">${h.desc}</div>
+    <div class="desc">${linkifyDesc(h.desc)}</div>
     ${imgs.length?`<div class="thumbs">${imgs.map(u=>{
       const ext2=(u||'').split('.').pop().toLowerCase().split('?')[0];
       const isImg2=['jpg','jpeg','png','gif','webp'].includes(ext2)||(u.includes('/image/upload/')&&ext2!=='pdf');
@@ -1136,7 +1141,7 @@ function cardHTML(h,selMode=false){
         :`<a href="${u}" target="_blank" style="display:inline-flex;align-items:center;justify-content:center;width:52px;height:52px;background:#f3f4f6;border-radius:8px;border:1.5px solid var(--line);font-size:26px;text-decoration:none">${icon2}</a>`;
     }).join('')}${extra>0?`<div class="thumb-more">+${extra}</div>`:''}</div>`:''}
     <div class="meta">
-      ${h.note?`<span class="tag">📌 ${h.note}</span>`:''}
+      ${h.note?`<span class="tag">📌 ${linkifyDesc(h.note)}</span>`:''}
       ${imgs.length?`<span class="tag">🖼️ ${h.images.length}</span>`:''}
       <span class="who">⬆️ ${h.uploader} · ${fmtDT(h.uploaded)}${h.modifiedBy?' · ✏️ '+h.modifiedBy+' '+fmtDT(h.modifiedAt):''}</span>
     </div>
@@ -1204,7 +1209,7 @@ function renderNotifyList(){
   el.innerHTML=items.length?items.map(h=>{const{text,cls}=dueInfo(effectiveDue(h));return`<div class="card" data-id="${h.id}">
     <div class="card-head"><div class="subj">${h.subject}</div>
       <div style="display:flex;align-items:center;gap:5px;flex-shrink:0">${isFav(h.id)?'<span style="font-size:15px">❤️</span>':''}<div class="badge ${cls}">${text}</div></div>
-    <div class="desc">${h.desc}</div>
+    <div class="desc">${linkifyDesc(h.desc)}</div>
     <div style="margin-top:8px;font-size:13px;color:var(--blue);font-weight:700;">💬 Értesítő generálása →</div>
   </div>`;}).join(''):`<div class="empty"><div class="ico">💬</div><p>Nincs aktív feladat.</p></div>`;
   el.querySelectorAll('.card').forEach(c=>c.onclick=()=>openNotify(c.dataset.id));
@@ -1222,8 +1227,8 @@ function openDetail(id){
       <div style="font-size:20px;font-weight:900">${h.subject}</div>
       <div class="badge ${cls}" style="font-size:13px">${text}</div>
     </div>
-    <div style="font-size:15px;line-height:1.6;margin-bottom:7px">${h.desc}</div>
-    ${h.note?`<div class="info-row">📌 ${h.note}</div>`:''}
+    <div style="font-size:15px;line-height:1.6;margin-bottom:7px">${linkifyDesc(h.desc)}</div>
+    ${h.note?`<div class="info-row">📌 ${linkifyDesc(h.note)}</div>`:''}
     <div class="info-row">⬆️ <b>${h.uploader}</b> · ${fmtDT(h.uploaded)}</div>
     ${h.modifiedBy?`<div class="info-row" style="font-size:12px;color:var(--ink2)">✏️ Módosította: <b>${h.modifiedBy}</b> · ${fmtDT(h.modifiedAt)}</div>`:''}
     
@@ -2444,7 +2449,7 @@ function docCardHTML(d){
     <div style="display:flex;justify-content:space-between;align-items:flex-start">
       <div class="doc-title">${d.title||'Névtelen'} ${fav}</div>
     </div>
-    ${d.desc?`<div class="doc-desc">${d.desc}</div>`:''}
+    ${d.desc?`<div class="doc-desc">${linkifyDesc(d.desc)}</div>`:''}
     ${d.tags&&d.tags.length?`<div class="doc-tags">${d.tags.map(t=>`<span class="doc-tag">${t}</span>`).join('')}</div>`:''}
     ${fileIcons?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">${fileIcons}</div>`:''}
     <div class="doc-meta">⬆️ ${d.uploader} · ${fmtDT(d.uploaded)}${d.modifiedBy?' · ✏️ '+d.modifiedBy+' '+fmtDT(d.modifiedAt):''}</div>
@@ -2463,7 +2468,7 @@ function openDocDetail(id){
     <button onclick="closeDocDetail()" style="position:absolute;top:12px;right:16px;background:var(--bg);border:none;border-radius:50%;width:32px;height:32px;font-size:18px;cursor:pointer;color:var(--ink2)">✕</button>
     <div style="padding:4px 0 16px">
       <div style="font-size:20px;font-weight:900;margin-bottom:6px">${d.title||'Névtelen'}</div>
-      ${d.desc?`<div style="font-size:14px;color:var(--ink2);margin-bottom:10px;line-height:1.6">${d.desc}</div>`:''}
+      ${d.desc?`<div style="font-size:14px;color:var(--ink2);margin-bottom:10px;line-height:1.6">${linkifyDesc(d.desc)}</div>`:''}
       ${d.tags.length?`<div class="doc-tags" style="margin-bottom:12px">${d.tags.map(t=>`<span class="doc-tag">${t}</span>`).join('')}</div>`:''}
       ${files.length?`<div style="margin-bottom:14px">
         <div style="font-size:12px;font-weight:800;color:var(--ink2);text-transform:uppercase;margin-bottom:8px">Fájlok</div>
